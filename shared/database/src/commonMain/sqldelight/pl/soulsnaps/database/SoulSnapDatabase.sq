@@ -1,0 +1,61 @@
+import kotlin.Boolean;
+
+-- Memory.sq
+CREATE TABLE memories (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    mood TEXT,
+    photoUri TEXT,
+    audioUri TEXT,
+    locationName TEXT,
+    latitude REAL,
+    longitude REAL,
+    affirmation TEXT,
+    isFavorite INTEGER AS Boolean NOT NULL,
+    isSynced INTEGER AS Boolean NOT NULL DEFAULT 0
+);
+
+selectAll:
+SELECT * FROM memories ORDER BY timestamp DESC;
+
+selectById:
+SELECT * FROM memories WHERE id = ?;
+
+insertMemory:
+INSERT INTO memories (
+    title, description, timestamp, mood, photoUri, audioUri,
+    locationName, latitude, longitude, affirmation, isFavorite, isSynced
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateMemory:
+UPDATE memories SET
+    title = ?,
+    description = ?,
+    timestamp = ?,
+    mood = ?,
+    photoUri = ?,
+    audioUri = ?,
+    locationName = ?,
+    latitude = ?,
+    longitude = ?,
+    affirmation = ?,
+    isFavorite = ?,
+    isSynced = ?
+WHERE id = ?;
+
+deleteMemoryById:
+DELETE FROM memories WHERE id = ?;
+
+markAsFavorite:
+UPDATE memories SET isFavorite = ? WHERE id = ?;
+
+getUnsyncedMemories:
+SELECT * FROM memories WHERE isSynced = 0;
+
+markAsSynced:
+UPDATE memories SET isSynced = 1 WHERE id = ?;
+
+clearAll:
+DELETE FROM memories;
