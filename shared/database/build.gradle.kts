@@ -13,7 +13,7 @@ kotlin {
     androidLibrary {
         namespace = "pl.soulsnaps.database"
         compileSdk = 36
-minSdk = 26
+        minSdk = 26
 
         withHostTestBuilder {
         }
@@ -24,6 +24,7 @@ minSdk = 26
             instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         }
     }
+
 
     // For iOS targets, this is also where you should
     // configure native binary output. For more information, see:

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun PrimaryButton(text: String,
                   modifier: Modifier = Modifier,
+                  enabled: Boolean = true,
                   onClick: () -> Unit) {
     Column {
         Button(

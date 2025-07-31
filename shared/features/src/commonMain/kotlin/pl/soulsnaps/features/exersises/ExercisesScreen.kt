@@ -1,77 +1,197 @@
 package pl.soulsnaps.features.exersises
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.soulunity.ui.components.EmotionCategory
-import com.soulunity.ui.components.EmotionQuizSection
-import com.soulunity.ui.components.EmotionWheelCircular
-import com.soulunity.ui.components.EmotionWheelSection
-import com.soulunity.ui.components.EmotionWheelSection1
-import com.soulunity.ui.components.Exercise
-import com.soulunity.ui.components.ExerciseListSection
-import com.soulunity.ui.components.RitualSection
+import org.koin.compose.viewmodel.koinViewModel
+import pl.soulsnaps.data.InMemoryExerciseRepository
+import pl.soulsnaps.domain.interactor.GetCompletedExercisesUseCase
+import pl.soulsnaps.domain.interactor.MarkExerciseCompletedUseCase
+import pl.soulsnaps.domain.model.Ritual
 
 @Composable
-internal fun ExercisesRoute() {
-    App()
+internal fun ExercisesRoute(
+    onOpenBreathing: () -> Unit,
+    onOpenGratitude: () -> Unit
+) {
+    ExercisesScreen(onOpenBreathing, onOpenGratitude)
 }
 
 @Composable
-fun ExercisesScreen() {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Column {
-                Text(
-                    text = "Ćwiczenia i Nauka",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Zadbaj o swój nastrój i emocjonalną równowagę",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
+fun ExercisesScreen(
+    onOpenBreathing: () -> Unit = {},
+    onOpenGratitude: () -> Unit = {}
+) {
+    // Dependency initialization (can use DI framework in a larger app)
+    val exerciseRepository = InMemoryExerciseRepository()
+    val markExerciseCompletedUseCase = MarkExerciseCompletedUseCase(exerciseRepository)
+    val getCompletedExercisesUseCase = GetCompletedExercisesUseCase(exerciseRepository)
+    val viewModel: ExercisesViewModel = koinViewModel()
 
-        item {
-            EmotionWheelSection()
-        }
+    val state by viewModel.state.collectAsState()
 
-        item {
-            ExerciseListSection(
-                title = "Polecane ćwiczenia",
-                exercises = sampleExercises
+    if (state.isBreathingSessionActive) {
+        BreathingSessionScreen(
+            phase = state.breathingPhase,
+            timeRemaining = state.breathingTimeRemaining,
+            phaseProgress = state.breathingPhaseProgress,
+            onSessionEnd = { viewModel.endBreathingSession() }
+        )
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            // Emotion Wheel Section
+            EmotionWheelCircular(
+                emotions = state.emotions,
+                selectedEmotionIds = state.selectedEmotionWheelIds,
+                onSelectionChanged = { viewModel.onEmotionSelectionChanged(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+                    .padding(bottom = 16.dp)
             )
-        }
 
-        item {
-            EmotionQuizSection(onQuizComplete = { emotion ->
-                // TODO: Obsłuż wynik quizu – np. pokaż afirmację
-            })
-        }
+            Spacer(modifier = Modifier.height(16.dp))
 
-        item {
-            RitualSection()
+            // Emotion Quiz Section
+            EmotionQuizSection(
+                emotions = state.emotions,
+                selectedQuizEmotion = state.selectedQuizEmotion,
+                onQuizEmotionSelected = { viewModel.onQuizEmotionSelected(it) },
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Exercise List Section
+            ExerciseListSection(
+                exercises = state.exercises,
+                onExerciseCompleted = { id, completed ->
+                    viewModel.onExerciseCompleted(id, completed)
+                },
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Breathing Session Preview
+            BreathingSessionPreview(
+                onStartSession = { viewModel.startBreathingSession() },
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- Gratitude Section ---
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Wdzięczność", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Zapisz 1-3 rzeczy, za które jesteś dziś wdzięczny.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = onOpenGratitude,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Przejdź do dziennika wdzięczności")
+                    }
+                }
+            }
+            // --- End Gratitude Section ---
+
+            // Daily Rituals Section
+            RitualSection(
+                rituals = state.rituals,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
         }
     }
 }
 
-// Przykładowe dane
-val sampleExercises = listOf(
-    Exercise("1", "Oddech 4-7-8", "Ćwiczenie uspokajające oddech", EmotionCategory.CALM, listOf("Wdech 4 sekundy", "Wstrzymaj oddech 7 sekund", "Wydech 8 sekund")),
-    Exercise("2", "Wdzięczność", "Zapisz 3 rzeczy, za które jesteś wdzięczny", EmotionCategory.JOY, listOf("Zastanów się nad dniem", "Wypisz 3 pozytywne rzeczy"))
-)
+@Composable
+fun RitualSection(
+    rituals: List<Ritual>,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Rytuały Dnia",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        Column(
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+        ) {
+            rituals.forEach { ritual ->
+                RitualCard(ritual = ritual)
+            }
+        }
+    }
+}
+
+/**
+ * Karta pojedynczego rytuału.
+ * Single ritual card.
+ */
+@Composable
+fun RitualCard(
+    ritual: Ritual
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = ritual.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = ritual.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Zawiera: ${ritual.exercises.joinToString { it.title }}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            // TODO: Dodać przycisk "Rozpocznij Rytuał" i integrację z AI Coachem
+            // TODO: Add "Start Ritual" button and integration with AI Coach
+        }
+    }
+}

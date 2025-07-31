@@ -13,7 +13,7 @@ import pl.soulsnaps.domain.QuoteRepository
 object DataModule {
     fun get() = module {
         singleOf(::AffirmationRepositoryImpl) { bind<AffirmationRepository>()}
-        singleOf(::MemoryRepositoryImpl) { bind<MemoryRepository>()}
-        singleOf(::FakeQuoteRepository) { bind<QuoteRepository>()}
+        single<MemoryRepository> {  MemoryRepositoryImpl(get()) }
+        single<QuoteRepository> { FakeQuoteRepository() }
     }
 }

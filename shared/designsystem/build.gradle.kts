@@ -74,6 +74,11 @@ minSdk = 26
             dependencies {
                 implementation("androidx.activity:activity-compose:1.7.2")
                 implementation(libs.kotlinx.datetime)
+                implementation(libs.androidx.camera.core)
+                implementation(libs.androidx.camera.view)
+                implementation(libs.androidx.camera.lifecycle)
+                implementation(libs.androidx.camera.camera2)
+                implementation("com.google.accompanist:accompanist-permissions:0.37.3")
                 // Add Android-specific dependencies here. Note that this source set depends on
                 // commonMain by default and will correctly pull the Android artifacts of any KMP
                 // dependencies declared in commonMain.

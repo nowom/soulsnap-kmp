@@ -12,8 +12,11 @@ data object ExerciseRoute
 fun NavController.navigateToExercises(navOptions: NavOptions? = null) =
     navigate(ExerciseRoute, navOptions)
 
-fun NavGraphBuilder.exercisesScreen() {
+fun NavGraphBuilder.exercisesScreen(
+    onOpenBreathing: () -> Unit,
+    onOpenGratitude: () -> Unit
+) {
     composable<ExerciseRoute> {
-        ExercisesRoute()
+        ExercisesRoute(onOpenBreathing, onOpenGratitude)
     }
 }

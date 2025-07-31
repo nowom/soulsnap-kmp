@@ -16,6 +16,7 @@ sealed class Screen(val route: String, val label: String, val icon: String) {
     object SoulSnaps : Screen("snaps", "Snapy", "📷")
     object Affirmations : Screen("affirmations", "Afirmacje", "🎧")
     object Profile : Screen("profile", "Profil", "⚙️")
+    object Coach : Screen("coach", "Coach", "🧠")
 
     companion object {
         val bottomNav = listOf(Dashboard, SoulSnaps, Affirmations, Profile)

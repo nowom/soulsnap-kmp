@@ -17,8 +17,20 @@ fun NavController.navigateToBaseDashboard(navOptions: NavOptions? = null) =
 fun NavController.navigateToDashboard(navOptions: NavOptions? = null) =
     navigate(DashboardRoute, navOptions)
 
-fun NavGraphBuilder.dashboardScreen() {
+fun NavGraphBuilder.dashboardScreen(
+    onAddNewSnap: () -> Unit = {},
+    onNavigateToSoulSnaps: () -> Unit = {},
+    onNavigateToAffirmations: () -> Unit = {},
+    onNavigateToExercises: () -> Unit = {},
+    onNavigateToVirtualMirror: () -> Unit = {}
+) {
     composable<DashboardRoute> {
-        DashboardScreen()
+        DashboardScreen(
+            onAddNewSnap = onAddNewSnap,
+            onNavigateToSoulSnaps = onNavigateToSoulSnaps,
+            onNavigateToAffirmations = onNavigateToAffirmations,
+            onNavigateToExercises = onNavigateToExercises,
+            onNavigateToVirtualMirror = onNavigateToVirtualMirror
+        )
     }
 }
