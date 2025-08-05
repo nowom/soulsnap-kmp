@@ -78,6 +78,7 @@ kotlin {
             dependencies {
                 implementation(libs.mapbox.compose.android)
                 implementation(libs.mapbox.core.android)
+                implementation(libs.androidx.datastore)
             }
         }
 

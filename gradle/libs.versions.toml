@@ -27,6 +27,7 @@ dateTimeVersion = "0.6.2"
 ktor = "3.2.0"
 sqlDelight = "2.1.0"
 mapbox = "11.12.0"
+dataStrore = "1.1.7"
 
 [libraries]
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCore" }
@@ -71,6 +72,7 @@ sqldelight-coroutines = { group = "app.cash.sqldelight", name = "coroutines-exte
 
 mapbox-compose-android = { group = "com.mapbox.extension", name = "maps-compose",  version.ref = "mapbox"}
 mapbox-core-android = { group = "com.mapbox.maps", name = "android", version.ref = "mapbox"}
+androidx-datastore = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "dataStrore"}
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

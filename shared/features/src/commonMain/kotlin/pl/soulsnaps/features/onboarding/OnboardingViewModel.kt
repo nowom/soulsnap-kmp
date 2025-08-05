@@ -7,39 +7,56 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import pl.soulsnaps.features.analytics.AnalyticsManager
 
-class OnboardingViewModel : ViewModel() {
+class OnboardingViewModel(
+    private val analyticsManager: AnalyticsManager
+) : ViewModel() {
 
     private val _state = MutableStateFlow(OnboardingState())
     val state: StateFlow<OnboardingState> = _state.asStateFlow()
 
+    init {
+        analyticsManager.startOnboarding()
+        analyticsManager.startStep("WELCOME")
+    }
+
     fun handleIntent(intent: OnboardingIntent) {
         when (intent) {
-            is OnboardingIntent.NextStep -> nextStep()
-            is OnboardingIntent.PreviousStep -> previousStep()
-            is OnboardingIntent.SkipVoiceSetup -> {
-                _state.update { it.copy(voiceRecordingPath = null) }
+            is OnboardingIntent.NextStep -> {
+                analyticsManager.completeStep(_state.value.currentStep.name)
                 nextStep()
             }
-            is OnboardingIntent.RecordVoice -> {
-                _state.update { it.copy(voiceRecordingPath = intent.audioPath) }
+            is OnboardingIntent.PreviousStep -> {
+                analyticsManager.completeStep(_state.value.currentStep.name)
+                previousStep()
+            }
+            is OnboardingIntent.SkipTour -> {
+                analyticsManager.skipStep("APP_TOUR")
+                // Skip the app tour and go to get started
+                _state.update { it.copy(currentStep = OnboardingStep.GET_STARTED) }
+            }
+            is OnboardingIntent.SelectFocus -> {
+                analyticsManager.completeStep(_state.value.currentStep.name)
+                _state.update { it.copy(selectedFocus = intent.focus) }
                 nextStep()
             }
-            is OnboardingIntent.SelectGoal -> {
-                _state.update { it.copy(selectedGoal = intent.goal) }
+            is OnboardingIntent.Authenticate -> {
+                analyticsManager.trackAuthAttempt(intent.authType.name, true)
+                // Handle authentication - for now just advance
                 nextStep()
             }
-            is OnboardingIntent.GrantPermission -> {
-                _state.update { 
-                    it.copy(permissionsGranted = it.permissionsGranted + intent.permission) 
-                }
-                // Auto-advance if all permissions are granted
-                if (_state.value.permissionsGranted.size >= Permission.values().size) {
-                    nextStep()
-                }
+            is OnboardingIntent.UpdateEmail -> {
+                _state.update { it.copy(email = intent.email) }
+            }
+            is OnboardingIntent.UpdatePassword -> {
+                _state.update { it.copy(password = intent.password) }
             }
             is OnboardingIntent.GetStarted -> {
-                // TODO: Save onboarding data and navigate to main app
+                analyticsManager.completeOnboarding(
+                    selectedFocus = _state.value.selectedFocus?.name,
+                    authMethod = null // TODO: Get from auth state
+                )
                 completeOnboarding()
             }
         }
@@ -48,25 +65,27 @@ class OnboardingViewModel : ViewModel() {
     private fun nextStep() {
         val currentStep = _state.value.currentStep
         val nextStep = when (currentStep) {
-            OnboardingStep.WELCOME -> OnboardingStep.VOICE_SETUP
-            OnboardingStep.VOICE_SETUP -> OnboardingStep.GOALS
-            OnboardingStep.GOALS -> OnboardingStep.PERMISSIONS
-            OnboardingStep.PERMISSIONS -> OnboardingStep.GET_STARTED
+            OnboardingStep.WELCOME -> OnboardingStep.APP_TOUR
+            OnboardingStep.APP_TOUR -> OnboardingStep.PERSONALIZATION
+            OnboardingStep.PERSONALIZATION -> OnboardingStep.AUTH
+            OnboardingStep.AUTH -> OnboardingStep.GET_STARTED
             OnboardingStep.GET_STARTED -> OnboardingStep.GET_STARTED // Already at end
         }
         _state.update { it.copy(currentStep = nextStep) }
+        analyticsManager.startStep(nextStep.name)
     }
 
     private fun previousStep() {
         val currentStep = _state.value.currentStep
         val previousStep = when (currentStep) {
             OnboardingStep.WELCOME -> OnboardingStep.WELCOME // Already at start
-            OnboardingStep.VOICE_SETUP -> OnboardingStep.WELCOME
-            OnboardingStep.GOALS -> OnboardingStep.VOICE_SETUP
-            OnboardingStep.PERMISSIONS -> OnboardingStep.GOALS
-            OnboardingStep.GET_STARTED -> OnboardingStep.PERMISSIONS
+            OnboardingStep.APP_TOUR -> OnboardingStep.WELCOME
+            OnboardingStep.PERSONALIZATION -> OnboardingStep.APP_TOUR
+            OnboardingStep.AUTH -> OnboardingStep.PERSONALIZATION
+            OnboardingStep.GET_STARTED -> OnboardingStep.AUTH
         }
         _state.update { it.copy(currentStep = previousStep) }
+        analyticsManager.startStep(previousStep.name)
     }
 
     private fun completeOnboarding() {
@@ -78,6 +97,7 @@ class OnboardingViewModel : ViewModel() {
                 kotlinx.coroutines.delay(500)
                 _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
+                analyticsManager.trackError(e.message ?: "Unknown error", "Onboarding")
                 _state.update { 
                     it.copy(
                         isLoading = false,
@@ -91,9 +111,9 @@ class OnboardingViewModel : ViewModel() {
     fun canGoNext(): Boolean {
         return when (_state.value.currentStep) {
             OnboardingStep.WELCOME -> true
-            OnboardingStep.VOICE_SETUP -> true // Can skip
-            OnboardingStep.GOALS -> _state.value.selectedGoal != null
-            OnboardingStep.PERMISSIONS -> _state.value.permissionsGranted.isNotEmpty()
+            OnboardingStep.APP_TOUR -> true // Can skip
+            OnboardingStep.PERSONALIZATION -> _state.value.selectedFocus != null
+            OnboardingStep.AUTH -> true // Can always proceed from auth
             OnboardingStep.GET_STARTED -> true
         }
     }

@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,19 +20,22 @@ import pl.soulsnaps.data.InMemoryExerciseRepository
 import pl.soulsnaps.domain.interactor.GetCompletedExercisesUseCase
 import pl.soulsnaps.domain.interactor.MarkExerciseCompletedUseCase
 import pl.soulsnaps.domain.model.Ritual
+import pl.soulsnaps.features.exersises.SimplePlutchikWheel
 
 @Composable
 internal fun ExercisesRoute(
     onOpenBreathing: () -> Unit,
-    onOpenGratitude: () -> Unit
+    onOpenGratitude: () -> Unit,
+    onOpenEmotionWheel: () -> Unit
 ) {
-    ExercisesScreen(onOpenBreathing, onOpenGratitude)
+    ExercisesScreen(onOpenBreathing, onOpenGratitude, onOpenEmotionWheel)
 }
 
 @Composable
 fun ExercisesScreen(
     onOpenBreathing: () -> Unit = {},
-    onOpenGratitude: () -> Unit = {}
+    onOpenGratitude: () -> Unit = {},
+    onOpenEmotionWheel: () -> Unit = {}
 ) {
     // Dependency initialization (can use DI framework in a larger app)
     val exerciseRepository = InMemoryExerciseRepository()
@@ -55,16 +59,23 @@ fun ExercisesScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Emotion Wheel Section
-            EmotionWheelCircular(
-                emotions = state.emotions,
-                selectedEmotionIds = state.selectedEmotionWheelIds,
-                onSelectionChanged = { viewModel.onEmotionSelectionChanged(it) },
+            // Simple Plutchik Wheel Section
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(300.dp)
                     .padding(bottom = 16.dp)
-            )
+            ) {
+                Text(
+                    text = "Koło Emocji",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                SimplePlutchikWheel(
+                    onWheelClick = onOpenEmotionWheel,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 

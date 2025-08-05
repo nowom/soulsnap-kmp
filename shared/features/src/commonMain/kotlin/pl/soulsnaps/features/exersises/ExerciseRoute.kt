@@ -14,9 +14,10 @@ fun NavController.navigateToExercises(navOptions: NavOptions? = null) =
 
 fun NavGraphBuilder.exercisesScreen(
     onOpenBreathing: () -> Unit,
-    onOpenGratitude: () -> Unit
+    onOpenGratitude: () -> Unit,
+    onOpenEmotionWheel: () -> Unit,
 ) {
     composable<ExerciseRoute> {
-        ExercisesRoute(onOpenBreathing, onOpenGratitude)
+        ExercisesRoute(onOpenBreathing, onOpenGratitude, onOpenEmotionWheel)
     }
 }
