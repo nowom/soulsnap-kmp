@@ -22,6 +22,11 @@ import pl.soulsnaps.features.exersises.ExerciseRoute
 import pl.soulsnaps.features.exersises.navigateToExercises
 import pl.soulsnaps.features.memoryhub.MemoryHubRoute
 import pl.soulsnaps.features.memoryhub.navigateToMemoryHub
+import pl.soulsnaps.features.onboarding.OnboardingRoute
+import pl.soulsnaps.features.auth.LoginRoute
+import pl.soulsnaps.features.coach.BreathingSessionRoute
+import pl.soulsnaps.features.coach.GratitudeRoute
+import pl.soulsnaps.features.exersises.plutchikwheel.ModernEmotionWheelRoute
 import kotlin.reflect.KClass
 
 @Stable
@@ -106,9 +111,17 @@ internal class SoulSnapAppState(
     }
 
     val shouldShowFab: Boolean
-        @Composable get() = currentDestination?.route !in listOf(
-            CaptureMomentRoute::class.qualifiedName
-        )
+        @Composable get() {
+            val currentRoute = currentDestination?.route
+            return currentRoute !in listOf(
+                CaptureMomentRoute::class.qualifiedName,
+                OnboardingRoute::class.qualifiedName,
+                LoginRoute::class.qualifiedName,
+                ModernEmotionWheelRoute::class.qualifiedName,
+                BreathingSessionRoute::class.qualifiedName,
+                GratitudeRoute::class.qualifiedName,
+            )
+        }
 }
 
 @Composable

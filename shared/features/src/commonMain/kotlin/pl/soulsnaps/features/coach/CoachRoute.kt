@@ -32,28 +32,52 @@ fun NavGraphBuilder.coachScreen(
     }
 }
 
+@Serializable
+data object CoachQuizRoute
+
+fun NavController.navigateToCoachQuiz(navOptions: NavOptions? = null) =
+    navigate(CoachQuizRoute, navOptions)
+
 fun NavGraphBuilder.coachQuizScreen(
     onDone: () -> Unit = {}
 ) {
-    composable("coachQuiz") {
+    composable<CoachQuizRoute> {
         CoachQuizScreen(onDone = onDone)
     }
 }
 
+@Serializable
+data object BreathingSessionRoute
+
+fun NavController.navigateToBreathingSession(navOptions: NavOptions? = null) =
+    navigate(BreathingSessionRoute, navOptions)
+
 fun NavGraphBuilder.breathingSessionScreen(onDone: () -> Unit = {}) {
-    composable("breathingSession") {
+    composable<BreathingSessionRoute> {
         BreathingSessionScreenPolished(onBack = onDone)
     }
 }
 
+@Serializable
+data object CoachEmotionWheelRoute
+
+fun NavController.navigateToCoachEmotionWheel(navOptions: NavOptions? = null) =
+    navigate(CoachEmotionWheelRoute, navOptions)
+
 fun NavGraphBuilder.emotionWheelScreen(onDone: () -> Unit = {}) {
-    composable("emotionWheel") {
+    composable<CoachEmotionWheelRoute> {
         EmotionWheelScreen(onBack = onDone)
     }
 }
 
+@Serializable
+data object GratitudeRoute
+
+fun NavController.navigateToGratitude(navOptions: NavOptions? = null) =
+    navigate(GratitudeRoute, navOptions)
+
 fun NavGraphBuilder.gratitudeScreen(onDone: () -> Unit = {}) {
-    composable("gratitude") {
+    composable<GratitudeRoute> {
         GratitudeScreen(onBack = onDone)
     }
-} 
+}

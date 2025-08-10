@@ -62,6 +62,10 @@ kotlin {
                 implementation(libs.kotlinx.datetime)
 
                 // Add KMP dependencies here
+                // Ktor (KMP)
+                implementation(libs.ktor.client.core)
+                implementation(libs.ktor.client.content.negotiation)
+                implementation(libs.ktor.serialization.kotlinx.json)
             }
         }
 
@@ -79,6 +83,7 @@ kotlin {
                 implementation(libs.mapbox.compose.android)
                 implementation(libs.mapbox.core.android)
                 implementation(libs.androidx.datastore)
+                implementation(libs.ktor.client.android)
             }
         }
 
@@ -91,6 +96,7 @@ kotlin {
                 // part of KMP’s default source set hierarchy. Note that this source set depends
                 // on common by default and will correctly pull the iOS artifacts of any
                 // KMP dependencies declared in commonMain.
+                implementation(libs.ktor.client.darwin)
             }
         }
     }

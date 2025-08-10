@@ -16,10 +16,14 @@ fun NavController.navigateToOnboarding(navOptions: NavOptions? = null) =
 
 fun NavGraphBuilder.onboardingScreen(
     onComplete: () -> Unit,
-    onLogin: ()-> Unit,
-    onRegister: ()-> Unit,
+    onLogin: () -> Unit,
+    onRegister: () -> Unit,
 ) {
     composable<OnboardingRoute> {
-        OnboardingScreen(onComplete = onComplete, onLogin = onLogin)
+        OnboardingScreen(
+            onComplete = onComplete,
+            onLogin = onLogin,
+            onRegister = onRegister
+        )
     }
 } 

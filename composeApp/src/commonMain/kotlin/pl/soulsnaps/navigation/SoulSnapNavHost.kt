@@ -14,12 +14,15 @@ import pl.soulsnaps.features.capturemoment.captureMomentScreen
 import pl.soulsnaps.features.capturemoment.navigateToCaptureMoment
 import pl.soulsnaps.features.coach.breathingSessionScreen
 import pl.soulsnaps.features.coach.gratitudeScreen
+import pl.soulsnaps.features.coach.navigateToBreathingSession
+import pl.soulsnaps.features.coach.navigateToGratitude
 import pl.soulsnaps.features.dashboard.dashboardScreen
 import pl.soulsnaps.features.dashboard.navigateToDashboard
 import pl.soulsnaps.features.exersises.exercisesScreen
 import pl.soulsnaps.features.exersises.navigateToExercises
-import pl.soulsnaps.features.exersises.plutchikwheel.App
-import pl.soulsnaps.features.exersises.plutchikwheel.ModernEmotionWheelScreen
+import pl.soulsnaps.features.exersises.plutchikwheel.modernEmotionWheelScreen
+import pl.soulsnaps.features.exersises.plutchikwheel.navigateToModernEmotionWheel
+import pl.soulsnaps.features.exersises.plutchikwheel.ModernEmotionWheelRoute
 import pl.soulsnaps.features.memoryhub.memoryHubTab
 import pl.soulsnaps.features.memoryhub.navigateToMemoryHub
 import pl.soulsnaps.features.onboarding.OnboardingRoute
@@ -75,9 +78,7 @@ internal fun SoulSnapNavHost(
             onBack = { navController.popBackStack() }
         )
         loginScreen(
-            onLoginSuccess = {
-
-            }
+            onLoginSuccess = { navController.navigateToDashboard() }
         )
         registrationScreen(
             onRegistrationSuccess = {}
@@ -88,17 +89,12 @@ internal fun SoulSnapNavHost(
 
         })
         exercisesScreen(
-            onOpenBreathing = { navController.navigate("breathingSession") },
-            onOpenGratitude = { navController.navigate("gratitude") },
-            onOpenEmotionWheel = { navController.navigate("modernEmotionWheel") }
+            onOpenBreathing = { navController.navigateToBreathingSession() },
+            onOpenGratitude = { navController.navigateToGratitude() },
+            onOpenEmotionWheel = { navController.navigateToModernEmotionWheel() }
         )
         breathingSessionScreen(onDone = { navController.popBackStack() })
         gratitudeScreen(onDone = { navController.popBackStack() })
-        composable("modernEmotionWheel") {
-            //App()
-            ModernEmotionWheelScreen(
-                onBackClick = { navController.popBackStack() }
-            )
-        }
+        modernEmotionWheelScreen(onDone = { navController.popBackStack() })
     }
 }

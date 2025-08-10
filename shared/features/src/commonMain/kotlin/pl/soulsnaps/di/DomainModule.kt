@@ -13,6 +13,9 @@ import pl.soulsnaps.domain.interactor.GetQuoteOfTheDayUseCase
 import pl.soulsnaps.domain.interactor.GetSoulSnapUseCase
 import pl.soulsnaps.domain.interactor.SaveMemoryUseCase
 import pl.soulsnaps.domain.interactor.ToggleFavoriteUseCase
+import pl.soulsnaps.domain.interactor.SignInUseCase
+import pl.soulsnaps.domain.interactor.RegisterUseCase
+import pl.soulsnaps.domain.interactor.SignInAnonymouslyUseCase
 
 object DomainModule {
     fun get() = module {
@@ -22,6 +25,9 @@ object DomainModule {
         factoryOf(::ToggleFavoriteUseCase)
         factoryOf(::GetQuoteOfTheDayUseCase)
         factoryOf(::GetSoulSnapUseCase)
+        factoryOf(::SignInUseCase)
+        factoryOf(::RegisterUseCase)
+        factoryOf(::SignInAnonymouslyUseCase)
         single<AffirmationGenerator>(qualifier = named("openai")) {
             RuleBasedAffirmationGenerator()
         }
