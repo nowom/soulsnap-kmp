@@ -18,6 +18,7 @@ import pl.soulsnaps.features.coach.navigateToBreathingSession
 import pl.soulsnaps.features.coach.navigateToGratitude
 import pl.soulsnaps.features.dashboard.dashboardScreen
 import pl.soulsnaps.features.dashboard.navigateToDashboard
+import pl.soulsnaps.features.dashboard.DashboardRoute
 import pl.soulsnaps.features.exersises.exercisesScreen
 import pl.soulsnaps.features.exersises.navigateToExercises
 import pl.soulsnaps.features.exersises.plutchikwheel.modernEmotionWheelScreen
@@ -43,8 +44,6 @@ internal fun SoulSnapNavHost(
     modifier: Modifier = Modifier,
 ) {
     val navController = appState.navController
-    var quizCompletedToday by remember { mutableStateOf(false) }
-    var streak by remember { mutableStateOf(0) }
     
     // Use the OnboardingCompletionTracker composable to handle completion status
 //    OnboardingCompletionTracker(
@@ -63,9 +62,17 @@ internal fun SoulSnapNavHost(
         modifier = modifier,
     ) {
         onboardingScreen(
-            onComplete = { navController.navigateToDashboard() },
-            onLogin = { navController.navigateToLogin() },
-            onRegister = { navController.navigateToRegistration() }
+            onComplete = { 
+                navController.navigate(DashboardRoute) {
+                    popUpTo(OnboardingRoute) { inclusive = true }
+                }
+            },
+            onLogin = { 
+                navController.navigateToLogin()
+            },
+            onRegister = { 
+                navController.navigateToRegistration()
+            }
         )
         dashboardScreen(
             onAddNewSnap = { navController.navigateToCaptureMoment() },
@@ -78,7 +85,20 @@ internal fun SoulSnapNavHost(
             onBack = { navController.popBackStack() }
         )
         loginScreen(
-            onLoginSuccess = { navController.navigateToDashboard() }
+            onLoginSuccess = { 
+                println("DEBUG: onLoginSuccess called")
+                navController.navigate(DashboardRoute) {
+                    popUpTo(LoginRoute) { inclusive = true }
+                }
+            },
+            onBack = { navController.popBackStack() },
+            onNavigateToRegister = { navController.navigateToRegistration() },
+            onContinueAsGuest = { 
+                println("DEBUG: onContinueAsGuest called")
+                navController.navigate(DashboardRoute) {
+                    popUpTo(LoginRoute) { inclusive = true }
+                }
+            }
         )
         registrationScreen(
             onRegistrationSuccess = {}

@@ -8,20 +8,35 @@ class FakeAuthService {
 
     suspend fun signIn(email: String, password: String): UserSession {
         delay(300)
-        current = UserSession(userId = "u_${email.hashCode()}", email = email, isAnonymous = false)
+        current = UserSession(
+            userId = "u_${email.hashCode()}",
+            email = email,
+            isAnonymous = false,
+            displayName = email.substringBefore("@")
+        )
         return current!!
     }
 
     suspend fun register(email: String, password: String): UserSession {
         delay(500)
-        current = UserSession(userId = "u_${email.hashCode()}", email = email, isAnonymous = false)
+        current = UserSession(
+            userId = "u_${email.hashCode()}",
+            email = email,
+            isAnonymous = false,
+            displayName = email.substringBefore("@")
+        )
         return current!!
     }
 
     suspend fun signInAnonymously(): UserSession {
         delay(200)
         // Use a simple increasing id for KMP compatibility
-        current = UserSession(userId = "guest_${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}", email = null, isAnonymous = true)
+        current = UserSession(
+            userId = "guest_${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}",
+            email = null,
+            isAnonymous = true,
+            displayName = "Guest User"
+        )
         return current!!
     }
 

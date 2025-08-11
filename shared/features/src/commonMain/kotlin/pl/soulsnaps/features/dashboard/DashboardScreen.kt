@@ -52,6 +52,8 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    
+    println("DEBUG: DashboardScreen composable called")
 
     if (state.isLoading) {
         FullScreenCircularProgress()

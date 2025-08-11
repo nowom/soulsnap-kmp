@@ -40,6 +40,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
+import pl.soulsnaps.components.LoadingButton
+import pl.soulsnaps.components.AnimatedErrorMessage
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.alpha
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,6 +61,8 @@ fun LoginScreen(
     onBack: () -> Unit = {},
     onNavigateToRegister: () -> Unit = {},
     onContinueAsGuest: () -> Unit = {},
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
 ) {
     // Full-bleed modern background
     Column(
@@ -76,10 +85,17 @@ fun LoginScreen(
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
 
-        // Center content card
+        // Center content card with entrance animation
+        val cardAlpha by animateFloatAsState(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 800, delayMillis = 200),
+            label = "cardAlpha"
+        )
+        
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .alpha(cardAlpha)
                 .clip(MaterialTheme.shapes.extraLarge),
             elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -150,12 +166,21 @@ fun LoginScreen(
 
                 Spacer(Modifier.height(16.dp))
 
-                Button(
+                // Error message with animation
+                AnimatedErrorMessage(
+                    message = errorMessage,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                LoadingButton(
+                    text = "Sign in",
                     onClick = onLoginClick,
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Sign in")
-                }
+                    isLoading = isLoading,
+                    loadingText = "Signing in..."
+                )
 
                 Spacer(Modifier.height(8.dp))
 

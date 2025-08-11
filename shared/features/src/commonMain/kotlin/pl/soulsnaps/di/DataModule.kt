@@ -13,6 +13,9 @@ import pl.soulsnaps.network.HttpClientFactory
 import pl.soulsnaps.domain.AffirmationRepository
 import pl.soulsnaps.domain.MemoryRepository
 import pl.soulsnaps.domain.QuoteRepository
+import pl.soulsnaps.features.auth.SessionDataStore
+import pl.soulsnaps.features.auth.InMemorySessionDataStore
+import pl.soulsnaps.features.auth.UserSessionManager
 
 object DataModule {
     fun get() = module {
@@ -21,6 +24,8 @@ object DataModule {
         single<QuoteRepository> { FakeQuoteRepository() }
         single { FakeAuthService() }
         single<AuthRepository> { AuthRepositoryImpl(get()) }
+        single<SessionDataStore> { InMemorySessionDataStore() }
+        single { UserSessionManager(get()) }
         single { HttpClientFactory().create() }
     }
 }

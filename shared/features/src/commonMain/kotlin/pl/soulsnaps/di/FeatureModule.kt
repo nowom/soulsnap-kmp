@@ -21,6 +21,7 @@ import pl.soulsnaps.features.analytics.FakeAnalyticsRepository
 import pl.soulsnaps.features.virtualmirror.VirtualMirrorViewModel
 import pl.soulsnaps.features.auth.AuthViewModel
 import pl.soulsnaps.features.auth.LoginViewModel
+import pl.soulsnaps.features.auth.UserSessionManager
 
 object FeatureModule {
     fun get() = module {
@@ -43,6 +44,7 @@ object FeatureModule {
         viewModelOf(::VirtualMirrorViewModel)
         viewModelOf(::AuthViewModel)
         viewModelOf(::LoginViewModel)
+
         single<ExerciseRepository> { InMemoryExerciseRepository() }
         single { GetCompletedExercisesUseCase(get()) }
         single { MarkExerciseCompletedUseCase(get()) }

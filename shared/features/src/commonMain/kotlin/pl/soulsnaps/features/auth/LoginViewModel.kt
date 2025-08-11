@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.interactor.SignInUseCase
+import pl.soulsnaps.domain.interactor.SignInAnonymouslyUseCase
 
 data class LoginUiState(
     val email: String = "",
@@ -15,7 +16,6 @@ data class LoginUiState(
     val passwordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val isSuccess: Boolean = false,
 )
 
 sealed interface LoginIntent {
@@ -23,15 +23,25 @@ sealed interface LoginIntent {
     data class UpdatePassword(val password: String) : LoginIntent
     data object TogglePasswordVisible : LoginIntent
     data object Submit : LoginIntent
+    data object ContinueAsGuest : LoginIntent
     data object ClearError : LoginIntent
+    data object ClearNavigationEvent : LoginIntent
+}
+
+sealed interface LoginNavigationEvent {
+    data object NavigateToDashboard : LoginNavigationEvent
 }
 
 class LoginViewModel(
-    private val signInUseCase: SignInUseCase
+    private val signInUseCase: SignInUseCase,
+    private val signInAnonymouslyUseCase: SignInAnonymouslyUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginUiState())
     val state: StateFlow<LoginUiState> = _state.asStateFlow()
+
+    private val _navigationEvents = MutableStateFlow<LoginNavigationEvent?>(null)
+    val navigationEvents: StateFlow<LoginNavigationEvent?> = _navigationEvents.asStateFlow()
 
     fun handleIntent(intent: LoginIntent) {
         when (intent) {
@@ -39,7 +49,9 @@ class LoginViewModel(
             is LoginIntent.UpdatePassword -> _state.update { it.copy(password = intent.password) }
             is LoginIntent.TogglePasswordVisible -> _state.update { it.copy(passwordVisible = !it.passwordVisible) }
             is LoginIntent.ClearError -> _state.update { it.copy(errorMessage = null) }
+            is LoginIntent.ClearNavigationEvent -> _navigationEvents.update { null }
             is LoginIntent.Submit -> submit()
+            is LoginIntent.ContinueAsGuest -> continueAsGuest()
         }
     }
 
@@ -67,9 +79,23 @@ class LoginViewModel(
             _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 signInUseCase(email, password)
-                _state.update { it.copy(isLoading = false, isSuccess = true) }
+                _state.update { it.copy(isLoading = false) }
+                _navigationEvents.update { LoginNavigationEvent.NavigateToDashboard }
             } catch (t: Throwable) {
                 _state.update { it.copy(isLoading = false, errorMessage = t.message ?: "Login failed") }
+            }
+        }
+    }
+
+    private fun continueAsGuest() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, errorMessage = null) }
+            try {
+                signInAnonymouslyUseCase()
+                _state.update { it.copy(isLoading = false) }
+                _navigationEvents.update { LoginNavigationEvent.NavigateToDashboard }
+            } catch (t: Throwable) {
+                _state.update { it.copy(isLoading = false, errorMessage = t.message ?: "Guest login failed") }
             }
         }
     }
