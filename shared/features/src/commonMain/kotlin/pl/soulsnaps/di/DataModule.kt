@@ -8,6 +8,11 @@ import pl.soulsnaps.data.AuthRepositoryImpl
 import pl.soulsnaps.data.FakeQuoteRepository
 import pl.soulsnaps.data.FakeAuthService
 import pl.soulsnaps.data.MemoryRepositoryImpl
+import pl.soulsnaps.data.SupabaseAuthRepository
+import pl.soulsnaps.data.SupabaseMemoryRepository
+import pl.soulsnaps.network.SupabaseAuthService
+import pl.soulsnaps.network.SupabaseDatabaseService
+import pl.soulsnaps.config.AuthConfig
 import pl.soulsnaps.domain.AuthRepository
 import pl.soulsnaps.network.HttpClientFactory
 import pl.soulsnaps.domain.AffirmationRepository
@@ -20,12 +25,45 @@ import pl.soulsnaps.features.auth.UserSessionManager
 object DataModule {
     fun get() = module {
         singleOf(::AffirmationRepositoryImpl) { bind<AffirmationRepository>()}
-        single<MemoryRepository> {  MemoryRepositoryImpl(get()) }
+
         single<QuoteRepository> { FakeQuoteRepository() }
         single { FakeAuthService() }
-        single<AuthRepository> { AuthRepositoryImpl(get()) }
+        
+        // Supabase configuration
+        single {
+            SupabaseAuthService(
+                httpClient = get(),
+                supabaseUrl = AuthConfig.SUPABASE_URL,
+                supabaseAnonKey = AuthConfig.SUPABASE_ANON_KEY
+            )
+        }
+        
+        single {
+            SupabaseDatabaseService(
+                httpClient = get(),
+                supabaseUrl = AuthConfig.SUPABASE_URL,
+                supabaseAnonKey = AuthConfig.SUPABASE_ANON_KEY
+            )
+        }
+        
+        single<AuthRepository> { 
+            if (AuthConfig.USE_SUPABASE_AUTH) {
+                SupabaseAuthRepository(get())
+            } else {
+                AuthRepositoryImpl(get())
+            }
+        }
+        
+        single<MemoryRepository> { 
+            if (AuthConfig.USE_SUPABASE_AUTH) {
+                SupabaseMemoryRepository(get())
+            } else {
+                MemoryRepositoryImpl(get())
+            }
+        }
         single<SessionDataStore> { InMemorySessionDataStore() }
         single { UserSessionManager(get()) }
         single { HttpClientFactory().create() }
+
     }
 }
