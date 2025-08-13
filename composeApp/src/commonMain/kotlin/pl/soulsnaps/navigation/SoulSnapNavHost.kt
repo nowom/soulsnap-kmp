@@ -37,6 +37,8 @@ import pl.soulsnaps.features.auth.RegistrationRoute
 import pl.soulsnaps.features.auth.navigateToLogin
 import pl.soulsnaps.features.auth.navigateToRegistration
 import pl.soulsnaps.features.auth.registrationScreen
+import pl.soulsnaps.features.memoryhub.details.memoryDetailsScreen
+import pl.soulsnaps.features.memoryhub.details.navigateToMemoryDetails
 
 @Composable
 internal fun SoulSnapNavHost(
@@ -105,9 +107,25 @@ internal fun SoulSnapNavHost(
         )
         captureMomentScreen()
         affirmationsScreen()
-        memoryHubTab({
-
-        })
+        memoryHubTab(
+            onMemoryClick = { memoryId ->
+                navController.navigateToMemoryDetails(memoryId)
+            }
+        )
+        memoryDetailsScreen(
+            onBack = { navController.popBackStack() },
+            onEdit = { 
+                // TODO: Navigate to edit screen
+                navController.popBackStack()
+            },
+            onDelete = { 
+                // TODO: Show delete confirmation
+                navController.popBackStack()
+            },
+            onShare = { 
+                // TODO: Implement share functionality
+            }
+        )
         exercisesScreen(
             onOpenBreathing = { navController.navigateToBreathingSession() },
             onOpenGratitude = { navController.navigateToGratitude() },

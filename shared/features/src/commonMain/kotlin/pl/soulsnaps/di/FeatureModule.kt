@@ -22,6 +22,7 @@ import pl.soulsnaps.features.virtualmirror.VirtualMirrorViewModel
 import pl.soulsnaps.features.auth.AuthViewModel
 import pl.soulsnaps.features.auth.LoginViewModel
 import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.features.memoryhub.details.MemoryDetailsViewModel
 
 object FeatureModule {
     fun get() = module {
@@ -44,6 +45,7 @@ object FeatureModule {
         viewModelOf(::VirtualMirrorViewModel)
         viewModelOf(::AuthViewModel)
         viewModelOf(::LoginViewModel)
+        viewModelOf(::MemoryDetailsViewModel)
 
         single<ExerciseRepository> { InMemoryExerciseRepository() }
         single { GetCompletedExercisesUseCase(get()) }

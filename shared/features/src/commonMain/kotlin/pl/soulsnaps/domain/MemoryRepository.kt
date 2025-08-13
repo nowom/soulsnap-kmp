@@ -9,5 +9,5 @@ interface MemoryRepository {
 //    suspend fun addMemory(memory: Memory)
 //    suspend fun deleteMemory(id: Int)
 //    suspend fun updateMemory(memory: Memory)
-//    suspend fun markAsFavorite(id: Int, isFavorite: Boolean)
+    suspend fun markAsFavorite(id: Int, isFavorite: Boolean)
 }

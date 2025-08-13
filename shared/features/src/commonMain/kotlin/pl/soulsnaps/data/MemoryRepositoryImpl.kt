@@ -76,6 +76,13 @@ class MemoryRepositoryImpl(
     }
 
     override suspend fun getMemoryById(id: Int): Memory? {
-        TODO("Not yet implemented")
+        delay(200) // simulate network delay
+        return fakeMemories.find { it.id == id }
+    }
+
+    override suspend fun markAsFavorite(id: Int, isFavorite: Boolean) {
+        delay(100) // simulate network delay
+        // In a real implementation, this would update the database
+        // For now, we'll just simulate success
     }
 }

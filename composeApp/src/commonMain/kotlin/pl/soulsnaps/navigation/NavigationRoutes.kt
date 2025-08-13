@@ -5,6 +5,11 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.Psychology
 import pl.soulsnaps.features.affirmation.AffirmationsRoute
 import pl.soulsnaps.features.dashboard.DashboardRoute
 import pl.soulsnaps.features.exersises.ExerciseRoute
@@ -44,12 +49,13 @@ fun BottomNavBar(
 
 data class BottomNavItem(
     val title: String,
-    val route: KClass<*>
+    val route: KClass<*>,
+    val icon: ImageVector
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem("Home", DashboardRoute::class),
-    BottomNavItem("Soul Snap", MemoryHubRoute::class),
-    BottomNavItem("Affirmations", AffirmationsRoute::class),
-    BottomNavItem(" Exercise", ExerciseRoute::class),
+    BottomNavItem("Home", DashboardRoute::class, Icons.Default.Home),
+    BottomNavItem("Soul Snap", MemoryHubRoute::class, Icons.Default.PhotoLibrary),
+    BottomNavItem("Affirmations", AffirmationsRoute::class, Icons.Default.Headphones),
+    BottomNavItem("Exercise", ExerciseRoute::class, Icons.Default.Psychology),
 )

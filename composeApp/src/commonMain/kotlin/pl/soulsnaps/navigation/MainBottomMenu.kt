@@ -1,7 +1,6 @@
 package pl.soulsnaps.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -33,7 +32,7 @@ fun MainBottomMenu(
                 onClick = { onNavigateToDestination(destination) },
                 icon = {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = destination.icon,
                         contentDescription = destination.title
                     )
                 },
