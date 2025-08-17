@@ -79,6 +79,8 @@ minSdk = 26
                 implementation(libs.androidx.camera.lifecycle)
                 implementation(libs.androidx.camera.camera2)
                 implementation("com.google.accompanist:accompanist-permissions:0.37.3")
+                implementation("com.google.android.gms:play-services-location:21.0.1")
+                implementation("com.google.android.gms:play-services-maps:18.2.0")
                 // Add Android-specific dependencies here. Note that this source set depends on
                 // commonMain by default and will correctly pull the Android artifacts of any KMP
                 // dependencies declared in commonMain.
