@@ -1,5 +1,7 @@
 package pl.soulsnaps.features.auth.model
 
+import kotlinx.datetime.Clock
+
 /**
  * App Features - Funkcje dostępne w aplikacji SoulSnaps
  * Każda funkcja ma przypisaną kategorię i może być chroniona przez scope
@@ -170,7 +172,7 @@ data class UserUsageStats(
     val storageUsedGB: Float,
     val dailyAnalysisCount: Int,
     val monthlyExportsCount: Int,
-    val lastActivity: Long = System.currentTimeMillis()
+    val lastActivity: Long = Clock.System.now().toEpochMilliseconds()
 )
 
 /**

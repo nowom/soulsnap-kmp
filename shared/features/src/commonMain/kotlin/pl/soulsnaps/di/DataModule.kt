@@ -18,13 +18,19 @@ import pl.soulsnaps.network.HttpClientFactory
 import pl.soulsnaps.domain.AffirmationRepository
 import pl.soulsnaps.domain.MemoryRepository
 import pl.soulsnaps.domain.QuoteRepository
+import pl.soulsnaps.database.dao.MemoryDao
+import pl.soulsnaps.database.DatabaseModule
 import pl.soulsnaps.features.auth.SessionDataStore
 import pl.soulsnaps.features.auth.InMemorySessionDataStore
 import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.features.auth.mvp.guard.PaywallTrigger
+import pl.soulsnaps.features.auth.mvp.guard.GuardFactory
 
 object DataModule {
     fun get() = module {
-        singleOf(::AffirmationRepositoryImpl) { bind<AffirmationRepository>()}
+        includes(DatabaseModule.get())
+        
+        single<AffirmationRepository> { AffirmationRepositoryImpl(get<MemoryDao>()) }
 
         single<QuoteRepository> { FakeQuoteRepository() }
         single { FakeAuthService() }
@@ -58,9 +64,14 @@ object DataModule {
             if (AuthConfig.USE_SUPABASE_AUTH) {
                 SupabaseMemoryRepository(get())
             } else {
-                MemoryRepositoryImpl(get())
+                MemoryRepositoryImpl(get(), get<MemoryDao>())
             }
         }
+        
+        // Access Control & Paywall
+        single { GuardFactory.createDefaultGuard() }
+        single { PaywallTrigger(get(), get()) }
+        
         single<SessionDataStore> { InMemorySessionDataStore() }
         single { UserSessionManager(get()) }
         single { HttpClientFactory().create() }

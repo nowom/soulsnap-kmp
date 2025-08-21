@@ -4,13 +4,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.Clock
+import pl.soulsnaps.database.dao.MemoryDao
+import pl.soulsnaps.database.Memories
 import pl.soulsnaps.domain.MemoryRepository
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.domain.model.MoodType
 import pl.soulsnaps.util.NetworkMonitor
 
 class MemoryRepositoryImpl(
-    private val networkMonitor: NetworkMonitor
+    private val networkMonitor: NetworkMonitor,
+    private val memoryDao: MemoryDao
 ) : MemoryRepository {
     private val fakeMemories = listOf(
         Memory(
@@ -56,6 +59,31 @@ class MemoryRepositoryImpl(
             isFavorite = false
         )
     )
+
+    override suspend fun addMemory(memory: Memory): Int {
+        return try {
+            val memoriesEntity = Memories(
+                id = 0, // Database will auto-generate ID
+                title = memory.title,
+                description = memory.description,
+                timestamp = memory.createdAt,
+                mood = memory.mood?.name,
+                photoUri = memory.photoUri,
+                audioUri = memory.audioUri,
+                locationName = memory.locationName,
+                latitude = memory.latitude,
+                longitude = memory.longitude,
+                affirmation = memory.affirmation,
+                isFavorite = memory.isFavorite,
+                isSynced = false
+            )
+            
+            val newId = memoryDao.insert(memoriesEntity)
+            newId.toInt()
+        } catch (e: Exception) {
+            throw Exception("Failed to save memory: ${e.message}")
+        }
+    }
 
     suspend fun getAllMemories(): List<Memory> {
         delay(300) // symulacja opóźnienia

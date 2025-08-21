@@ -11,9 +11,9 @@ import org.jetbrains.skia.Image
 import platform.UIKit.UIImage
 import platform.UIKit.UIImageJPEGRepresentation
 
-actual class SharedImage(private val image: UIImage?) {
+actual class SharedImage(private val image: UIImage?) : SharedImageInterface {
     @OptIn(ExperimentalForeignApi::class)
-    actual fun toByteArray(): ByteArray? {
+    override actual fun toByteArray(): ByteArray? {
         return if (image != null) {
             val imageData = UIImageJPEGRepresentation(image, COMPRESSION_QUALITY)
                 ?: throw IllegalArgumentException("image data is null")
@@ -28,7 +28,7 @@ actual class SharedImage(private val image: UIImage?) {
 
     }
 
-    actual fun toImageBitmap(): ImageBitmap? {
+    override actual fun toImageBitmap(): ImageBitmap? {
         val byteArray = toByteArray()
         return if (byteArray != null) {
             Image.makeFromEncoded(byteArray).toComposeImageBitmap()

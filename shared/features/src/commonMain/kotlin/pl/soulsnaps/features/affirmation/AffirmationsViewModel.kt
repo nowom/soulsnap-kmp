@@ -9,11 +9,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.model.Affirmation
 import pl.soulsnaps.domain.model.ThemeType
+import pl.soulsnaps.domain.AffirmationRepository
+import pl.soulsnaps.features.auth.mvp.guard.CapacityGuard
+import pl.soulsnaps.features.auth.mvp.guard.GuardFactory
+import pl.soulsnaps.features.analytics.CapacityAnalytics
 
-class AffirmationsViewModel: ViewModel() {
+class AffirmationsViewModel(
+    private val affirmationRepository: AffirmationRepository
+): ViewModel() {
 
     private val _uiState = MutableStateFlow(AffirmationsUiState())
     val uiState: StateFlow<AffirmationsUiState> = _uiState
+    
+    // CapacityGuard for checking limits before AI operations
+    private val capacityGuard = GuardFactory.createCapacityGuard()
+    
+    // CapacityAnalytics for tracking usage
+    private val capacityAnalytics = CapacityAnalytics(capacityGuard)
 
     init {
         onEvent(AffirmationsEvent.LoadInitial)
@@ -34,63 +46,160 @@ class AffirmationsViewModel: ViewModel() {
                 )
                 loadAffirmations()
             }
+            
+            // New capacity management events
+            is AffirmationsEvent.CheckCapacity -> checkCapacity()
+            is AffirmationsEvent.ShowPaywall -> showPaywall()
+            is AffirmationsEvent.NavigateToPaywall -> {
+                _uiState.value = _uiState.value.copy(
+                    showPaywall = true,
+                    paywallReason = event.reason,
+                    recommendedPlan = event.recommendedPlan
+                )
+            }
+            
+            // New analytics events
+            is AffirmationsEvent.ShowAnalytics -> showAnalytics()
+            is AffirmationsEvent.UpdateAnalytics -> updateAnalytics()
         }
     }
 
     private fun loadAffirmations() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            val all = sampleAffirmations()
-            val filtered = all.filter {
-                (!_uiState.value.showOnlyFavorites || it.isFavorite)
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                
+                val emotionFilter = if (_uiState.value.selectedFilter == "Emotion") null else null
+                val all = affirmationRepository.getAffirmations(emotionFilter)
+                
+                val filtered = if (_uiState.value.showOnlyFavorites) {
+                    all.filter { it.isFavorite }
+                } else {
+                    all
+                }
+                
+                _uiState.value = _uiState.value.copy(
+                    affirmations = filtered,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to load affirmations: ${e.message}"
+                )
             }
-            _uiState.value = _uiState.value.copy(
-                affirmations = filtered,
-                isLoading = false
-            )
         }
     }
 
     private fun toggleFavorite(id: String) {
-        _uiState.value = _uiState.value.copy(
-            affirmations = _uiState.value.affirmations.map {
-                if (it.id == id) it.copy(isFavorite = !it.isFavorite) else it
+        viewModelScope.launch {
+            try {
+                affirmationRepository.updateIsFavorite(id)
+                // Reload affirmations to get updated state
+                loadAffirmations()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to update favorite: ${e.message}"
+                )
             }
-        )
+        }
     }
 
     private fun playAffirmation(affirmation: Affirmation) {
-        println("Play: ${affirmation.text}") // Stub — replace with actual player
+        viewModelScope.launch {
+            // Check AI analysis limits before playing affirmation
+            val aiResult = capacityGuard.canRunAIAnalysis("current_user") // TODO: get real user ID
+            
+            if (!aiResult.allowed) {
+                // AI limit exceeded - show paywall
+                val recommendation = capacityGuard.getUpgradeRecommendation("current_user")
+                _uiState.value = _uiState.value.copy(
+                    showPaywall = true,
+                    paywallReason = aiResult.message ?: "Limit analiz AI przekroczony",
+                    recommendedPlan = recommendation.recommendedPlan
+                )
+                return@launch
+            }
+            
+            // AI limit OK - play affirmation and update analytics
+            affirmationRepository.playAffirmation(affirmation.text)
+            
+            // Update analytics after successful operation
+            capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
+        }
+    }
+    
+    /**
+     * Check current capacity status
+     */
+    private fun checkCapacity() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCheckingCapacity = true)
+            
+            try {
+                val capacityInfo = capacityGuard.getCapacityInfo("current_user") // TODO: get real user ID
+                _uiState.value = _uiState.value.copy(
+                    capacityInfo = capacityInfo,
+                    isCheckingCapacity = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isCheckingCapacity = false,
+                    error = "Nie udało się sprawdzić pojemności: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    /**
+     * Show paywall
+     */
+    private fun showPaywall() {
+        _uiState.value = _uiState.value.copy(showPaywall = true)
+    }
+    
+    /**
+     * Hide paywall
+     */
+    fun hidePaywall() {
+        _uiState.value = _uiState.value.copy(showPaywall = false)
+    }
+    
+    /**
+     * Show analytics
+     */
+    private fun showAnalytics() {
+        viewModelScope.launch {
+            // Update analytics data first
+            capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
+            _uiState.value = _uiState.value.copy(showAnalytics = true)
+        }
+    }
+    
+    /**
+     * Update analytics
+     */
+    private fun updateAnalytics() {
+        viewModelScope.launch {
+            capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
+        }
+    }
+    
+    /**
+     * Hide analytics
+     */
+    fun hideAnalytics() {
+        _uiState.value = _uiState.value.copy(showAnalytics = false)
+    }
+    
+    /**
+     * Get analytics instance
+     */
+    fun getAnalytics(): CapacityAnalytics {
+        return capacityAnalytics
     }
 
-    private fun sampleAffirmations(): List<Affirmation> = listOf(
-        Affirmation(
 
-            text = "Jestem spokojem i światłem.",
-            audioUrl = null,
-            emotion = "Spokój",
-            timeOfDay = "Poranek",
-            isFavorite = true,
-            themeType = ThemeType.SELF_LOVE
-        ),
-        Affirmation(
-
-            text = "Każdy dzień to nowa szansa.",
-            audioUrl = null,
-            emotion = "Motywacja",
-            timeOfDay = "Dzień",
-            isFavorite = false,
-            themeType = ThemeType.GOALS
-        ),
-        Affirmation(
-            text = "Zasługuję na odpoczynek.",
-            audioUrl = null,
-            emotion = "Relaks",
-            timeOfDay = "Wieczór",
-            isFavorite = false,
-            themeType = ThemeType.GOALS
-        )
-    )
 }
 
 // UI state
@@ -100,7 +209,19 @@ data class AffirmationsUiState(
     val selectedFilter: String = "Emotion",
     val showOnlyFavorites: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    
+    // New fields for capacity management
+    val capacityInfo: pl.soulsnaps.features.auth.mvp.guard.CapacityInfo? = null,
+    val showPaywall: Boolean = false,
+    val paywallReason: String? = null,
+    val recommendedPlan: String? = null,
+    val isCheckingCapacity: Boolean = false,
+    
+    // New fields for analytics
+    val showAnalytics: Boolean = false,
+    val analyticsData: pl.soulsnaps.features.analytics.CapacityUsageStats? = null,
+    val analyticsAlerts: List<pl.soulsnaps.features.analytics.CapacityAlert> = emptyList()
 )
 
 sealed class AffirmationsEvent {
@@ -109,4 +230,13 @@ sealed class AffirmationsEvent {
     data class ToggleFavorite(val affirmation: Affirmation) : AffirmationsEvent()
     data class SelectFilter(val filter: String) : AffirmationsEvent()
     data object ToggleFavoritesOnly : AffirmationsEvent()
+    
+    // New events for capacity management
+    data object CheckCapacity : AffirmationsEvent()
+    data object ShowPaywall : AffirmationsEvent()
+    data class NavigateToPaywall(val reason: String, val recommendedPlan: String?) : AffirmationsEvent()
+    
+    // New events for analytics
+    data object ShowAnalytics : AffirmationsEvent()
+    data object UpdateAnalytics : AffirmationsEvent()
 }

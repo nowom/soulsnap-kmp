@@ -42,6 +42,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,14 +61,19 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 import pl.soulsnaps.components.FullScreenCircularProgress
 import pl.soulsnaps.components.PrimaryButton
 import pl.soulsnaps.components.showPlatformDatePicker
+import pl.soulsnaps.components.AnimatedErrorMessage
+import pl.soulsnaps.components.AnimatedSuccessMessage
 import pl.soulsnaps.domain.model.MoodType
 import pl.soulsnaps.navigation.LocalNavController
 import pl.soulsnaps.photo.rememberCameraManager
 import pl.soulsnaps.photo.rememberGalleryManager
+import pl.soulsnaps.features.auth.ui.PaywallScreen
+import pl.soulsnaps.features.analytics.CapacityAnalyticsScreen
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,6 +84,7 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    val navController = LocalNavController.current
 
 //    val mediaRecorder = mediaRecorderremember { MediaRecorder() }
 //    var audioFilePath by remember { mutableStateOf<String?>(null) }
@@ -86,54 +93,30 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
 //        contract = ActivityResultContracts.StartActivityForResult(),
 //        onResult = { result ->
 //            if (result.resultCode == Activity.RESULT_OK) {
-//                val audioUri = result.data?.data
-//                audioUri?.let {
-//                    viewModel.handleIntent(CaptureMomentIntent.ChangeAudio(it))
+//                val data = result.data
+//                val uri = data?.data
+//                if (uri != null) {
+//                    viewModel.handleIntent(CaptureMomentIntent.ChangeAudio(uri.toString()))
 //                }
 //            }
-//        }
-//    )
-
-    val cameraManager = rememberCameraManager {
-        coroutineScope.launch {
-            val bitmap = withContext(Dispatchers.Default) {
-                it?.toImageBitmap()
-            }
-            imageBitmap = bitmap
-        }
-    }
-
-    val galleryManager = rememberGalleryManager {
-        coroutineScope.launch {
-            val bitmap = withContext(Dispatchers.Default) {
-                it?.toImageBitmap()
-            }
-            imageBitmap = bitmap
-        }
-    }
-//    val pickImageLauncher = rememberLauncherForActivityResult(
-//        contract = ActivityResultContracts.GetContent(),
-//        onResult = { uri ->
-//            if (uri != null) {
-//                viewModel.handleIntent(CaptureMomentIntent.ChangePhoto(uri))
-//            }
 //            showPhotoDialog = false
 //        })
-//
-//    val takePictureLauncher = rememberLauncherForActivityResult(
-//        contract = ActivityResultContracts.TakePicturePreview(),
-//        onResult = { bitmap ->
-//            bitmap?.let {
-//                val uri = saveImageToMediaStore(context, it)
-//                viewModel.handleIntent(CaptureMomentIntent.ChangePhoto(uri))
-//            }
-//            showPhotoDialog = false
-//        })
+
+    // Handle success navigation
+    state.savedMemoryId?.let { memoryId ->
+        LaunchedEffect(memoryId) {
+            delay(1500) // Show success message for 1.5 seconds
+            // Navigate to Memory Hub (Timeline)
+            navController.navigate("MemoryHubRoute") {
+                popUpTo("captureMoment") { inclusive = true }
+            }
+        }
+    }
 
     if (state.isSaving) {
         FullScreenCircularProgress()
     }
-    val navController = LocalNavController.current
+    
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("Add Memory", style = MaterialTheme.typography.titleLarge) },
@@ -157,6 +140,17 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
                 .padding(paddingValues)
                 .padding(16.dp),
         ) {
+
+            // Success/Error Messages
+            AnimatedSuccessMessage(
+                message = state.successMessage,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            AnimatedErrorMessage(
+                message = state.errorMessage,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
             // Zdjęcie
             PhotoPickerView(imageBitmap) {
@@ -218,182 +212,126 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
             Spacer(modifier = Modifier.height(30.dp))
 
             // Data
-            var showPicker by remember { mutableStateOf(false) }
-
-            if (showPicker) {
-                showPlatformDatePicker(null) { selectedMillis ->
-                    println("Date selected: $selectedMillis")
-                }
-                showPicker = false
+            var showDatePicker by remember { mutableStateOf(false) }
+            
+            if (showDatePicker) {
+                showPlatformDatePicker(
+                    initialDateMillis = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+                    onDateSelected = { timestamp ->
+                        viewModel.handleIntent(CaptureMomentIntent.ChangeDate(timestamp))
+                        showDatePicker = false
+                    }
+                )
+            }
+            
+            Button(
+                onClick = { showDatePicker = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Text("Select Date")
             }
 
-            Button(onClick = { showPicker = true }) {
-                Text("Pick Date")
-            }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // Mood selection
+            // Mood Selection
             Text(
-                "Mood",
-                fontWeight = FontWeight.Bold,
+                text = "Select Mood:",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                modifier = Modifier.padding(bottom = 8.dp)
             )
+
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
-                    .horizontalScroll(rememberScrollState()),
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 moods.forEach { mood ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(
-                                if (mood == state.selectedMood)
-                                    MaterialTheme.colorScheme.primaryContainer
-                                else
-                                    MaterialTheme.colorScheme.tertiaryContainer
-                            )
-                            .clickable { viewModel.handleIntent(CaptureMomentIntent.ChangeMood(mood)) }
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    Button(
+                        onClick = { viewModel.handleIntent(CaptureMomentIntent.ChangeMood(mood)) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (state.selectedMood == mood) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            }
+                        ),
+                        modifier = Modifier.padding(vertical = 4.dp)
                     ) {
                         Text(
-                            mood.name,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = if (mood == state.selectedMood)
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            else
-                                MaterialTheme.colorScheme.onTertiaryContainer
+                            text = mood.name,
+                            color = if (state.selectedMood == mood) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
                         )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // Pokazanie wygenerowanej afirmacji (po zapisie)
-            state.generatedAffirmation?.let { affirmation ->
-                Text(
-                    text = "Generated Affirmation:",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = affirmation,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
         }
-    }
-
-    if (showPhotoDialog) {
-        PhotoPickerDialog(
-            onDismiss = { showPhotoDialog = false },
-            onTakePhoto = {
-                cameraManager.launch()
-                showPhotoDialog = false
-            },
-            onPickFromGallery = {
-                galleryManager.launch()
-                showPhotoDialog = false
-            }
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PhotoPickerDialog(
-    onDismiss: () -> Unit,
-    onTakePhoto: () -> Unit,
-    onPickFromGallery: () -> Unit
-) {
-    BasicAlertDialog(
-        onDismissRequest = onDismiss,
-        Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh, shape = Shapes().medium)
-    ) {
-        Column(
-            Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                "Dodaj zdjęcie",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+        
+        // Paywall overlay
+        if (state.showPaywall) {
+            PaywallScreen(
+                reason = state.paywallReason,
+                recommendedPlan = state.recommendedPlan,
+                onClose = { viewModel.hidePaywall() },
+                onUpgrade = { selectedPlan ->
+                    // TODO: Implement actual upgrade logic
+                    println("Upgrading to plan: $selectedPlan")
+                    viewModel.hidePaywall()
+                    // Here you would typically navigate to payment screen or handle upgrade
+                }
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Wybierz sposób dodania zdjęcia",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+        }
+        
+        // Analytics overlay
+        if (state.showAnalytics) {
+            CapacityAnalyticsScreen(
+                analytics = viewModel.getAnalytics(),
+                onClose = { viewModel.hideAnalytics() }
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = onTakePhoto,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4C7C59))
-            ) {
-                Text("Zrób zdjęcie", color = Color.White)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = onPickFromGallery,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFCBA4))
-            ) {
-                Text("Wybierz z galerii", color = Color.Black)
-            }
-            TextButton(onClick = onDismiss) {
-                Text("Anuluj")
-            }
         }
     }
 }
 
 @Composable
 fun PhotoPickerView(
-    imageBitmap: ImageBitmap?, onClick: () -> Unit
+    imageBitmap: ImageBitmap?,
+    onPhotoClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp)
-            .dashedBorder(2.dp, 2.dp, Color.Black)
-            .clickable { onClick() }
-            .padding(4.dp), contentAlignment = Alignment.Center) {
+            .height(200.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.Gray.copy(alpha = 0.3f))
+            .clickable { onPhotoClick() },
+        contentAlignment = Alignment.Center
+    ) {
         if (imageBitmap != null) {
             Image(
                 bitmap = imageBitmap,
-                contentDescription = "Selected Image",
+                contentDescription = "Selected Photo",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(20.dp)
-                    .background(Color(0xFFFFD700), shape = CircleShape) // Złota ramka
-                , contentAlignment = Alignment.Center
+        } else {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit Icon",
-                    tint = Color.Black,
-                    modifier = Modifier.size(12.dp) // Ikona 10x10 dp
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = "Add Photo",
+                    modifier = Modifier.size(48.dp),
+                    tint = Color.Gray
+                )
+                Text(
+                    text = "Tap to add photo",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
                 )
             }
-        } else {
-
-//            Icon(
-//                painter = DsIcons.Add(),
-//                contentDescription = "Camera Icon",
-//                tint = Color.Gray,
-//                modifier = Modifier.size(40.dp)
-//            )
         }
     }
 }

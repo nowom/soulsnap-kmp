@@ -1,5 +1,7 @@
 package pl.soulsnaps.features.auth.mvp.guard
 
+import kotlinx.datetime.Clock
+
 /**
  * SOLID Principle: Open/Closed
  * Polityki są otwarte na rozszerzenie, zamknięte na modyfikację
@@ -66,7 +68,7 @@ data class FeatureInfo(
     val key: String,
     val enabled: Boolean,
     val description: String? = null,
-    val lastChanged: Long = System.currentTimeMillis()
+    val lastChanged: Long = Clock.System.now().toEpochMilliseconds()
 )
 
 /**
@@ -172,7 +174,7 @@ class InMemoryQuotaPolicy(
     }
     
     private fun getNextResetTime(key: String): Long {
-        val now = System.currentTimeMillis()
+        val now = Clock.System.now().toEpochMilliseconds()
         return when {
             key.endsWith(".day") -> now + (24 * 60 * 60 * 1000) // +1 day
             key.endsWith(".month") -> now + (30L * 24 * 60 * 60 * 1000) // +30 days
@@ -208,6 +210,7 @@ class InMemoryFeatureToggle : FeatureToggle {
         "feature.backup" to true,
         "feature.ai" to true,
         "feature.api" to true,
+        "feature.batch_analysis" to true, // Dodano feature flag dla batch analysis
         "emergency.analysis.off" to false,
         "emergency.sharing.off" to false
     )
@@ -248,6 +251,7 @@ class InMemoryFeatureToggle : FeatureToggle {
             "feature.backup" -> "Backup"
             "feature.ai" -> "Funkcje AI"
             "feature.api" -> "Dostęp do API"
+            "feature.batch_analysis" -> "Analiza obrazów w batch"
             "emergency.analysis.off" -> "Emergency: wyłączenie analizy"
             "emergency.sharing.off" -> "Emergency: wyłączenie udostępniania"
             else -> "Nieznana funkcja"

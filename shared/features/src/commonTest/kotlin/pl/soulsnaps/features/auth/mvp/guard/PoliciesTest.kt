@@ -1,4 +1,4 @@
-package pl.soulsnaps.features.auth.mvp.solid
+package pl.soulsnaps.features.auth.mvp.guard
 
 import kotlin.test.*
 

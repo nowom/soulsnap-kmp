@@ -110,17 +110,30 @@ internal class SoulSnapAppState(
         navController.navigateToCaptureMoment()
     }
 
+    fun navigateToMemoryHub() {
+        navOptions {
+            // Pop up to the start destination of the graph to
+            // avoid building up a large stack of destinations
+            // on the back stack as users select items
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            // Avoid multiple copies of the same destination when
+            // reselecting the same item
+            launchSingleTop = true
+            // Restore state when reselecting a previously selected item
+            restoreState = true
+        }
+        navController.navigateToMemoryHub()
+    }
+
     val shouldShowFab: Boolean
         @Composable get() {
             val currentRoute = currentDestination?.route
-            return currentRoute !in listOf(
-                CaptureMomentRoute::class.qualifiedName,
-                OnboardingRoute::class.qualifiedName,
-                LoginRoute::class.qualifiedName,
-                ModernEmotionWheelRoute::class.qualifiedName,
-                BreathingSessionRoute::class.qualifiedName,
-                GratitudeRoute::class.qualifiedName,
-            )
+            return currentRoute == DashboardRoute::class.qualifiedName ||
+                    currentRoute == AffirmationsRoute::class.qualifiedName ||
+                    currentRoute == MemoryHubRoute::class.qualifiedName ||
+                    currentRoute == ExerciseRoute::class.qualifiedName
         }
 }
 

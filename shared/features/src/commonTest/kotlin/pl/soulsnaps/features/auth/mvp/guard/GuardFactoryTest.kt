@@ -1,6 +1,7 @@
 package pl.soulsnaps.features.auth.mvp.guard
 
 import kotlin.test.*
+import kotlinx.coroutines.test.runTest
 
 /**
  * Testy dla GuardFactory - Factory Pattern
@@ -20,7 +21,7 @@ class GuardFactoryTest {
         
         // Sprawdź czy ma dostęp do podstawowych funkcji
         assertTrue(guard.isFeatureEnabled("feature.memories"))
-        assertTrue(guard.isFeatureEnabled("feature.analysis")
+        assertTrue(guard.isFeatureEnabled("feature.analysis"))
     }
     
     @Test
@@ -62,7 +63,7 @@ class GuardFactoryTest {
     }
     
     @Test
-    fun `createCustomGuard should use provided implementations`() {
+    fun `createCustomGuard should use provided implementations`() = runTest {
         // Given
         val customScopePolicy = MockScopePolicy(
             userScopes = mapOf("user123" to listOf("memory.create"))
@@ -103,7 +104,7 @@ class GuardFactoryTest {
     }
     
     @Test
-    fun `createTestGuard should be functional`() {
+    fun `createTestGuard should be functional`() = runTest {
         // Given
         val guard = GuardFactory.createTestGuard()
         
@@ -155,7 +156,7 @@ class GuardFactoryTest {
     // ===== GUARD BEHAVIOR TESTS =====
     
     @Test
-    fun `default guard should allow basic actions for free user`() {
+    fun `default guard should allow basic actions for free user`() = runTest {
         // Given
         val guard = GuardFactory.createDefaultGuard()
         
@@ -166,7 +167,7 @@ class GuardFactoryTest {
     }
     
     @Test
-    fun `default guard should deny premium actions for free user`() {
+    fun `default guard should deny premium actions for free user`() = runTest {
         // Given
         val guard = GuardFactory.createDefaultGuard()
         
@@ -218,7 +219,7 @@ class GuardFactoryTest {
         val nullFeatureToggle: FeatureToggle? = null
         
         // When & Then - powinno rzucić exception przy próbie utworzenia
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<NullPointerException> {
             GuardFactory.createCustomGuard(
                 scopePolicy = nullScopePolicy!!,
                 quotaPolicy = nullQuotaPolicy!!,
@@ -230,7 +231,7 @@ class GuardFactoryTest {
     // ===== INTEGRATION TESTS =====
     
     @Test
-    fun `factory created guards should work with memory analysis service`() {
+    fun `factory created guards should work with memory analysis service`() = runTest {
         // Given
         val guard = GuardFactory.createDefaultGuard()
         
@@ -247,7 +248,7 @@ class GuardFactoryTest {
     }
     
     @Test
-    fun `factory created guards should support all required operations`() {
+    fun `factory created guards should support all required operations`() = runTest {
         // Given
         val guard = GuardFactory.createDefaultGuard()
         

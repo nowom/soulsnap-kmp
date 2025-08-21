@@ -2,6 +2,13 @@ package pl.soulsnaps.features.auth.mvp.guard
 
 import kotlin.test.*
 import kotlinx.coroutines.test.runTest
+import pl.soulsnaps.features.auth.mvp.guard.AccessGuard
+import pl.soulsnaps.features.auth.mvp.guard.InMemoryScopePolicy
+import pl.soulsnaps.features.auth.mvp.guard.InMemoryQuotaPolicy
+import pl.soulsnaps.features.auth.mvp.guard.InMemoryFeatureToggle
+import pl.soulsnaps.features.auth.mvp.guard.DefaultPlans
+import pl.soulsnaps.features.auth.mvp.guard.PlanRegistryReader
+import pl.soulsnaps.features.auth.mvp.guard.DenyReason
 
 /**
  * Testy dla AccessGuard - Dependency Inversion Principle
@@ -252,11 +259,15 @@ class AccessGuardTest {
         // When
         val scopes = guard.getUserScopes("user123")
         
-        // Then
-        assertTrue(scopes.contains("memory.create"))
+        // Then - sprawdź rzeczywiste scopes z planu (włączając wildcard)
+        assertTrue(scopes.contains("memory.*")) // Wildcard scope
         assertTrue(scopes.contains("analysis.run.patterns"))
         assertTrue(scopes.contains("sharing.basic"))
         assertTrue(scopes.contains("insights.export"))
+        
+        // Sprawdź czy wildcard scope pasuje do konkretnych akcji
+        assertTrue(scopePolicy.hasScope("user123", "memory.create")) // memory.* powinno pasować
+        assertTrue(scopePolicy.hasScope("user123", "memory.read"))   // memory.* powinno pasować
     }
     
     @Test

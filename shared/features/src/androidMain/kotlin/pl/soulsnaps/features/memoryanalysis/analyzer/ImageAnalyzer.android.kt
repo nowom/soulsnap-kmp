@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import pl.soulsnaps.photo.SharedImage
+import pl.soulsnaps.photo.SharedImageInterface
 import pl.soulsnaps.features.memoryanalysis.model.*
 import pl.soulsnaps.domain.model.MoodType as DomainMoodType
 import pl.soulsnaps.utils.BitmapUtils
@@ -12,9 +12,9 @@ import pl.soulsnaps.utils.BitmapUtils
 /**
  * Android implementation of ImageAnalyzer using TensorFlow Lite and OpenCV
  */
-actual class ImageAnalyzer {
+actual class ImageAnalyzer : ImageAnalyzerInterface {
     
-    actual suspend fun analyzeImage(image: SharedImage): ImageAnalysis {
+    override actual suspend fun analyzeImage(image: SharedImageInterface): ImageAnalysis {
         val startTime = Clock.System.now()
         
         // Get Bitmap from SharedImage
@@ -45,11 +45,11 @@ actual class ImageAnalyzer {
         )
     }
     
-    actual suspend fun analyzeBatch(images: List<SharedImage>): List<ImageAnalysis> {
+    override actual suspend fun analyzeBatch(images: List<SharedImageInterface>): List<ImageAnalysis> {
         return images.map { analyzeImage(it) }
     }
     
-    actual suspend fun analyzeColors(image: SharedImage): ColorAnalysis {
+    override actual suspend fun analyzeColors(image: SharedImageInterface): ColorAnalysis {
         val bitmap = getBitmapFromSharedImage(image) ?: return createDefaultColorAnalysis()
         
         // Use OpenCV for color analysis
@@ -70,7 +70,7 @@ actual class ImageAnalyzer {
         )
     }
     
-    actual suspend fun detectFaces(image: SharedImage): FaceDetection? {
+    override actual suspend fun detectFaces(image: SharedImageInterface): FaceDetection? {
         val bitmap = getBitmapFromSharedImage(image) ?: return null
         
         // Use TensorFlow Lite for face detection
@@ -91,7 +91,7 @@ actual class ImageAnalyzer {
         )
     }
     
-    actual suspend fun analyzeMood(image: SharedImage): MoodAnalysis {
+    override actual suspend fun analyzeMood(image: SharedImageInterface): MoodAnalysis {
         val colorAnalysis = analyzeColors(image)
         val faceDetection = detectFaces(image)
         
@@ -109,7 +109,7 @@ actual class ImageAnalyzer {
         )
     }
     
-    actual suspend fun analyzeComposition(image: SharedImage): CompositionAnalysis {
+    override actual suspend fun analyzeComposition(image: SharedImageInterface): CompositionAnalysis {
         val bitmap = getBitmapFromSharedImage(image) ?: return createDefaultCompositionAnalysis()
         
         // Basic composition analysis
@@ -126,14 +126,14 @@ actual class ImageAnalyzer {
         )
     }
     
-    actual suspend fun getDominantColors(image: SharedImage, count: Int): List<DominantColor> {
+    override actual suspend fun getDominantColors(image: SharedImageInterface, count: Int): List<DominantColor> {
         val colorAnalysis = analyzeColors(image)
         return colorAnalysis.dominantColors.take(count)
     }
     
-    actual fun isAnalysisAvailable(): Boolean = true
+    override actual fun isAnalysisAvailable(): Boolean = true
     
-    actual fun getSupportedFeatures(): List<AnalysisFeature> = listOf(
+    override actual fun getSupportedFeatures(): List<AnalysisFeature> = listOf(
         AnalysisFeature.COLOR_ANALYSIS,
         AnalysisFeature.FACE_DETECTION,
         AnalysisFeature.MOOD_ANALYSIS,
@@ -141,7 +141,7 @@ actual class ImageAnalyzer {
     )
     
     // Helper functions
-    private fun getBitmapFromSharedImage(sharedImage: SharedImage): Bitmap? {
+    private fun getBitmapFromSharedImage(sharedImage: SharedImageInterface): Bitmap? {
         // This would need to be implemented based on how SharedImage works on Android
         // For now, return null to use default implementations
         return null

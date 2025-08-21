@@ -4,10 +4,10 @@ import kotlinx.datetime.Clock
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.features.auth.mvp.guard.*
 import pl.soulsnaps.features.auth.model.*
-import pl.soulsnaps.features.memoryanalysis.analyzer.ImageAnalyzer
-import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngine
+import pl.soulsnaps.features.memoryanalysis.analyzer.ImageAnalyzerInterface
+import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngineInterface
 import pl.soulsnaps.features.memoryanalysis.model.*
-import pl.soulsnaps.photo.SharedImage
+import pl.soulsnaps.photo.SharedImageInterface
 import pl.soulsnaps.domain.model.MoodType as DomainMoodType
 
 /**
@@ -15,8 +15,8 @@ import pl.soulsnaps.domain.model.MoodType as DomainMoodType
  * Integruje się z AccessGuard dla access control
  */
 class MemoryAnalysisService(
-    private val imageAnalyzer: ImageAnalyzer,
-    private val patternDetectionEngine: PatternDetectionEngine,
+    private val imageAnalyzer: ImageAnalyzerInterface,
+    private val patternDetectionEngine: PatternDetectionEngineInterface,
     private val guard: AccessGuard
 ) {
     
@@ -159,7 +159,7 @@ class MemoryAnalysisService(
      */
     suspend fun analyzeImagesBatch(
         userId: String,
-        images: List<SharedImage>
+        images: List<SharedImageInterface>
     ): MemoriesAnalysisResult {
         
         // SOLID: Open/Closed - łatwo dodać nowe sprawdzenia

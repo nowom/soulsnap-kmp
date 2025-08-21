@@ -22,47 +22,61 @@ import androidx.compose.ui.Modifier
 import pl.soulsnaps.designsystem.DsIcons
 import pl.soulsnaps.designsystem.SoulSnapsTheme
 import pl.soulsnaps.features.affirmation.AffirmationsScreen
-import pl.soulsnaps.navigation.BottomNavBar
-import pl.soulsnaps.navigation.LocalNavController
 import pl.soulsnaps.navigation.MainBottomMenu
-import pl.soulsnaps.navigation.Screen
 import pl.soulsnaps.navigation.SoulSnapAppState
 import pl.soulsnaps.navigation.SoulSnapNavHost
 import pl.soulsnaps.navigation.rememberAppState
+import pl.soulsnaps.navigation.bottomNavItems
+import pl.soulsnaps.features.onboarding.OnboardingCompletionTracker
+import pl.soulsnaps.features.onboarding.createOnboardingDataStore
+import pl.soulsnaps.features.onboarding.OnboardingRoute
+import pl.soulsnaps.features.dashboard.DashboardRoute
 
 @Composable
 fun SoulSnapsApp() {
-    val appState: SoulSnapAppState = rememberAppState()
-    CompositionLocalProvider(LocalNavController provides appState.navController) {
-        SoulSnapsTheme {
-            Scaffold(
-                floatingActionButton = {
-                    if (appState.shouldShowFab) {
-                        FloatingActionButton(
-                            onClick = appState::navigateToAddSnap,
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ) {
-                            Icon(Icons.Filled.Add, contentDescription = "Dodaj Snap")
-                        }
-                    }
-                },
-                bottomBar = {
-                    if (appState.shouldShowBottomBar)
-                        MainBottomMenu(
-                            destinations = appState.topLevelDestinations,
-                            currentDestination = appState.currentDestination,
-                            onNavigateToDestination = appState::navigateToTopLevelDestination,
-                        )
-                },
-            ) { padding ->
-                Box(Modifier.padding(padding)) {
-                    SoulSnapNavHost(appState)
+    SoulSnapsTheme {
+        println("DEBUG: SoulSnapsApp - initializing UserPreferencesStorageFactory")
+
+        val appState = rememberAppState()
+
+        // Use the OnboardingCompletionTracker composable to handle completion status
+        OnboardingCompletionTracker(
+            onComplete = {
+                // Navigate to dashboard if onboarding is completed
+                appState.navController.navigate(DashboardRoute) {
+                    popUpTo(OnboardingRoute) { inclusive = true }
                 }
             }
+        )
+
+        // Main app layout with bottom navigation
+        Scaffold(
+            floatingActionButton = {
+                if (appState.shouldShowFab) {
+                    FloatingActionButton(
+                        onClick = appState::navigateToAddSnap,
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = "Dodaj Snap")
+                    }
+                }
+            },
+            bottomBar = {
+                if (appState.shouldShowBottomBar) {
+                    MainBottomMenu(
+                        destinations = appState.topLevelDestinations,
+                        currentDestination = appState.currentDestination,
+                        onNavigateToDestination = { destination ->
+                            appState.navigateToTopLevelDestination(destination)
+                        }
+                    )
+                }
+            }
+        ) { paddingValues ->
+            SoulSnapNavHost(
+                appState = appState,
+                modifier = Modifier.padding(paddingValues)
+            )
         }
     }
 }
-
-@Composable fun DashboardScreen() = Text("🏠 Dashboard")
-@Composable fun SnapScreen() = Text("📷 Snapy")
-@Composable fun ProfileScreen() = Text("⚙️ Profil")

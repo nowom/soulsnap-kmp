@@ -3,6 +3,7 @@ package pl.soulsnaps.features.auth.mvp.guard
 import pl.soulsnaps.features.auth.mvp.guard.ScopePolicy
 import pl.soulsnaps.features.auth.mvp.guard.QuotaPolicy
 import pl.soulsnaps.features.auth.mvp.guard.FeatureToggle
+import pl.soulsnaps.features.auth.mvp.guard.UserPlanManager
 import pl.soulsnaps.features.auth.mvp.guard.QuotaInfo
 import pl.soulsnaps.features.auth.mvp.guard.FeatureInfo
 import pl.soulsnaps.features.auth.mvp.guard.PlanRegistryReader
@@ -19,7 +20,8 @@ import pl.soulsnaps.features.auth.mvp.guard.PlanRegistryReader
 open class AccessGuard(
     protected val scopePolicy: ScopePolicy,
     protected val quotaPolicy: QuotaPolicy,
-    protected val featureToggle: FeatureToggle
+    protected val featureToggle: FeatureToggle,
+    protected val userPlanManager: UserPlanManager = UserPlanManagerInstance.getInstance()
 ) {
     
     /**
@@ -33,13 +35,22 @@ open class AccessGuard(
     ): AccessResult {
         
         // 1. Sprawdź czy feature jest globalnie włączony
-        if (flagKey != null && !featureToggle.isOn(flagKey)) {
-            return AccessResult(
-                allowed = false, 
-                reason = DenyReason.FEATURE_OFF, 
-                message = "Funkcja chwilowo niedostępna",
-                featureInfo = featureToggle.getFeatureInfo(flagKey)
-            )
+        if (flagKey != null) {
+            val isEmergencyFlag = flagKey.startsWith("emergency.")
+            val featureEnabled = if (isEmergencyFlag) {
+                !featureToggle.isOn(flagKey) // Emergency flags: true = wyłącz funkcję
+            } else {
+                featureToggle.isOn(flagKey) // Normal flags: true = włącz funkcję
+            }
+            
+            if (!featureEnabled) {
+                return AccessResult(
+                    allowed = false, 
+                    reason = DenyReason.FEATURE_OFF, 
+                    message = "Funkcja chwilowo niedostępna",
+                    featureInfo = featureToggle.getFeatureInfo(flagKey)
+                )
+            }
         }
         
         // 2. Sprawdź czy użytkownik ma scope dla akcji
@@ -78,6 +89,27 @@ open class AccessGuard(
     }
     
     /**
+     * Pobierz aktualny plan użytkownika
+     */
+    fun getCurrentUserPlan(): String {
+        return userPlanManager.getPlanOrDefault()
+    }
+    
+    /**
+     * Sprawdź czy użytkownik ukończył onboarding
+     */
+    fun hasCompletedOnboarding(): Boolean {
+        return userPlanManager.isOnboardingCompleted()
+    }
+    
+    /**
+     * Ustaw plan użytkownika
+     */
+    fun setUserPlan(planName: String) {
+        userPlanManager.setUserPlan(planName)
+    }
+    
+    /**
      * Sprawdź czy użytkownik może wykonać akcję bez konsumpcji quota
      */
     suspend fun canPerformAction(
@@ -88,13 +120,22 @@ open class AccessGuard(
     ): AccessResult {
         
         // 1. Sprawdź czy feature jest globalnie włączony
-        if (flagKey != null && !featureToggle.isOn(flagKey)) {
-            return AccessResult(
-                allowed = false, 
-                reason = DenyReason.FEATURE_OFF, 
-                message = "Funkcja chwilowo niedostępna",
-                featureInfo = featureToggle.getFeatureInfo(flagKey)
-            )
+        if (flagKey != null) {
+            val isEmergencyFlag = flagKey.startsWith("emergency.")
+            val featureEnabled = if (isEmergencyFlag) {
+                !featureToggle.isOn(flagKey) // Emergency flags: true = wyłącz funkcję
+            } else {
+                featureToggle.isOn(flagKey) // Normal flags: true = włącz funkcję
+            }
+            
+            if (!featureEnabled) {
+                return AccessResult(
+                    allowed = false, 
+                    reason = DenyReason.FEATURE_OFF, 
+                    message = "Funkcja chwilowo niedostępna",
+                    featureInfo = featureToggle.getFeatureInfo(flagKey)
+                )
+            }
         }
         
         // 2. Sprawdź czy użytkownik ma scope dla akcji
@@ -235,8 +276,17 @@ object GuardFactory {
         val scopePolicy = InMemoryScopePolicy(planRegistry)
         val quotaPolicy = InMemoryQuotaPolicy(planRegistry, scopePolicy)
         val featureToggle = InMemoryFeatureToggle()
+        val userPlanManager = UserPlanManagerInstance.getInstance()
         
-        return AccessGuard(scopePolicy, quotaPolicy, featureToggle)
+        return AccessGuard(scopePolicy, quotaPolicy, featureToggle, userPlanManager)
+    }
+    
+    /**
+     * Twórz CapacityGuard z domyślnym AccessGuard
+     */
+    fun createCapacityGuard(): CapacityGuard {
+        val accessGuard = createDefaultGuard()
+        return CapacityGuard(accessGuard, DefaultPlans)
     }
     
     /**

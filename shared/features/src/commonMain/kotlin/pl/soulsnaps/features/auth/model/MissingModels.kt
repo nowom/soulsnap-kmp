@@ -1,5 +1,7 @@
 package pl.soulsnaps.features.auth.model
 
+import kotlinx.datetime.Clock
+
 /**
  * Missing Models - Classes that were referenced but not defined
  * These are needed to resolve compilation errors
@@ -14,7 +16,7 @@ data class MemoryInsight(
     val insightType: String,
     val content: String,
     val confidence: Float,
-    val generatedAt: Long = System.currentTimeMillis()
+    val generatedAt: Long = Clock.System.now().toEpochMilliseconds()
 )
 
 /**

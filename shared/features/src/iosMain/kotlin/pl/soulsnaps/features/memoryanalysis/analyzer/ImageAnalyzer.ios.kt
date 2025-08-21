@@ -2,7 +2,7 @@ package pl.soulsnaps.features.memoryanalysis.analyzer
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import pl.soulsnaps.photo.SharedImage
+import pl.soulsnaps.photo.SharedImageInterface
 import pl.soulsnaps.features.memoryanalysis.model.*
 import pl.soulsnaps.domain.model.MoodType as DomainMoodType
 import platform.UIKit.*
@@ -12,9 +12,9 @@ import platform.Foundation.*
  * iOS implementation of ImageAnalyzer using Core Image and Vision framework
  * Note: This is a simplified implementation for now
  */
-actual class ImageAnalyzer {
+actual class ImageAnalyzer : ImageAnalyzerInterface {
     
-    actual suspend fun analyzeImage(image: SharedImage): ImageAnalysis {
+    override actual suspend fun analyzeImage(image: SharedImageInterface): ImageAnalysis {
         val startTime = Clock.System.now()
         
         // For now, return default analysis since SharedImage integration needs to be implemented
@@ -42,38 +42,38 @@ actual class ImageAnalyzer {
         )
     }
     
-    actual suspend fun analyzeBatch(images: List<SharedImage>): List<ImageAnalysis> {
+    override actual suspend fun analyzeBatch(images: List<SharedImageInterface>): List<ImageAnalysis> {
         return images.map { analyzeImage(it) }
     }
     
-    actual suspend fun analyzeColors(image: SharedImage): ColorAnalysis {
+    override actual suspend fun analyzeColors(image: SharedImageInterface): ColorAnalysis {
         // Simplified implementation for now
         return createDefaultColorAnalysis()
     }
     
-    actual suspend fun detectFaces(image: SharedImage): FaceDetection? {
+    override actual suspend fun detectFaces(image: SharedImageInterface): FaceDetection? {
         // Face detection not implemented yet
         return null
     }
     
-    actual suspend fun analyzeMood(image: SharedImage): MoodAnalysis {
+    override actual suspend fun analyzeMood(image: SharedImageInterface): MoodAnalysis {
         // Simplified mood analysis
         return createDefaultMoodAnalysis(Clock.System.now())
     }
     
-    actual suspend fun analyzeComposition(image: SharedImage): CompositionAnalysis {
+    override actual suspend fun analyzeComposition(image: SharedImageInterface): CompositionAnalysis {
         // Simplified composition analysis
         return createDefaultCompositionAnalysis()
     }
     
-    actual suspend fun getDominantColors(image: SharedImage, count: Int): List<DominantColor> {
+    override actual suspend fun getDominantColors(image: SharedImageInterface, count: Int): List<DominantColor> {
         val colorAnalysis = analyzeColors(image)
         return colorAnalysis.dominantColors.take(count)
     }
     
-    actual fun isAnalysisAvailable(): Boolean = true
+    override actual fun isAnalysisAvailable(): Boolean = true
     
-    actual fun getSupportedFeatures(): List<AnalysisFeature> = listOf(
+    override actual fun getSupportedFeatures(): List<AnalysisFeature> = listOf(
         AnalysisFeature.COLOR_ANALYSIS,
         AnalysisFeature.MOOD_ANALYSIS,
         AnalysisFeature.COMPOSITION_ANALYSIS

@@ -10,11 +10,26 @@ import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.interactor.GetMemoryByIdUseCase
 import pl.soulsnaps.domain.interactor.ToggleMemoryFavoriteUseCase
 import pl.soulsnaps.domain.model.Memory
+import pl.soulsnaps.features.auth.mvp.guard.CapacityGuard
+import pl.soulsnaps.features.auth.mvp.guard.GuardFactory
+import pl.soulsnaps.features.analytics.CapacityAnalytics
 
 data class MemoryDetailsState(
     val memory: Memory? = null,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    
+    // New fields for capacity management
+    val capacityInfo: pl.soulsnaps.features.auth.mvp.guard.CapacityInfo? = null,
+    val showPaywall: Boolean = false,
+    val paywallReason: String? = null,
+    val recommendedPlan: String? = null,
+    val isCheckingCapacity: Boolean = false,
+    
+    // New fields for analytics
+    val showAnalytics: Boolean = false,
+    val analyticsData: pl.soulsnaps.features.analytics.CapacityUsageStats? = null,
+    val analyticsAlerts: List<pl.soulsnaps.features.analytics.CapacityAlert> = emptyList()
 )
 
 sealed interface MemoryDetailsIntent {
@@ -23,6 +38,15 @@ sealed interface MemoryDetailsIntent {
     data object DeleteMemory : MemoryDetailsIntent
     data object ShareMemory : MemoryDetailsIntent
     data object EditMemory : MemoryDetailsIntent
+    
+    // New intents for capacity management
+    data object CheckCapacity : MemoryDetailsIntent
+    data object ShowPaywall : MemoryDetailsIntent
+    data class NavigateToPaywall(val reason: String, val recommendedPlan: String?) : MemoryDetailsIntent
+    
+    // New intents for analytics
+    data object ShowAnalytics : MemoryDetailsIntent
+    data object UpdateAnalytics : MemoryDetailsIntent
 }
 
 class MemoryDetailsViewModel(
@@ -34,6 +58,12 @@ class MemoryDetailsViewModel(
     val state: StateFlow<MemoryDetailsState> = _state.asStateFlow()
 
     private var currentMemoryId: Int = 0
+    
+    // CapacityGuard for checking limits before operations
+    private val capacityGuard = GuardFactory.createCapacityGuard()
+    
+    // CapacityAnalytics for tracking usage
+    private val capacityAnalytics = CapacityAnalytics(capacityGuard)
 
     fun loadMemoryDetails(memoryId: Int) {
         currentMemoryId = memoryId
@@ -47,6 +77,23 @@ class MemoryDetailsViewModel(
             is MemoryDetailsIntent.DeleteMemory -> deleteMemory()
             is MemoryDetailsIntent.ShareMemory -> shareMemory()
             is MemoryDetailsIntent.EditMemory -> editMemory()
+            
+            // New capacity management intents
+            is MemoryDetailsIntent.CheckCapacity -> checkCapacity()
+            is MemoryDetailsIntent.ShowPaywall -> showPaywall()
+            is MemoryDetailsIntent.NavigateToPaywall -> {
+                _state.update { 
+                    it.copy(
+                        showPaywall = true,
+                        paywallReason = intent.reason,
+                        recommendedPlan = intent.recommendedPlan
+                    ) 
+                }
+            }
+            
+            // New analytics intents
+            is MemoryDetailsIntent.ShowAnalytics -> showAnalytics()
+            is MemoryDetailsIntent.UpdateAnalytics -> updateAnalytics()
         }
     }
 
@@ -103,11 +150,30 @@ class MemoryDetailsViewModel(
     }
 
     private fun shareMemory() {
-        // TODO: Implement share functionality
         viewModelScope.launch {
+            // Check export limits before sharing memory
+            val exportResult = capacityGuard.canExport("current_user") // TODO: get real user ID
+            
+            if (!exportResult.allowed) {
+                // Export limit exceeded - show paywall
+                val recommendation = capacityGuard.getUpgradeRecommendation("current_user")
+                _state.update { 
+                    it.copy(
+                        showPaywall = true,
+                        paywallReason = exportResult.message ?: "Limit eksportu przekroczony",
+                        recommendedPlan = recommendation.recommendedPlan
+                    ) 
+                }
+                return@launch
+            }
+            
+            // Export limit OK - proceed with share and update analytics
             try {
-                // Call share use case
+                // TODO: Implement actual share functionality
                 _state.update { it.copy(errorMessage = "Share functionality not implemented yet") }
+                
+                // Update analytics after successful operation
+                capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
             } catch (e: Exception) {
                 _state.update { 
                     it.copy(errorMessage = "Failed to share memory: ${e.message}")
@@ -128,5 +194,79 @@ class MemoryDetailsViewModel(
                 }
             }
         }
+    }
+    
+    /**
+     * Check current capacity status
+     */
+    private fun checkCapacity() {
+        viewModelScope.launch {
+            _state.update { it.copy(isCheckingCapacity = true) }
+            
+            try {
+                val capacityInfo = capacityGuard.getCapacityInfo("current_user") // TODO: get real user ID
+                _state.update { 
+                    it.copy(
+                        capacityInfo = capacityInfo,
+                        isCheckingCapacity = false
+                    ) 
+                }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        isCheckingCapacity = false,
+                        errorMessage = "Nie udało się sprawdzić pojemności: ${e.message}"
+                    ) 
+                }
+            }
+        }
+    }
+    
+    /**
+     * Show paywall
+     */
+    private fun showPaywall() {
+        _state.update { it.copy(showPaywall = true) }
+    }
+    
+    /**
+     * Hide paywall
+     */
+    fun hidePaywall() {
+        _state.update { it.copy(showPaywall = false) }
+    }
+    
+    /**
+     * Show analytics
+     */
+    private fun showAnalytics() {
+        viewModelScope.launch {
+            // Update analytics data first
+            capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
+            _state.update { it.copy(showAnalytics = true) }
+        }
+    }
+    
+    /**
+     * Update analytics
+     */
+    private fun updateAnalytics() {
+        viewModelScope.launch {
+            capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
+        }
+    }
+    
+    /**
+     * Hide analytics
+     */
+    fun hideAnalytics() {
+        _state.update { it.copy(showAnalytics = false) }
+    }
+    
+    /**
+     * Get analytics instance
+     */
+    fun getAnalytics(): CapacityAnalytics {
+        return capacityAnalytics
     }
 }

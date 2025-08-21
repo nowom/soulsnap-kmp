@@ -1,58 +1,58 @@
 package pl.soulsnaps.features.memoryanalysis.analyzer
 
-import pl.soulsnaps.photo.SharedImage
+import pl.soulsnaps.photo.SharedImageInterface
 import pl.soulsnaps.features.memoryanalysis.model.*
 
 /**
  * Cross-platform interface for image analysis
  * Implemented differently on Android (TensorFlow Lite + OpenCV) and iOS (Core ML + Vision)
  */
-expect class ImageAnalyzer {
+expect class ImageAnalyzer : ImageAnalyzerInterface {
     
     /**
      * Analyze a single image and return comprehensive analysis
      */
-    suspend fun analyzeImage(image: SharedImage): ImageAnalysis
+    override suspend fun analyzeImage(image: SharedImageInterface): ImageAnalysis
     
     /**
      * Analyze multiple images in batch for better performance
      */
-    suspend fun analyzeBatch(images: List<SharedImage>): List<ImageAnalysis>
+    override suspend fun analyzeBatch(images: List<SharedImageInterface>): List<ImageAnalysis>
     
     /**
      * Analyze colors in an image
      */
-    suspend fun analyzeColors(image: SharedImage): ColorAnalysis
+    override suspend fun analyzeColors(image: SharedImageInterface): ColorAnalysis
     
     /**
      * Detect faces in an image
      */
-    suspend fun detectFaces(image: SharedImage): FaceDetection?
+    override suspend fun detectFaces(image: SharedImageInterface): FaceDetection?
     
     /**
      * Analyze mood based on image content
      */
-    suspend fun analyzeMood(image: SharedImage): MoodAnalysis
+    override suspend fun analyzeMood(image: SharedImageInterface): MoodAnalysis
     
     /**
      * Analyze image composition
      */
-    suspend fun analyzeComposition(image: SharedImage): CompositionAnalysis
+    override suspend fun analyzeComposition(image: SharedImageInterface): CompositionAnalysis
     
     /**
      * Get dominant colors from image
      */
-    suspend fun getDominantColors(image: SharedImage, count: Int = 5): List<DominantColor>
+    override suspend fun getDominantColors(image: SharedImageInterface, count: Int): List<DominantColor>
     
     /**
      * Check if image analysis is available on this platform
      */
-    fun isAnalysisAvailable(): Boolean
+    override fun isAnalysisAvailable(): Boolean
     
     /**
      * Get supported analysis features for this platform
      */
-    fun getSupportedFeatures(): List<AnalysisFeature>
+    override fun getSupportedFeatures(): List<AnalysisFeature>
 }
 
 /**

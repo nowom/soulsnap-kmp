@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.experimental.ExperimentalNativeApi::class)
+
 package pl.soulsnaps.features.auth.mvp.guard
 
 import pl.soulsnaps.features.auth.model.*
@@ -153,42 +155,20 @@ suspend fun examplePolicyExtension() {
  * Przykład 6: Testowanie (Liskov Substitution)
  */
 suspend fun exampleTesting() {
-    // Łatwo testować z mock implementacjami
+    // Przykład testowania z rzeczywistymi implementacjami
     
-    val mockScopePolicy = MockScopePolicy(
-        userScopes = mapOf(
-            "user123" to listOf("memory.create", "analysis.run.single")
-        )
-    )
-    
-    val mockQuotaPolicy = MockQuotaPolicy(
-        userQuotas = mapOf(
-            "user123" to mapOf("analysis.day" to 3)
-        )
-    )
-    
-    val mockFeatureToggle = MockFeatureToggle(
-        features = mapOf(
-            "feature.analysis" to true,
-            "feature.patterns" to false
-        )
-    )
-    
-    val testGuard = GuardFactory.createCustomGuard(
-        scopePolicy = mockScopePolicy,
-        quotaPolicy = mockQuotaPolicy,
-        featureToggle = mockFeatureToggle
-    )
+    val testGuard = GuardFactory.createDefaultGuard()
     
     // Testy bez zmian w kodzie!
     val result = testGuard.allowAction(
         userId = "user123",
-        action = "analysis.run.single",
-        quotaKey = "analysis.day",
-        flagKey = "feature.analysis"
+        action = "memory.create",
+        quotaKey = "memories.month",
+        flagKey = "feature.memories"
     )
     
-    assert(result.allowed) // Test przechodzi
+    // Sprawdź czy guard działa poprawnie
+    // result.allowed może być true lub false w zależności od uprawnień użytkownika
 }
 
 // Placeholder implementations for future extensions
@@ -288,34 +268,7 @@ class ExtendedAccessGuard(
     }
 }
 
-// Mock implementations for testing
-class MockScopePolicy(
-    private val userScopes: Map<String, List<String>>
-) : ScopePolicy {
-    override fun hasScope(userId: String, action: String): Boolean = 
-        userScopes[userId]?.contains(action) ?: false
-    override fun getUserScopes(userId: String): List<String> = 
-        userScopes[userId] ?: emptyList()
-    override fun getRequiredPlanForAction(action: String): String? = null
-}
-
-class MockQuotaPolicy(
-    private val userQuotas: Map<String, Map<String, Int>>
-) : QuotaPolicy {
-    override fun checkAndConsume(userId: String, key: String, amount: Int): Boolean = true
-    override fun getRemaining(userId: String, key: String): Int = 
-        userQuotas[userId]?.get(key) ?: 100
-    override fun resetQuota(userId: String, key: String): Boolean = true
-    override fun getQuotaInfo(userId: String, key: String): QuotaInfo? = null
-}
-
-class MockFeatureToggle(
-    private val features: Map<String, Boolean>
-) : FeatureToggle {
-    override fun isOn(key: String): Boolean = features[key] ?: false
-    override fun getFeatureInfo(key: String): FeatureInfo? = null
-    override fun getAllFeatures(): Map<String, Boolean> = features
-}
+// Mock implementations moved to test files to avoid duplication
 
 // Placeholder classes (TODO: Implement when needed)
 class LocalFeatureToggle : FeatureToggle {

@@ -8,12 +8,12 @@ import pl.soulsnaps.domain.model.MoodType as DomainMoodType
 /**
  * Engine for detecting patterns in memories and generating insights
  */
-class PatternDetectionEngine {
+class PatternDetectionEngine : PatternDetectionEngineInterface {
     
     /**
      * Analyze all memories and detect patterns
      */
-    suspend fun detectPatterns(memories: List<Memory>): MemoryPatterns {
+    override suspend fun detectPatterns(memories: List<Memory>): MemoryPatterns {
         val locationPatterns = detectLocationPatterns(memories)
         val timePatterns = detectTimePatterns(memories)
         val activityPatterns = detectActivityPatterns(memories)
@@ -30,7 +30,7 @@ class PatternDetectionEngine {
     /**
      * Generate insights from memories
      */
-    suspend fun generateInsights(memories: List<Memory>): pl.soulsnaps.features.memoryanalysis.model.MemoryInsights {
+    override suspend fun generateInsights(memories: List<Memory>): pl.soulsnaps.features.memoryanalysis.model.MemoryInsights {
         val patterns = detectPatterns(memories)
         
         // Generate weekly stats

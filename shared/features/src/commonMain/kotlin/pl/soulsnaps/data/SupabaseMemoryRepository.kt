@@ -31,12 +31,16 @@ class SupabaseMemoryRepository(
         }
     }
     
+    override suspend fun addMemory(memory: Memory): Int {
+        return try {
+            val databaseMemory = memory.toDatabaseMemory()
+            val result = databaseService.createMemory(databaseMemory)
+            result.id.toInt()
+        } catch (e: Exception) {
+            throw Exception("Failed to save memory: ${e.message}")
+        }
+    }
 
-    
-
-    
-
-    
     override suspend fun markAsFavorite(id: Int, isFavorite: Boolean) {
         try {
             databaseService.toggleMemoryFavorite(id.toString(), isFavorite)
@@ -44,6 +48,4 @@ class SupabaseMemoryRepository(
             println("Error toggling favorite: ${e.message}")
         }
     }
-    
-
 }
