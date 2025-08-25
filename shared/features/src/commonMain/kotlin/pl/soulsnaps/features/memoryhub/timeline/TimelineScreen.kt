@@ -46,6 +46,9 @@ import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.features.memoryhub.timeline.TimelineViewModel
 import pl.soulsnaps.utils.formatDate
 import pl.soulsnaps.utils.toLocalDateTime
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @Composable
 internal fun TimelineRoute(
@@ -85,20 +88,25 @@ fun TimelineScreen(
                 }
 
                 // Oś czasu z pogrupowanymi Snapami
-                uiState.snaps.groupBy {
-                    it.createdAt.toLocalDateTime()
-                }.forEach { (date, snaps) ->
-                    item {
-                        Text(
-                            text = formatDate(date),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
+                uiState.snaps
+                    .sortedByDescending { it.createdAt }
+                    .groupBy {
+                        it.createdAt.toLocalDateTime()
                     }
-                    items(snaps) { snap ->
-                        SnapItem(snap = snap, onClick = { onSnapClick(snap.id) })
+                    .forEach { (date, snaps) ->
+                        item {
+                            Text(
+                                text = formatTimelineDate(date),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
+                            )
+                        }
+                        items(snaps) { snap ->
+                            SnapItem(snap = snap, onClick = { onSnapClick(snap.id) })
+                        }
                     }
-                }
             }
         }
     }
@@ -136,22 +144,71 @@ fun SnapItem(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(4.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Row(modifier = Modifier.padding(16.dp)) {
-            Image(
-                painter = rememberAsyncImagePainter(snap.photoUri),
-                contentDescription = "Snap Image",
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(text = snap.description, style = MaterialTheme.typography.bodyLarge)
-                snap.mood?.let {
-                    Text(text = it.name, style = MaterialTheme.typography.labelMedium)
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Photo
+            if (snap.photoUri != null) {
+                AsyncImage(
+                    model = snap.photoUri,
+                    contentDescription = "Snap Image",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+            }
+            
+            // Content
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                // Title
+                Text(
+                    text = snap.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Description
+                if (!snap.description.isNullOrBlank()) {
+                    Text(
+                        text = snap.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                
+                // Mood and Date
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    snap.mood?.let { mood ->
+                        Text(
+                            text = mood.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    
+                    Text(
+                        text = formatDate(snap.createdAt.toLocalDateTime(), "HH:mm"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
                 }
             }
         }
@@ -362,4 +419,11 @@ fun QuoteOfTheDayCard(quote: String) {
             )
         }
     }
+}
+
+/**
+ * Format date for Timeline display
+ */
+private fun formatTimelineDate(date: kotlinx.datetime.LocalDateTime): String {
+    return formatDate(date, "dd MMM yyyy")
 }

@@ -33,3 +33,4 @@ enum class AppFeature {
     ANALYTICS_DASHBOARD,   // Analytics dashboard (Enterprise+)
     API_ACCESS             // API access (Enterprise+)
 }
+

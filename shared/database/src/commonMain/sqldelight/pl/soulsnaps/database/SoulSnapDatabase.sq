@@ -59,3 +59,6 @@ UPDATE memories SET isSynced = 1 WHERE id = ?;
 
 clearAll:
 DELETE FROM memories;
+
+deleteInvalidMemories:
+DELETE FROM memories WHERE timestamp = 0;

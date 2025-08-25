@@ -26,6 +26,7 @@ import pl.soulsnaps.features.exersises.plutchikwheel.navigateToModernEmotionWhee
 import pl.soulsnaps.features.exersises.plutchikwheel.ModernEmotionWheelRoute
 import pl.soulsnaps.features.memoryhub.memoryHubTab
 import pl.soulsnaps.features.memoryhub.navigateToMemoryHub
+import pl.soulsnaps.features.memoryhub.MemoryHubRoute
 import pl.soulsnaps.features.onboarding.OnboardingRoute
 import pl.soulsnaps.features.onboarding.createOnboardingDataStore
 import pl.soulsnaps.features.onboarding.onboardingScreen
@@ -39,6 +40,12 @@ import pl.soulsnaps.features.auth.navigateToRegistration
 import pl.soulsnaps.features.auth.registrationScreen
 import pl.soulsnaps.features.memoryhub.details.memoryDetailsScreen
 import pl.soulsnaps.features.memoryhub.details.navigateToMemoryDetails
+import pl.soulsnaps.features.upgrade.upgradeScreen
+import pl.soulsnaps.features.upgrade.navigateToUpgrade
+import pl.soulsnaps.features.settings.SettingsRoute
+import pl.soulsnaps.features.settings.SettingsScreen
+import pl.soulsnaps.features.settings.navigateToSettings
+import pl.soulsnaps.features.settings.settingsScreen
 
 @Composable
 internal fun SoulSnapNavHost(
@@ -60,7 +67,7 @@ internal fun SoulSnapNavHost(
     
     NavHost(
         navController = navController,
-        startDestination = OnboardingRoute, // Always start with onboarding, let tracker handle navigation
+        startDestination = DashboardRoute, // Start with dashboard, onboarding will be handled by AppStartupManager
         modifier = modifier,
     ) {
         onboardingScreen(
@@ -81,7 +88,14 @@ internal fun SoulSnapNavHost(
             onNavigateToSoulSnaps = { navController.navigateToMemoryHub() },
             onNavigateToAffirmations = { navController.navigateToAffirmations() },
             onNavigateToExercises = { navController.navigateToExercises() },
-            onNavigateToVirtualMirror = { navController.navigateToVirtualMirror() }
+            onNavigateToVirtualMirror = { navController.navigateToVirtualMirror() },
+            onNavigateToAnalytics = { 
+                // TODO: Navigate to analytics
+                println("DEBUG: Navigate to analytics")
+            },
+            onUpgradePlan = { 
+                navController.navigateToUpgrade()
+            }
         )
         virtualMirrorScreen(
             onBack = { navController.popBackStack() }
@@ -134,5 +148,26 @@ internal fun SoulSnapNavHost(
         breathingSessionScreen(onDone = { navController.popBackStack() })
         gratitudeScreen(onDone = { navController.popBackStack() })
         modernEmotionWheelScreen(onDone = { navController.popBackStack() })
+
+        settingsScreen(
+            {
+                navController.navigate(OnboardingRoute) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        )
+        
+        // Upgrade screen
+        upgradeScreen(
+            onBack = { navController.popBackStack() },
+            onUpgradeToPlan = { planName ->
+                // TODO: Handle plan upgrade
+                println("DEBUG: Upgrade to plan: $planName")
+                navController.popBackStack()
+            },
+            onDismiss = { navController.popBackStack() },
+            currentPlan = "FREE_USER", // TODO: Get from UserPlanManager
+            recommendations = emptyList() // TODO: Get from UpgradeRecommendationEngine
+        )
     }
 }

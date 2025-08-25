@@ -64,7 +64,12 @@ object DataModule {
             if (AuthConfig.USE_SUPABASE_AUTH) {
                 SupabaseMemoryRepository(get())
             } else {
-                MemoryRepositoryImpl(get(), get<MemoryDao>())
+                MemoryRepositoryImpl(
+                    networkMonitor = get(),
+                    memoryDao = get<MemoryDao>(),
+                    userSessionManager = get(),
+                    remoteService = if (AuthConfig.USE_SUPABASE_AUTH) get() else null
+                )
             }
         }
         

@@ -13,4 +13,5 @@ interface MemoryDao {
     suspend fun clearAll()
     suspend fun getUnsynced(): List<Memories>
     suspend fun markAsSynced(id: Long)
+    suspend fun deleteInvalidMemories(): Int
 }

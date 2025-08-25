@@ -142,6 +142,22 @@ class UserPlanManager(
     fun refreshFromStorage() {
         loadDataFromStorage()
     }
+    
+    /**
+     * Czekaj na zakończenie inicjalizacji
+     */
+    suspend fun waitForInitialization() {
+        while (_isLoading.value) {
+            kotlinx.coroutines.delay(10) // Krótkie opóźnienie
+        }
+    }
+    
+    /**
+     * Pobierz aktualny plan (synchronicznie)
+     */
+    fun getCurrentPlan(): String? {
+        return _currentPlan.value
+    }
 }
 
 /**

@@ -14,3 +14,4 @@ actual object UserPreferencesStorageFactory {
         return UserPreferencesStorage()
     }
 }
+

@@ -27,6 +27,8 @@ import pl.soulsnaps.features.auth.LoginRoute
 import pl.soulsnaps.features.coach.BreathingSessionRoute
 import pl.soulsnaps.features.coach.GratitudeRoute
 import pl.soulsnaps.features.exersises.plutchikwheel.ModernEmotionWheelRoute
+import pl.soulsnaps.features.settings.SettingsRoute
+import pl.soulsnaps.features.settings.navigateToSettings
 import kotlin.reflect.KClass
 
 @Stable
@@ -90,6 +92,7 @@ internal class SoulSnapAppState(
             CaptureMomentRoute::class -> navController.navigateToCaptureMoment()
             MemoryHubRoute::class -> navController.navigateToMemoryHub()
             ExerciseRoute::class -> navController.navigateToExercises()
+            SettingsRoute::class -> navController.navigateToSettings()
         }
     }
 

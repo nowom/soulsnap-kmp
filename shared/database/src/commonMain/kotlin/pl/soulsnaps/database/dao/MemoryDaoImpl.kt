@@ -68,4 +68,9 @@ class MemoryDaoImpl(private val db: SoulSnapDatabase) : MemoryDao {
     override suspend fun markAsSynced(id: Long) {
         queries.markAsSynced(id)
     }
+
+    override suspend fun deleteInvalidMemories(): Int {
+        queries.deleteInvalidMemories()
+        return 1 // Return 1 to indicate cleanup was performed
+    }
 }

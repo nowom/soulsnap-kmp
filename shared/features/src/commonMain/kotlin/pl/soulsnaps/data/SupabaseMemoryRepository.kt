@@ -48,4 +48,11 @@ class SupabaseMemoryRepository(
             println("Error toggling favorite: ${e.message}")
         }
     }
+
+    override suspend fun cleanupInvalidMemories(): Int {
+        // For Supabase, we don't need to clean up invalid memories
+        // as they are stored remotely and validated
+        println("DEBUG: SupabaseMemoryRepository.cleanupInvalidMemories() - no cleanup needed for remote storage")
+        return 0
+    }
 }

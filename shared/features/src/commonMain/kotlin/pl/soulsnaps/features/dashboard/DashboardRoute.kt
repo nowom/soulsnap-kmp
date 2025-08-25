@@ -22,7 +22,9 @@ fun NavGraphBuilder.dashboardScreen(
     onNavigateToSoulSnaps: () -> Unit = {},
     onNavigateToAffirmations: () -> Unit = {},
     onNavigateToExercises: () -> Unit = {},
-    onNavigateToVirtualMirror: () -> Unit = {}
+    onNavigateToVirtualMirror: () -> Unit = {},
+    onNavigateToAnalytics: () -> Unit = {},
+    onUpgradePlan: () -> Unit = {}
 ) {
     composable<DashboardRoute> {
         DashboardScreen(
@@ -30,7 +32,9 @@ fun NavGraphBuilder.dashboardScreen(
             onNavigateToSoulSnaps = onNavigateToSoulSnaps,
             onNavigateToAffirmations = onNavigateToAffirmations,
             onNavigateToExercises = onNavigateToExercises,
-            onNavigateToVirtualMirror = onNavigateToVirtualMirror
+            onNavigateToVirtualMirror = onNavigateToVirtualMirror,
+            onNavigateToAnalytics = onNavigateToAnalytics,
+            onUpgradePlan = onUpgradePlan
         )
     }
 }

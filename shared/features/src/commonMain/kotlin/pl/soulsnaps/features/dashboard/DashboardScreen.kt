@@ -49,6 +49,8 @@ fun DashboardScreen(
     onNavigateToAffirmations: () -> Unit = {},
     onNavigateToExercises: () -> Unit = {},
     onNavigateToVirtualMirror: () -> Unit = {},
+    onNavigateToAnalytics: () -> Unit = {},
+    onUpgradePlan: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -58,15 +60,15 @@ fun DashboardScreen(
     if (state.isLoading) {
         FullScreenCircularProgress()
     } else {
-        DashboardContent(
-            state = state,
-            onPlayAffirmation = { viewModel.handleIntent(DashboardIntent.PlayAffirmation) },
-            onPauseAffirmation = { viewModel.handleIntent(DashboardIntent.PauseAffirmation) },
+        // Use scope-aware dashboard
+        ScopeAwareDashboard(
             onAddNewSnap = onAddNewSnap,
             onNavigateToSoulSnaps = onNavigateToSoulSnaps,
             onNavigateToAffirmations = onNavigateToAffirmations,
             onNavigateToExercises = onNavigateToExercises,
-            onNavigateToVirtualMirror = onNavigateToVirtualMirror
+            onNavigateToVirtualMirror = onNavigateToVirtualMirror,
+            onNavigateToAnalytics = onNavigateToAnalytics,
+            onUpgradePlan = onUpgradePlan
         )
     }
 }

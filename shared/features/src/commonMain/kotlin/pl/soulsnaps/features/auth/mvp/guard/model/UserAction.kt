@@ -52,3 +52,4 @@ sealed class UserAction {
     @Serializable
     data class APIAccess(val endpoint: String) : UserAction()
 }
+

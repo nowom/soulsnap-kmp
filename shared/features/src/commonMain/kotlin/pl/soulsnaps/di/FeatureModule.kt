@@ -23,6 +23,8 @@ import pl.soulsnaps.features.auth.AuthViewModel
 import pl.soulsnaps.features.auth.LoginViewModel
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.memoryhub.details.MemoryDetailsViewModel
+import pl.soulsnaps.features.settings.SettingsViewModel
+import pl.soulsnaps.features.auth.mvp.guard.UserPlanManager
 
 object FeatureModule {
     fun get() = module {
@@ -46,6 +48,10 @@ object FeatureModule {
         viewModelOf(::AuthViewModel)
         viewModelOf(::LoginViewModel)
         viewModelOf(::MemoryDetailsViewModel)
+        viewModelOf(::SettingsViewModel)
+
+        // UserPlanManager - singleton for managing user plans
+        single { UserPlanManager() }
 
         single<ExerciseRepository> { InMemoryExerciseRepository() }
         single { GetCompletedExercisesUseCase(get()) }

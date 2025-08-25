@@ -74,6 +74,7 @@ import pl.soulsnaps.photo.rememberCameraManager
 import pl.soulsnaps.photo.rememberGalleryManager
 import pl.soulsnaps.features.auth.ui.PaywallScreen
 import pl.soulsnaps.features.analytics.CapacityAnalyticsScreen
+import pl.soulsnaps.features.memoryhub.MemoryHubRoute
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,7 +108,7 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
         LaunchedEffect(memoryId) {
             delay(1500) // Show success message for 1.5 seconds
             // Navigate to Memory Hub (Timeline)
-            navController.navigate("MemoryHubRoute") {
+            navController.navigate(MemoryHubRoute) {
                 popUpTo("captureMoment") { inclusive = true }
             }
         }

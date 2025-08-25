@@ -18,6 +18,11 @@ class CaptureMomentViewModel(
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CaptureMomentState())
+    
+    init {
+        println("DEBUG: CaptureMomentViewModel.init() - initial state date: ${_state.value.date}")
+        println("DEBUG: CaptureMomentViewModel.init() - current timestamp: ${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}")
+    }
     val state: StateFlow<CaptureMomentState> = _state
     
     // CapacityGuard for checking limits before saving memory
@@ -64,15 +69,23 @@ class CaptureMomentViewModel(
 
 
     private fun saveMemory() {
+        println("DEBUG: CaptureMomentViewModel.saveMemory() - starting memory save")
+        
         if (state.value.isTitleValid == null || state.value.isTitleValid == false) {
+            println("DEBUG: CaptureMomentViewModel.saveMemory() - title validation failed")
             _state.update { it.copy(isTitleValid = false) }
             return
         }
 
         viewModelScope.launch {
+            println("DEBUG: CaptureMomentViewModel.saveMemory() - checking capacity limits")
+            
             // First check capacity limits
             val capacityResult = checkCapacityBeforeSave()
+            println("DEBUG: CaptureMomentViewModel.saveMemory() - capacity result: $capacityResult")
+            
             if (!capacityResult.allowed) {
+                println("DEBUG: CaptureMomentViewModel.saveMemory() - capacity limit exceeded, showing paywall")
                 // Capacity limit exceeded - show paywall
                 val recommendation = capacityGuard.getUpgradeRecommendation("current_user") // TODO: get real user ID
                 _state.update { 
@@ -85,7 +98,9 @@ class CaptureMomentViewModel(
                 return@launch
             }
 
+            println("DEBUG: CaptureMomentViewModel.saveMemory() - creating memory object")
             _state.update { it.copy(isSaving = true, errorMessage = null, successMessage = null) }
+            
             val memory = Memory(
                 title = state.value.title,
                 description = state.value.description,
@@ -98,9 +113,16 @@ class CaptureMomentViewModel(
                 latitude = null,
                 id = 0,
             )
+            
+            println("DEBUG: CaptureMomentViewModel.saveMemory() - memory object created: title='${memory.title}', description='${memory.description}', mood='${memory.mood}', photoUri='${memory.photoUri}', audioUri='${memory.audioUri}', createdAt=${memory.createdAt}")
+            println("DEBUG: CaptureMomentViewModel.saveMemory() - state.value.date=${state.value.date}")
+            println("DEBUG: CaptureMomentViewModel.saveMemory() - current timestamp=${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}")
 
             try {
+                println("DEBUG: CaptureMomentViewModel.saveMemory() - calling saveMemoryUseCase.invoke()")
                 val memoryId = saveMemoryUseCase.invoke(memory)
+                println("DEBUG: CaptureMomentViewModel.saveMemory() - memory saved successfully with ID: $memoryId")
+                
                 _state.update { 
                     it.copy(
                         isSaving = false, 
@@ -109,6 +131,12 @@ class CaptureMomentViewModel(
                     ) 
                 }
             } catch (e: Exception) {
+                println("ERROR: CaptureMomentViewModel.saveMemory() - exception occurred while saving memory")
+                println("ERROR: CaptureMomentViewModel.saveMemory() - exception type: ${e::class.simpleName}")
+                println("ERROR: CaptureMomentViewModel.saveMemory() - exception message: ${e.message}")
+                println("ERROR: CaptureMomentViewModel.saveMemory() - full stacktrace:")
+                e.printStackTrace()
+                
                 _state.update { 
                     it.copy(
                         isSaving = false, 
@@ -123,31 +151,51 @@ class CaptureMomentViewModel(
      * Check capacity limits before saving memory
      */
     private suspend fun checkCapacityBeforeSave(): AccessResult {
+        println("DEBUG: CaptureMomentViewModel.checkCapacityBeforeSave() - checking capacity limits")
+        
         // Estimate file size based on photo and audio
         val estimatedSizeMB = estimateFileSize()
+        println("DEBUG: CaptureMomentViewModel.checkCapacityBeforeSave() - estimated file size: ${estimatedSizeMB}MB")
         
-        return capacityGuard.canAddSnapWithSize("current_user", estimatedSizeMB) // TODO: get real user ID
+        try {
+            val result = capacityGuard.canAddSnapWithSize("current_user", estimatedSizeMB) // TODO: get real user ID
+            println("DEBUG: CaptureMomentViewModel.checkCapacityBeforeSave() - capacity check result: $result")
+            return result
+        } catch (e: Exception) {
+            println("ERROR: CaptureMomentViewModel.checkCapacityBeforeSave() - exception during capacity check")
+            println("ERROR: CaptureMomentViewModel.checkCapacityBeforeSave() - exception type: ${e::class.simpleName}")
+            println("ERROR: CaptureMomentViewModel.checkCapacityBeforeSave() - exception message: ${e.message}")
+            println("ERROR: CaptureMomentViewModel.checkCapacityBeforeSave() - full stacktrace:")
+            e.printStackTrace()
+            throw e
+        }
     }
     
     /**
      * Estimate file size for capacity check
      */
     private fun estimateFileSize(): Int {
+        println("DEBUG: CaptureMomentViewModel.estimateFileSize() - estimating file size")
+        
         var totalSizeMB = 0
         
         // Photo typically 2-5MB
         if (state.value.photoUri != null) {
             totalSizeMB += 3
+            println("DEBUG: CaptureMomentViewModel.estimateFileSize() - photo detected, adding 3MB")
         }
         
         // Audio typically 1-3MB per minute
         if (state.value.audioUri != null) {
             totalSizeMB += 2
+            println("DEBUG: CaptureMomentViewModel.estimateFileSize() - audio detected, adding 2MB")
         }
         
         // Base memory data ~0.1MB
         totalSizeMB += 1
+        println("DEBUG: CaptureMomentViewModel.estimateFileSize() - base memory data, adding 1MB")
         
+        println("DEBUG: CaptureMomentViewModel.estimateFileSize() - total estimated size: ${totalSizeMB}MB")
         return totalSizeMB
     }
     

@@ -10,10 +10,12 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Settings
 import pl.soulsnaps.features.affirmation.AffirmationsRoute
 import pl.soulsnaps.features.dashboard.DashboardRoute
 import pl.soulsnaps.features.exersises.ExerciseRoute
 import pl.soulsnaps.features.memoryhub.MemoryHubRoute
+import pl.soulsnaps.features.settings.SettingsRoute
 import kotlin.reflect.KClass
 
 sealed class Screen(val route: String, val label: String, val icon: String) {
@@ -58,4 +60,5 @@ val bottomNavItems = listOf(
     BottomNavItem("Soul Snap", MemoryHubRoute::class, Icons.Default.PhotoLibrary),
     BottomNavItem("Affirmations", AffirmationsRoute::class, Icons.Default.Headphones),
     BottomNavItem("Exercise", ExerciseRoute::class, Icons.Default.Psychology),
+    BottomNavItem("Settings", SettingsRoute::class, Icons.Default.Settings),
 )

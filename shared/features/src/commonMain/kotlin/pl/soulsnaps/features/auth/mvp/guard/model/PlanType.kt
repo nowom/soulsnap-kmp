@@ -12,3 +12,4 @@ enum class PlanType {
     PREMIUM_USER,    // Premium user with advanced features
     ENTERPRISE_USER  // Enterprise user with unlimited access
 }
+

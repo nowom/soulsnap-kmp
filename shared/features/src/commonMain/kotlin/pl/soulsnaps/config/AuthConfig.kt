@@ -2,7 +2,7 @@ package pl.soulsnaps.config
 
 object AuthConfig {
     // Set this to true to use Supabase authentication and database, false to use fake data
-    const val USE_SUPABASE_AUTH = true
+    const val USE_SUPABASE_AUTH = false
     
     // Supabase configuration
     const val SUPABASE_URL = "https://your-project.supabase.co" // TODO: Replace with your actual Supabase URL

@@ -2,11 +2,12 @@ package pl.soulsnaps.features.capturemoment
 
 import pl.soulsnaps.domain.model.MoodType
 import pl.soulsnaps.features.auth.mvp.guard.CapacityInfo
+import kotlinx.datetime.Clock
 
 data class CaptureMomentState(
     val title: String = "",
     val description: String = "",
-    val date: Long = 0,
+    val date: Long = Clock.System.now().toEpochMilliseconds(),
     val selectedMood: MoodType? = null,
     val photoUri: String? = null,
     val audioUri: String? = null,

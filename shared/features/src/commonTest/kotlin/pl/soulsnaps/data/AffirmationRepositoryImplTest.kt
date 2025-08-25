@@ -153,3 +153,4 @@ class MockMemoryDao : MemoryDao {
     
     override suspend fun markAsSynced(id: Long) {}
 }
+

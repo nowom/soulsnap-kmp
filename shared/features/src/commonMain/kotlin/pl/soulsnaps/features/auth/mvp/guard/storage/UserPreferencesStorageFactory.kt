@@ -11,3 +11,4 @@ expect object UserPreferencesStorageFactory {
      */
     fun create(): UserPreferencesStorage
 }
+
