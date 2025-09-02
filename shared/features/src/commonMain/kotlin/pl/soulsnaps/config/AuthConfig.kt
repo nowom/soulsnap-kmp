@@ -2,7 +2,7 @@ package pl.soulsnaps.config
 
 object AuthConfig {
     // Set this to true to use Supabase authentication and database, false to use fake data
-    const val USE_SUPABASE_AUTH = true
+    const val USE_SUPABASE_AUTH = false
     
     // Supabase configuration - safely retrieved using expect/actual pattern
     // This uses platform-specific implementations for secure secret management

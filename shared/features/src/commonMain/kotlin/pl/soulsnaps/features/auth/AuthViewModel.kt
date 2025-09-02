@@ -74,6 +74,8 @@ class AuthViewModel : ViewModel() {
                 }
                 println("User signed up successfully: ${currentState.email}")
             } catch (e: Exception) {
+                println("User signed up successfully: ${currentState.email}")
+
                 _state.update { 
                     it.copy(
                         isLoading = false,

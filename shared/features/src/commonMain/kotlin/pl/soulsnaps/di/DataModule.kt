@@ -25,24 +25,21 @@ import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.auth.SessionDataStore
 import pl.soulsnaps.features.auth.InMemorySessionDataStore
 import pl.soulsnaps.network.SupabaseClientProvider
+import io.github.jan.supabase.SupabaseClient
 
 object DataModule {
     fun get(): Module = module {
         single { HttpClientFactory() }
         single { SupabaseClientProvider.getClient() }
-        single { SupabaseAuthService() }
-        single { SupabaseDatabaseService(get()) }
+        single { SupabaseAuthService(get()) }
+        single { SupabaseDatabaseService(get<SupabaseClient>()) }
 
 
         // Analytics Repository
         single<AnalyticsRepository> { FakeAnalyticsRepository() }
         
         single<AuthRepository> {
-            if (AuthConfig.USE_SUPABASE_AUTH) {
-                SupabaseAuthRepository(get())
-            } else {
-                AuthRepositoryImpl(FakeAuthService())
-            }
+            SupabaseAuthRepository(get())
         }
         
         single<MemoryRepository> {
