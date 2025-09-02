@@ -3,6 +3,7 @@ package pl.soulsnaps.features.memoryanalysis.engine
 import kotlinx.datetime.*
 import pl.soulsnaps.features.memoryanalysis.model.*
 import pl.soulsnaps.domain.model.Memory
+import pl.soulsnaps.utils.getCurrentTimeMillis
 import pl.soulsnaps.domain.model.MoodType as DomainMoodType
 
 /**
@@ -64,7 +65,7 @@ class PatternDetectionEngine : PatternDetectionEngineInterface {
             weeklyStats = weeklyStats,
             monthlyTrends = monthlyTrends,
             recommendations = recommendations,
-            generatedAt = Clock.System.now()
+            generatedAt = getCurrentTimeMillis()
         )
     }
     
@@ -387,7 +388,7 @@ class PatternDetectionEngine : PatternDetectionEngineInterface {
                 val moodScore = calculateMoodScore(weekMemories)
                 
                 // Use current time for all weeks to avoid complex date arithmetic
-                val weekTimestamp = Clock.System.now()
+                val weekTimestamp = getCurrentTimeMillis()
                 
                 moodProgression.add(
                     MoodDataPoint(

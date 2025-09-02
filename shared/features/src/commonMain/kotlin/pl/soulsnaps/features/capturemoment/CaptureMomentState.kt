@@ -1,13 +1,13 @@
 package pl.soulsnaps.features.capturemoment
 
 import pl.soulsnaps.domain.model.MoodType
-import pl.soulsnaps.features.auth.mvp.guard.CapacityInfo
-import kotlinx.datetime.Clock
+import pl.soulsnaps.access.guard.QuotaInfo
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 data class CaptureMomentState(
     val title: String = "",
     val description: String = "",
-    val date: Long = Clock.System.now().toEpochMilliseconds(),
+    val date: Long = getCurrentTimeMillis(),
     val selectedMood: MoodType? = null,
     val photoUri: String? = null,
     val audioUri: String? = null,
@@ -20,7 +20,7 @@ data class CaptureMomentState(
     val savedMemoryId: Int? = null,
     
     // New fields for capacity management
-    val capacityInfo: CapacityInfo? = null,
+    val capacityInfo: QuotaInfo? = null,
     val showPaywall: Boolean = false,
     val paywallReason: String? = null,
     val recommendedPlan: String? = null,

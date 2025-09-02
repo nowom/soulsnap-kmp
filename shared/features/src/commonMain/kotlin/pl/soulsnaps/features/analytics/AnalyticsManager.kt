@@ -1,15 +1,18 @@
 package pl.soulsnaps.features.analytics
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.datetime.Clock
+import kotlinx.coroutines.launch
+
+import pl.soulsnaps.data.AnalyticsRepository
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 class AnalyticsManager(
     private val repository: AnalyticsRepository,
-    private val coroutineScope: CoroutineScope
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
 ) {
     private val _onboardingStartTime = MutableStateFlow<Long?>(null)
     private val _stepStartTimes = MutableStateFlow<Map<String, Long>>(emptyMap())
@@ -27,35 +30,35 @@ class AnalyticsManager(
 
     // Onboarding Analytics
     fun startOnboarding() {
-        val startTime = Clock.System.now().toEpochMilliseconds()
+        val startTime = getCurrentTimeMillis()
         _onboardingStartTime.value = startTime
         trackEvent(AnalyticsEvent.OnboardingStarted(startTime))
     }
 
     fun startStep(step: String) {
-        _stepStartTimes.value = _stepStartTimes.value + (step to Clock.System.now().toEpochMilliseconds())
+        _stepStartTimes.value = _stepStartTimes.value + (step to getCurrentTimeMillis())
         trackScreenView(step)
     }
 
     fun completeStep(step: String) {
         val startTime = _stepStartTimes.value[step]
-        val timeSpent = startTime?.let { Clock.System.now().toEpochMilliseconds() - it } ?: 0L
+        val timeSpent = startTime?.let { getCurrentTimeMillis() - it } ?: 0L
         trackEvent(AnalyticsEvent.OnboardingStepCompleted(step, timeSpent))
     }
 
     fun skipStep(step: String) {
-        trackEvent(AnalyticsEvent.OnboardingSkipped(step))
+        trackEvent(AnalyticsEvent.UserAction("onboarding_skipped", step))
     }
 
     fun completeOnboarding(selectedFocus: String?, authMethod: String?) {
         val startTime = _onboardingStartTime.value
-        val totalTime = startTime?.let { Clock.System.now().toEpochMilliseconds() - it } ?: 0L
-        trackEvent(AnalyticsEvent.OnboardingCompleted(totalTime, selectedFocus, authMethod))
+        val totalTime = startTime?.let { getCurrentTimeMillis() - it } ?: 0L
+        trackEvent(AnalyticsEvent.OnboardingCompleted(totalTime))
     }
 
     // Auth Analytics
     fun trackAuthAttempt(method: String, success: Boolean) {
-        trackEvent(AnalyticsEvent.AuthAttempted(method, success))
+        trackEvent(AnalyticsEvent.UserAction("auth_attempted", "$method:$success"))
     }
 
     // Feature Analytics
@@ -67,7 +70,7 @@ class AnalyticsManager(
 
     // Emotion Analytics
     fun trackEmotionCapture(emotion: String, intensity: String) {
-        trackEvent(AnalyticsEvent.EmotionCaptured(emotion, intensity))
+        trackEvent(AnalyticsEvent.UserAction("emotion_captured", "$emotion:$intensity"))
     }
 
     // Screen Analytics

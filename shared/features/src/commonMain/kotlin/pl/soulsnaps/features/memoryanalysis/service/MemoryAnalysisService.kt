@@ -1,13 +1,13 @@
 package pl.soulsnaps.features.memoryanalysis.service
 
-import kotlinx.datetime.Clock
 import pl.soulsnaps.domain.model.Memory
-import pl.soulsnaps.features.auth.mvp.guard.*
+import pl.soulsnaps.access.guard.*
 import pl.soulsnaps.features.auth.model.*
 import pl.soulsnaps.features.memoryanalysis.analyzer.ImageAnalyzerInterface
 import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngineInterface
 import pl.soulsnaps.features.memoryanalysis.model.*
 import pl.soulsnaps.photo.SharedImageInterface
+import pl.soulsnaps.utils.getCurrentTimeMillis
 import pl.soulsnaps.domain.model.MoodType as DomainMoodType
 
 /**
@@ -64,7 +64,7 @@ class MemoryAnalysisService(
             }
         }
         
-        val startTime = Clock.System.now()
+        val startTime = getCurrentTimeMillis()
         
         try {
             // Note: Memory doesn't have an 'image' field, so we'll skip image analysis for now
@@ -73,7 +73,7 @@ class MemoryAnalysisService(
             // Generate basic insights for this memory
             val memoryInsights = generateBasicInsights(memory, imageAnalysis)
             
-            val processingTime = (Clock.System.now() - startTime).inWholeMilliseconds
+            val processingTime = getCurrentTimeMillis() - startTime
             
             return MemoryAnalysisResult.Success(
                 memoryId = memory.id.toString(),
@@ -86,7 +86,7 @@ class MemoryAnalysisService(
             return MemoryAnalysisResult.Error(
                 memoryId = memory.id.toString(),
                 error = e.message ?: "Unknown error occurred",
-                processingTime = (Clock.System.now() - startTime).inWholeMilliseconds
+                processingTime = getCurrentTimeMillis() - startTime
             )
         }
     }
@@ -131,14 +131,14 @@ class MemoryAnalysisService(
             }
         }
         
-        val startTime = Clock.System.now()
+        val startTime = getCurrentTimeMillis()
         
         try {
             // Generate patterns and insights
             val patterns = patternDetectionEngine.detectPatterns(memories)
             val insights = patternDetectionEngine.generateInsights(memories)
             
-            val processingTime = (Clock.System.now() - startTime).inWholeMilliseconds
+            val processingTime = getCurrentTimeMillis() - startTime
             
             return MemoriesAnalysisResult.Success(
                 patterns = patterns,
@@ -149,7 +149,7 @@ class MemoryAnalysisService(
         } catch (e: Exception) {
             return MemoriesAnalysisResult.Error(
                 error = e.message ?: "Unknown error occurred",
-                processingTime = (Clock.System.now() - startTime).inWholeMilliseconds
+                processingTime = getCurrentTimeMillis() - startTime
             )
         }
     }
@@ -194,7 +194,7 @@ class MemoryAnalysisService(
             }
         }
         
-        val startTime = Clock.System.now()
+        val startTime = getCurrentTimeMillis()
         
         try {
             // Batch image analysis
@@ -206,7 +206,7 @@ class MemoryAnalysisService(
                 }
             }
             
-            val processingTime = (Clock.System.now() - startTime).inWholeMilliseconds
+            val processingTime = getCurrentTimeMillis() - startTime
             
             return MemoriesAnalysisResult.Success(
                 patterns = MemoryPatterns(
@@ -237,7 +237,7 @@ class MemoryAnalysisService(
                         )
                     ),
                     recommendations = emptyList(),
-                    generatedAt = Clock.System.now()
+                    generatedAt = getCurrentTimeMillis()
                 ),
                 processingTime = processingTime,
                 imageAnalyses = imageAnalyses
@@ -246,7 +246,7 @@ class MemoryAnalysisService(
         } catch (e: Exception) {
             return MemoriesAnalysisResult.Error(
                 error = e.message ?: "Unknown error occurred",
-                processingTime = (Clock.System.now() - startTime).inWholeMilliseconds
+                processingTime = getCurrentTimeMillis() - startTime
             )
         }
     }

@@ -30,7 +30,7 @@ import pl.soulsnaps.designsystem.SoulSnapTypography
 import pl.soulsnaps.domain.model.MoodType
 import pl.soulsnaps.permissions.WithCameraPermission
 import pl.soulsnaps.permissions.WithGalleryPermission
-import kotlinx.datetime.Clock
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 @Composable
 fun EnhancedCaptureMomentScreen(
@@ -251,7 +251,7 @@ private fun PhotoCaptureStep(
             content = {
                 PrimaryButton(
                     text = "Take Photo",
-                    onClick = { onPhotoCaptured("camera_photo_${Clock.System.now().toEpochMilliseconds()}") },
+                    onClick = { onPhotoCaptured("camera_photo_${getCurrentTimeMillis()}") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
@@ -275,7 +275,7 @@ private fun PhotoCaptureStep(
             content = {
                 SecondaryButton(
                     text = "Choose from Gallery",
-                    onClick = { onPhotoFromGallery("gallery_photo_${Clock.System.now().toEpochMilliseconds()}") },
+                    onClick = { onPhotoFromGallery("gallery_photo_${getCurrentTimeMillis()}") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)

@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import pl.soulsnaps.features.auth.mvp.guard.storage.UserPreferencesStorageFactory
+import pl.soulsnaps.access.storage.UserPreferencesStorageFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

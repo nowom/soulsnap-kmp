@@ -3,6 +3,7 @@ package pl.soulsnaps.features.capturemoment
 import pl.soulsnaps.photo.SharedImage
 import pl.soulsnaps.permissions.PermissionManager
 import pl.soulsnaps.permissions.PermissionType
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 /**
  * Enhanced gallery service that integrates with permission system
@@ -77,7 +78,7 @@ data class PhotoLocation(
     val latitude: Double,
     val longitude: Double,
     val accuracy: Float? = null,
-    val timestamp: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+    val timestamp: Long = getCurrentTimeMillis(),
     val placeId: String? = null,
     val placeType: PlaceType? = null
 )

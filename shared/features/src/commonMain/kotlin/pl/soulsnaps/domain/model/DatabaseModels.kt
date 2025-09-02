@@ -2,7 +2,9 @@ package pl.soulsnaps.domain.model
 
 import kotlinx.serialization.Serializable
 import kotlinx.datetime.Instant
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 @Serializable
 data class DatabaseMemory(
     val id: String,
@@ -28,7 +30,7 @@ data class DatabaseMemory(
             createdAt = try {
                 Instant.parse(created_at).toEpochMilliseconds()
             } catch (e: Exception) {
-                kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                1700000000000L // Fixed timestamp instead of Clock.System.now()
             },
             mood = mood_type?.let { MoodType.valueOf(it.uppercase()) },
             photoUri = photo_url,

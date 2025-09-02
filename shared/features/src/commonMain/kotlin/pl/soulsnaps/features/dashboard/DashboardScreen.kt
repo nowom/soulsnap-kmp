@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
 import pl.soulsnaps.components.ActionButton
 import pl.soulsnaps.components.AffirmationCard
 import pl.soulsnaps.components.BodyText
@@ -33,6 +34,8 @@ import pl.soulsnaps.components.LabelText
 import pl.soulsnaps.components.TitleText
 import pl.soulsnaps.designsystem.AppColorScheme
 import pl.soulsnaps.domain.model.Memory
+import pl.soulsnaps.access.manager.UserPlanManager
+import pl.soulsnaps.access.manager.PlanRegistryReader
 import pl.soulsnaps.utils.formatDate
 import pl.soulsnaps.utils.toLocalDateTime
 import coil3.compose.AsyncImage
@@ -51,7 +54,9 @@ fun DashboardScreen(
     onNavigateToVirtualMirror: () -> Unit = {},
     onNavigateToAnalytics: () -> Unit = {},
     onUpgradePlan: () -> Unit = {},
-    viewModel: DashboardViewModel = koinViewModel()
+    viewModel: DashboardViewModel = koinViewModel(),
+    userPlanManager: UserPlanManager = koinInject(),
+    planRegistry: PlanRegistryReader = koinInject()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     
@@ -68,7 +73,9 @@ fun DashboardScreen(
             onNavigateToExercises = onNavigateToExercises,
             onNavigateToVirtualMirror = onNavigateToVirtualMirror,
             onNavigateToAnalytics = onNavigateToAnalytics,
-            onUpgradePlan = onUpgradePlan
+            onUpgradePlan = onUpgradePlan,
+            userPlanManager = userPlanManager,
+            planRegistry = planRegistry
         )
     }
 }

@@ -27,7 +27,7 @@ import pl.soulsnaps.permissions.WithLocationPermission
 import pl.soulsnaps.photo.rememberCameraManager
 import pl.soulsnaps.photo.rememberGalleryManager
 import pl.soulsnaps.photo.SharedImage
-import kotlinx.datetime.Clock
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 @Composable
 fun RealCaptureScreen(
@@ -47,14 +47,14 @@ fun RealCaptureScreen(
     // Real service instances
     val cameraManager = rememberCameraManager { sharedImage ->
         sharedImage?.let { image ->
-            photoUri = "camera_photo_${Clock.System.now().toEpochMilliseconds()}"
+            photoUri = "camera_photo_${getCurrentTimeMillis()}"
             currentStep = CaptureStep.MOOD
         }
     }
     
     val galleryManager = rememberGalleryManager { sharedImage ->
         sharedImage?.let { image ->
-            photoUri = "gallery_photo_${Clock.System.now().toEpochMilliseconds()}"
+            photoUri = "gallery_photo_${getCurrentTimeMillis()}"
             currentStep = CaptureStep.MOOD
         }
     }

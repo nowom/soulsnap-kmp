@@ -1,275 +1,173 @@
 package pl.soulsnaps.features.analytics
 
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.datetime.Clock
-import pl.soulsnaps.features.auth.mvp.guard.CapacityGuard
-import pl.soulsnaps.features.auth.mvp.guard.CapacityInfo
-import pl.soulsnaps.features.auth.mvp.guard.UpgradeRecommendation
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import pl.soulsnaps.access.guard.AccessGuard
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
-/**
- * CapacityAnalytics - system monitorowania i raportowania wykorzystania limitów
- * 
- * Funkcjonalności:
- * - Real-time monitoring wykorzystania limitów
- * - Alerty gdy limity są bliskie wyczerpania
- * - Raporty wykorzystania w czasie
- * - Rekomendacje upgrade'ów
- * - Analityka trendów
- */
 class CapacityAnalytics(
-    private val capacityGuard: CapacityGuard
+    private val accessGuard: AccessGuard,
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default)
 ) {
     
-    private val _usageStats = MutableStateFlow(CapacityUsageStats())
-    val usageStats: StateFlow<CapacityUsageStats> = _usageStats
+    private val _usageStats = MutableStateFlow<CapacityUsageStats?>(null)
+    val usageStats: StateFlow<CapacityUsageStats?> = _usageStats.asStateFlow()
+    
+    private val _trends = MutableStateFlow<List<UsageTrend>>(emptyList())
+    val trends: StateFlow<List<UsageTrend>> = _trends.asStateFlow()
     
     private val _alerts = MutableStateFlow<List<CapacityAlert>>(emptyList())
-    val alerts: StateFlow<List<CapacityAlert>> = _alerts
+    val alerts: StateFlow<List<CapacityAlert>> = _alerts.asStateFlow()
     
-    private val _trends = MutableStateFlow(CapacityTrends())
-    val trends: StateFlow<CapacityTrends> = _trends
-    
-    /**
-     * Aktualizuj statystyki wykorzystania dla użytkownika
-     */
     suspend fun updateUsageStats(userId: String) {
         try {
-            val capacityInfo = capacityGuard.getCapacityInfo(userId)
-            val recommendation = capacityGuard.getUpgradeRecommendation(userId)
-            
             val newStats = CapacityUsageStats(
                 userId = userId,
-                timestamp = Clock.System.now().toEpochMilliseconds(),
-                capacityInfo = capacityInfo,
-                upgradeRecommendation = recommendation,
-                usagePercentages = calculateUsagePercentages(capacityInfo)
+                timestamp = getCurrentTimeMillis(),
+                totalMemories = 0, // TODO: Get from repository
+                totalPhotos = 0,   // TODO: Get from repository
+                totalAudio = 0,    // TODO: Get from repository
+                totalVideos = 0,   // TODO: Get from repository
+                storageUsed = 0L,  // TODO: Get from repository
+                lastBackup = null  // TODO: Get from repository
             )
             
             _usageStats.value = newStats
-            
-            // Sprawdź czy potrzebne są alerty
-            checkForAlerts(newStats)
-            
-            // Aktualizuj trendy
             updateTrends(newStats)
-            
+            checkAlerts(newStats)
         } catch (e: Exception) {
-            // Log error but don't crash
-            println("Error updating usage stats: ${e.message}")
+            // Handle error
         }
     }
     
-    /**
-     * Pobierz statystyki wykorzystania jako Flow
-     */
-    fun getUsageStatsFlow(userId: String): Flow<CapacityUsageStats> {
-        return usageStats.map { it }
-    }
-    
-    /**
-     * Pobierz alerty jako Flow
-     */
-    fun getAlertsFlow(): Flow<List<CapacityAlert>> {
-        return alerts
-    }
-    
-    /**
-     * Pobierz trendy jako Flow
-     */
-    fun getTrendsFlow(): Flow<CapacityTrends> {
-        return trends
-    }
-    
-    /**
-     * Sprawdź czy użytkownik potrzebuje upgrade'u
-     */
-    suspend fun checkUpgradeNeeded(userId: String): UpgradeNeededResult {
-        val stats = _usageStats.value
-        val recommendation = capacityGuard.getUpgradeRecommendation(userId)
-        
-        return UpgradeNeededResult(
-            needsUpgrade = recommendation.recommendedPlan != null,
-            recommendedPlan = recommendation.recommendedPlan,
-            urgency = recommendation.urgency,
-            reasons = recommendation.recommendations
+    private fun updateTrends(stats: CapacityUsageStats) {
+        val newTrend = UsageTrend(
+            timestamp = getCurrentTimeMillis(),
+            memoriesCount = stats.totalMemories,
+            storageUsed = stats.storageUsed,
+            growthRate = calculateGrowthRate(stats)
         )
+        
+        val currentTrends = _trends.value.toMutableList()
+        currentTrends.add(newTrend)
+        
+        // Keep only last 30 trends
+        if (currentTrends.size > 30) {
+            currentTrends.removeAt(0)
+        }
+        
+        _trends.value = currentTrends
     }
     
-    /**
-     * Pobierz raport wykorzystania
-     */
-    fun getUsageReport(userId: String): CapacityUsageReport {
-        val stats = _usageStats.value
-        val currentAlerts = _alerts.value
+    private fun calculateGrowthRate(stats: CapacityUsageStats): Double {
         val currentTrends = _trends.value
+        if (currentTrends.size < 2) return 0.0
         
-        return CapacityUsageReport(
-            userId = userId,
-            timestamp = Clock.System.now().toEpochMilliseconds(),
-            usageStats = stats,
-            activeAlerts = currentAlerts,
-            trends = currentTrends,
-            recommendations = generateRecommendations(stats, currentAlerts, currentTrends)
-        )
+        val previous = currentTrends[currentTrends.size - 2]
+        val current = currentTrends.last()
+        
+        return if (previous.memoriesCount > 0) {
+            ((current.memoriesCount - previous.memoriesCount).toDouble() / previous.memoriesCount) * 100
+        } else 0.0
     }
     
-    /**
-     * Wyczyść alerty
-     */
-    fun clearAlerts() {
-        _alerts.value = emptyList()
-    }
-    
-    /**
-     * Wyczyść konkretny alert
-     */
-    fun clearAlert(alertId: String) {
-        _alerts.value = _alerts.value.filter { it.id != alertId }
-    }
-    
-    // Private helper methods
-    
-    private fun calculateUsagePercentages(capacityInfo: CapacityInfo): UsagePercentages {
-        return UsagePercentages(
-            snaps = calculatePercentage(capacityInfo.snaps?.current, capacityInfo.snaps?.limit),
-            storage = calculatePercentage(capacityInfo.storage?.current, capacityInfo.storage?.limit),
-            aiAnalysis = calculatePercentage(capacityInfo.aiAnalysis?.current, capacityInfo.aiAnalysis?.limit),
-            memories = calculatePercentage(capacityInfo.memories?.current, capacityInfo.memories?.limit)
-        )
-    }
-    
-    private fun calculatePercentage(current: Int?, limit: Int?): Double {
-        if (current == null || limit == null || limit <= 0) return 0.0
-        return (current.toDouble() / limit.toDouble()) * 100.0
-    }
-    
-    private fun checkForAlerts(stats: CapacityUsageStats) {
+    private fun checkAlerts(stats: CapacityUsageStats) {
         val newAlerts = mutableListOf<CapacityAlert>()
         
-        // Sprawdź różne progi alertów
-        stats.usagePercentages.snaps?.let { percentage ->
-            when {
-                percentage >= 90 -> newAlerts.add(
-                    CapacityAlert(
-                        id = "snaps_critical_${stats.timestamp}",
-                        type = AlertType.CRITICAL,
-                        category = AlertCategory.SNAPS,
-                        message = "Krytyczne wykorzystanie snapów: ${percentage.toInt()}%",
-                        percentage = percentage
-                    )
+        // Check storage usage
+        if (stats.storageUsed > 100 * 1024 * 1024) { // 100MB
+            newAlerts.add(
+                CapacityAlert(
+                    type = AlertType.STORAGE_HIGH,
+                    message = "Storage usage is high",
+                    timestamp = getCurrentTimeMillis(),
+                    severity = AlertSeverity.WARNING
                 )
-                percentage >= 75 -> newAlerts.add(
-                    CapacityAlert(
-                        id = "snaps_warning_${stats.timestamp}",
-                        type = AlertType.WARNING,
-                        category = AlertCategory.SNAPS,
-                        message = "Wysokie wykorzystanie snapów: ${percentage.toInt()}%",
-                        percentage = percentage
-                    )
-                )
-            }
+            )
         }
         
-        stats.usagePercentages.storage?.let { percentage ->
-            when {
-                percentage >= 90 -> newAlerts.add(
-                    CapacityAlert(
-                        id = "storage_critical_${stats.timestamp}",
-                        type = AlertType.CRITICAL,
-                        category = AlertCategory.STORAGE,
-                        message = "Krytyczne wykorzystanie storage: ${percentage.toInt()}%",
-                        percentage = percentage
-                    )
+        // Check memory count
+        if (stats.totalMemories > 100) {
+            newAlerts.add(
+                CapacityAlert(
+                    type = AlertType.MEMORIES_HIGH,
+                    message = "High number of memories",
+                    timestamp = getCurrentTimeMillis(),
+                    severity = AlertSeverity.INFO
                 )
-                percentage >= 75 -> newAlerts.add(
-                    CapacityAlert(
-                        id = "storage_warning_${stats.timestamp}",
-                        type = AlertType.WARNING,
-                        category = AlertCategory.STORAGE,
-                        message = "Wysokie wykorzystanie storage: ${percentage.toInt()}%",
-                        percentage = percentage
-                    )
-                )
-            }
+            )
         }
         
-        stats.usagePercentages.aiAnalysis?.let { percentage ->
-            when {
-                percentage >= 90 -> newAlerts.add(
-                    CapacityAlert(
-                        id = "ai_critical_${stats.timestamp}",
-                        type = AlertType.CRITICAL,
-                        category = AlertCategory.AI_ANALYSIS,
-                        message = "Krytyczne wykorzystanie AI: ${percentage.toInt()}%",
-                        percentage = percentage
-                    )
+        // Check backup status
+        if (stats.lastBackup == null || getCurrentTimeMillis() - stats.lastBackup > 7 * 24 * 60 * 60 * 1000) {
+            newAlerts.add(
+                CapacityAlert(
+                    type = AlertType.BACKUP_NEEDED,
+                    message = "Backup needed",
+                    timestamp = getCurrentTimeMillis(),
+                    severity = AlertSeverity.WARNING
                 )
-                percentage >= 75 -> newAlerts.add(
-                    CapacityAlert(
-                        id = "ai_warning_${stats.timestamp}",
-                        type = AlertType.WARNING,
-                        category = AlertCategory.AI_ANALYSIS,
-                        message = "Wysokie wykorzystanie AI: ${percentage.toInt()}%",
-                        percentage = percentage
-                    )
-                )
-            }
+            )
         }
         
         _alerts.value = newAlerts
     }
     
-    private fun updateTrends(stats: CapacityUsageStats) {
+    fun getUsageReport(): UsageReport {
+        val stats = _usageStats.value
         val currentTrends = _trends.value
-        val updatedHistory = currentTrends.usageHistory + stats
-        val limitedHistory = if (updatedHistory.size > 30) {
-            updatedHistory.takeLast(30)
-        } else {
-            updatedHistory
-        }
         
-        val newTrends = currentTrends.copy(
-            lastUpdate = stats.timestamp,
-            usageHistory = limitedHistory
+        return UsageReport(
+            currentUsage = stats,
+            trends = currentTrends,
+            recommendations = generateRecommendations(stats, currentTrends),
+            generatedAt = getCurrentTimeMillis()
         )
-        
-        _trends.value = newTrends
     }
     
     private fun generateRecommendations(
-        stats: CapacityUsageStats,
-        alerts: List<CapacityAlert>,
-        trends: CapacityTrends
-    ): List<CapacityRecommendation> {
-        val recommendations = mutableListOf<CapacityRecommendation>()
+        stats: CapacityUsageStats?,
+        trends: List<UsageTrend>
+    ): List<UsageRecommendation> {
+        val recommendations = mutableListOf<UsageRecommendation>()
         
-        // Rekomendacje na podstawie alertów
-        if (alerts.any { it.type == AlertType.CRITICAL }) {
-            recommendations.add(
-                CapacityRecommendation(
-                    type = RecommendationType.UPGRADE_URGENT,
-                    title = "Pilny upgrade potrzebny",
-                    description = "Wykorzystanie limitów jest krytyczne. Rozważ upgrade planu.",
-                    priority = Priority.HIGH
+        stats?.let { s ->
+            if (s.storageUsed > 50 * 1024 * 1024) { // 50MB
+                recommendations.add(
+                    UsageRecommendation(
+                        type = RecommendationType.STORAGE_OPTIMIZATION,
+                        title = "Optimize Storage",
+                        description = "Consider compressing photos or removing unused content",
+                        priority = RecommendationPriority.MEDIUM
+                    )
                 )
-            )
+            }
+            
+            if (s.totalMemories > 50) {
+                recommendations.add(
+                    UsageRecommendation(
+                        type = RecommendationType.ORGANIZATION,
+                        title = "Organize Memories",
+                        description = "Create albums and categories for better organization",
+                        priority = RecommendationPriority.LOW
+                    )
+                )
+            }
         }
         
-        // Rekomendacje na podstawie trendów
-        if (trends.usageHistory.size >= 3) {
-            val recentUsage = trends.usageHistory.takeLast(3)
-            val avgUsage = recentUsage.map { it.usagePercentages.snaps ?: 0.0 }.average()
-            
-            if (avgUsage > 70) {
+        if (trends.size >= 2) {
+            val recentGrowth = trends.takeLast(3).map { it.growthRate }.average()
+            if (recentGrowth > 20.0) {
                 recommendations.add(
-                    CapacityRecommendation(
-                        type = RecommendationType.UPGRADE_RECOMMENDED,
-                        title = "Upgrade zalecany",
-                        description = "Średnie wykorzystanie snapów: ${avgUsage.toInt()}%. Rozważ upgrade.",
-                        priority = Priority.MEDIUM
+                    UsageRecommendation(
+                        type = RecommendationType.GROWTH_MANAGEMENT,
+                        title = "Manage Growth",
+                        description = "Your memory collection is growing rapidly. Consider setting limits.",
+                        priority = RecommendationPriority.HIGH
                     )
                 )
             }
@@ -277,74 +175,79 @@ class CapacityAnalytics(
         
         return recommendations
     }
+    
+    fun clearAlerts() {
+        _alerts.value = emptyList()
+    }
+    
+    fun dismissAlert(alertId: String) {
+        val currentAlerts = _alerts.value.toMutableList()
+        currentAlerts.removeAll { it.id == alertId }
+        _alerts.value = currentAlerts
+    }
 }
 
 // Data classes
-
 data class CapacityUsageStats(
-    val userId: String = "",
-    val timestamp: Long = 0L,
-    val capacityInfo: CapacityInfo? = null,
-    val upgradeRecommendation: UpgradeRecommendation? = null,
-    val usagePercentages: UsagePercentages = UsagePercentages()
+    val userId: String,
+    val timestamp: Long,
+    val totalMemories: Int,
+    val totalPhotos: Int,
+    val totalAudio: Int,
+    val totalVideos: Int,
+    val storageUsed: Long,
+    val lastBackup: Long?
 )
 
-data class UsagePercentages(
-    val snaps: Double? = null,
-    val storage: Double? = null,
-    val aiAnalysis: Double? = null,
-    val memories: Double? = null
+data class UsageTrend(
+    val timestamp: Long,
+    val memoriesCount: Int,
+    val storageUsed: Long,
+    val growthRate: Double
 )
 
 data class CapacityAlert(
-    val id: String,
+    val id: String = "alert_${getCurrentTimeMillis()}",
     val type: AlertType,
-    val category: AlertCategory,
     val message: String,
-    val percentage: Double,
-    val timestamp: Long = Clock.System.now().toEpochMilliseconds()
-)
-
-enum class AlertType {
-    WARNING, CRITICAL
-}
-
-enum class AlertCategory {
-    SNAPS, STORAGE, AI_ANALYSIS, MEMORIES
-}
-
-data class CapacityTrends(
-    val lastUpdate: Long = 0L,
-    val usageHistory: List<CapacityUsageStats> = emptyList()
-)
-
-data class UpgradeNeededResult(
-    val needsUpgrade: Boolean,
-    val recommendedPlan: String?,
-    val urgency: pl.soulsnaps.features.auth.mvp.guard.UpgradeUrgency,
-    val reasons: List<String>
-)
-
-data class CapacityUsageReport(
-    val userId: String,
     val timestamp: Long,
-    val usageStats: CapacityUsageStats,
-    val activeAlerts: List<CapacityAlert>,
-    val trends: CapacityTrends,
-    val recommendations: List<CapacityRecommendation>
+    val severity: AlertSeverity
 )
 
-data class CapacityRecommendation(
+data class UsageReport(
+    val currentUsage: CapacityUsageStats?,
+    val trends: List<UsageTrend>,
+    val recommendations: List<UsageRecommendation>,
+    val generatedAt: Long
+)
+
+data class UsageRecommendation(
     val type: RecommendationType,
     val title: String,
     val description: String,
-    val priority: Priority
+    val priority: RecommendationPriority
 )
 
-enum class RecommendationType {
-    UPGRADE_URGENT, UPGRADE_RECOMMENDED, OPTIMIZE_USAGE, MONITOR
+enum class AlertType {
+    STORAGE_HIGH,
+    MEMORIES_HIGH,
+    BACKUP_NEEDED
 }
 
-enum class Priority {
-    LOW, MEDIUM, HIGH, CRITICAL
+enum class AlertSeverity {
+    INFO,
+    WARNING,
+    CRITICAL
+}
+
+enum class RecommendationType {
+    STORAGE_OPTIMIZATION,
+    ORGANIZATION,
+    GROWTH_MANAGEMENT
+}
+
+enum class RecommendationPriority {
+    LOW,
+    MEDIUM,
+    HIGH
 }

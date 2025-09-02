@@ -1,48 +1,75 @@
 package pl.soulsnaps.data
 
-import kotlinx.coroutines.delay
 import pl.soulsnaps.domain.model.UserSession
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 class FakeAuthService {
-    private var current: UserSession? = null
-
+    
+    private var currentUser: UserSession? = null
+    private var userCounter = 0L
+    
     suspend fun signIn(email: String, password: String): UserSession {
-        delay(300)
-        current = UserSession(
-            userId = "u_${email.hashCode()}",
+        val user = UserSession(
+            userId = "user_${++userCounter}",
             email = email,
             isAnonymous = false,
-            displayName = email.substringBefore("@")
+            displayName = email.split("@").firstOrNull() ?: "User",
+            createdAt = getCurrentTimeMillis(),
+            lastActiveAt = getCurrentTimeMillis(),
+            accessToken = "fake_token_${userCounter}",
+            refreshToken = "fake_refresh_${userCounter}"
         )
-        return current!!
+        currentUser = user
+        return user
     }
-
+    
     suspend fun register(email: String, password: String): UserSession {
-        delay(500)
-        current = UserSession(
-            userId = "u_${email.hashCode()}",
+        val user = UserSession(
+            userId = "user_${++userCounter}",
             email = email,
             isAnonymous = false,
-            displayName = email.substringBefore("@")
+            displayName = email.split("@").firstOrNull() ?: "User",
+            createdAt = getCurrentTimeMillis(),
+            lastActiveAt = getCurrentTimeMillis(),
+            accessToken = "fake_token_${userCounter}",
+            refreshToken = "fake_refresh_${userCounter}"
         )
-        return current!!
+        currentUser = user
+        return user
     }
-
+    
     suspend fun signInAnonymously(): UserSession {
-        delay(200)
-        // Use a simple increasing id for KMP compatibility
-        current = UserSession(
-            userId = "guest_${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}",
-            email = null,
+        val user = UserSession(
+            userId = "anon_${++userCounter}",
+            email = "",
             isAnonymous = true,
-            displayName = "Guest User"
+            displayName = "Anonymous User",
+            createdAt = getCurrentTimeMillis(),
+            lastActiveAt = getCurrentTimeMillis(),
+            accessToken = "fake_anon_token_${userCounter}",
+            refreshToken = "fake_anon_refresh_${userCounter}"
         )
-        return current!!
+        currentUser = user
+        return user
     }
-
-    fun signOut() { current = null }
-
-    fun currentUser(): UserSession? = current
+    
+    suspend fun signOut() {
+        currentUser = null
+    }
+    
+    suspend fun getCurrentUser(): UserSession? = currentUser
+    
+    suspend fun refreshSession(): UserSession? {
+        currentUser?.let { user ->
+            val refreshedUser = user.copy(
+                lastActiveAt = getCurrentTimeMillis(),
+                accessToken = "refreshed_token_${userCounter}"
+            )
+            currentUser = refreshedUser
+            return refreshedUser
+        }
+        return null
+    }
 }
 
 

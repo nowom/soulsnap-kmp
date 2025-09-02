@@ -11,7 +11,7 @@ kotlin {
     androidLibrary {
         namespace = "pl.soulsnaps.shared"
         compileSdk = 36
-minSdk = 26
+        minSdk = 26
 
         withHostTestBuilder {
         }
@@ -21,6 +21,8 @@ minSdk = 26
         }.configure {
             instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         }
+
+
     }
 
     // For iOS targets, this is also where you should

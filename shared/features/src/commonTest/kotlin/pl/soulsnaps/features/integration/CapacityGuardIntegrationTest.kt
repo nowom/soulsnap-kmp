@@ -10,14 +10,14 @@ import pl.soulsnaps.domain.interactor.GenerateAffirmationUseCase
 import pl.soulsnaps.domain.interactor.SaveMemoryUseCase
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.domain.model.MoodType
-import pl.soulsnaps.features.auth.mvp.guard.CapacityGuard
-import pl.soulsnaps.features.auth.mvp.guard.GuardFactory
-import pl.soulsnaps.features.auth.mvp.guard.PlanRegistryReader
+import pl.soulsnaps.access.guard.CapacityGuard
+import pl.soulsnaps.access.guard.GuardFactory
+import pl.soulsnaps.access.manager.PlanRegistryReader
 import pl.soulsnaps.features.capturemoment.CaptureMomentIntent
 import pl.soulsnaps.features.capturemoment.CaptureMomentState
 import pl.soulsnaps.features.capturemoment.CaptureMomentViewModel
-import pl.soulsnaps.features.auth.mvp.guard.AccessResult
-import pl.soulsnaps.features.auth.mvp.guard.DenyReason
+import pl.soulsnaps.access.guard.AccessResult
+import pl.soulsnaps.access.guard.DenyReason
 
 /**
  * Integration tests for the complete flow:
@@ -288,6 +288,8 @@ class MockMemoryRepository : pl.soulsnaps.domain.MemoryRepository {
     override suspend fun markAsFavorite(id: Int, isFavorite: Boolean) {
         // Mock implementation
     }
+    
+    override suspend fun cleanupInvalidMemories(): Int = 0
 }
 
 class MockAffirmationRepository : pl.soulsnaps.domain.AffirmationRepository {

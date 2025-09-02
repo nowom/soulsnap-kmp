@@ -24,7 +24,14 @@ import pl.soulsnaps.features.auth.LoginViewModel
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.memoryhub.details.MemoryDetailsViewModel
 import pl.soulsnaps.features.settings.SettingsViewModel
-import pl.soulsnaps.features.auth.mvp.guard.UserPlanManager
+import pl.soulsnaps.access.manager.UserPlanManager
+import pl.soulsnaps.access.manager.AppStartupManager
+import pl.soulsnaps.access.manager.OnboardingManager
+import pl.soulsnaps.access.manager.PlanRegistryReader
+import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
+import pl.soulsnaps.access.storage.UserPreferencesStorage
+import pl.soulsnaps.access.storage.UserPreferencesStorageFactory
+import pl.soulsnaps.access.guard.GuardFactory
 
 object FeatureModule {
     fun get() = module {
@@ -50,8 +57,26 @@ object FeatureModule {
         viewModelOf(::MemoryDetailsViewModel)
         viewModelOf(::SettingsViewModel)
 
+        // UserPreferencesStorage - singleton for user preferences
+        single { UserPreferencesStorageFactory.create() }
+        
         // UserPlanManager - singleton for managing user plans
-        single { UserPlanManager() }
+        single { UserPlanManager(get()) }
+        
+        // UserPlanManagerInterface - alias for UserPlanManager (for dependency injection)
+        single<pl.soulsnaps.access.guard.UserPlanManagerInterface> { get<UserPlanManager>() }
+        
+        // OnboardingManager - singleton for managing onboarding
+        single { OnboardingManager(get()) }
+        
+        // PlanRegistryReader - singleton for plan registry
+        single<PlanRegistryReader> { PlanRegistryReaderImpl() }
+        
+        // AccessGuard - singleton for access control
+        single { GuardFactory.createDefaultGuard(get()) }
+        
+        // AppStartupManager - singleton for managing app startup
+        single { AppStartupManager(get(), get()) }
 
         single<ExerciseRepository> { InMemoryExerciseRepository() }
         single { GetCompletedExercisesUseCase(get()) }

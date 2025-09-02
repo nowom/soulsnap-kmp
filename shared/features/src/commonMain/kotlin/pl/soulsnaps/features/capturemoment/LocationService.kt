@@ -2,6 +2,7 @@ package pl.soulsnaps.features.capturemoment
 
 import pl.soulsnaps.permissions.PermissionManager
 import pl.soulsnaps.permissions.PermissionType
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 /**
  * Enhanced location service that integrates with permission system
@@ -146,7 +147,7 @@ data class LocationData(
     val latitude: Double,
     val longitude: Double,
     val accuracy: Float? = null,
-    val timestamp: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+    val timestamp: Long = getCurrentTimeMillis(),
     val placeId: String? = null,
     val placeType: PlaceType? = null
 )

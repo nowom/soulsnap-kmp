@@ -5,7 +5,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.domain.model.MoodType as DomainMoodType
-import pl.soulsnaps.features.auth.mvp.guard.*
+import pl.soulsnaps.access.guard.*
 import pl.soulsnaps.features.memoryanalysis.analyzer.ImageAnalyzerInterface
 import pl.soulsnaps.features.memoryanalysis.analyzer.AnalysisFeature
 import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngineInterface

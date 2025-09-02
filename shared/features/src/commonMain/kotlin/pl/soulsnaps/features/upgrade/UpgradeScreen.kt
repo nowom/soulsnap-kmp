@@ -28,6 +28,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,9 +45,12 @@ import pl.soulsnaps.components.CaptionText
 import pl.soulsnaps.components.HeadingText
 import pl.soulsnaps.components.TitleText
 import pl.soulsnaps.designsystem.AppColorScheme
-import pl.soulsnaps.features.auth.mvp.guard.PlanRegistryReader
-import pl.soulsnaps.features.auth.mvp.guard.DefaultPlans
-import pl.soulsnaps.features.auth.mvp.guard.model.PlanType
+import pl.soulsnaps.access.manager.PlanRegistryReader
+import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
+import pl.soulsnaps.access.manager.DefaultPlans
+import pl.soulsnaps.access.manager.PlanDefinition
+import pl.soulsnaps.access.manager.PlanPricing
+import pl.soulsnaps.access.model.PlanType
 
 @Composable
 fun UpgradeScreen(
@@ -52,7 +59,7 @@ fun UpgradeScreen(
     onDismiss: () -> Unit,
     currentPlan: String,
     recommendations: List<UpgradeRecommendation> = emptyList(),
-    planRegistry: PlanRegistryReader = DefaultPlans
+            planRegistry: PlanRegistryReader = PlanRegistryReaderImpl()
 ) {
     Column(
         modifier = Modifier
@@ -325,8 +332,13 @@ private fun PlanCard(
     onUpgrade: () -> Unit,
     planRegistry: PlanRegistryReader
 ) {
-    val planDefinition = planRegistry.getPlan(planName)
-    val pricing = planDefinition?.pricing
+    var planDefinition by remember { mutableStateOf<PlanDefinition?>(null) }
+    var pricing by remember { mutableStateOf<PlanPricing?>(null) }
+    
+    LaunchedEffect(planName) {
+        planDefinition = planRegistry.getPlan(planName)
+        pricing = planDefinition?.pricing
+    }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -390,7 +402,7 @@ private fun PlanCard(
                         color = AppColorScheme.onSurface
                     )
                     
-                    if (price.monthlyPrice == 0.0) {
+                    if (price.monthlyPrice == 0f) {
                         Spacer(modifier = Modifier.size(8.dp))
                         Icon(
                             imageVector = Icons.Default.Star,

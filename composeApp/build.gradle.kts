@@ -18,6 +18,11 @@ kotlin {
         }
     }
     
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+    }
+    
     listOf(
         iosX64(),
         iosArm64(),
@@ -48,7 +53,9 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(project(":shared:designsystem"))
             implementation(project(":shared:features"))
+            implementation(project(":shared:database"))
             implementation(libs.koin.core)
+            implementation(libs.koin.compose.viewmodel)
             implementation(libs.navigation.compose)
             implementation(libs.material.icons.extended)
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
@@ -66,6 +73,9 @@ kotlin {
                 // on common by default and will correctly pull the iOS artifacts of any
                 // KMP dependencies declared in commonMain.
             }
+        }
+        wasmJsMain.dependencies {
+            implementation(npm("@js-joda/timezone", "2.22.0"))
         }
     }
 

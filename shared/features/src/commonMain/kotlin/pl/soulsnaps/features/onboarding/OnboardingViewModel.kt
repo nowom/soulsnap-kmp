@@ -10,7 +10,8 @@ import kotlinx.coroutines.launch
 import pl.soulsnaps.features.analytics.AnalyticsManager
 
 class OnboardingViewModel(
-    private val analyticsManager: AnalyticsManager
+    private val analyticsManager: AnalyticsManager,
+    private val appStartupManager: pl.soulsnaps.access.manager.AppStartupManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(OnboardingState())
@@ -43,8 +44,17 @@ class OnboardingViewModel(
             }
             is OnboardingIntent.Authenticate -> {
                 analyticsManager.trackAuthAttempt(intent.authType.name, true)
-                // Handle authentication - for now just advance
-                nextStep()
+                when (intent.authType) {
+                    pl.soulsnaps.features.onboarding.AuthType.ANONYMOUS -> {
+                        // Ustaw plan GUEST i ukończ onboarding
+                        appStartupManager.skipOnboarding()
+                        nextStep()
+                    }
+                    else -> {
+                        // Dla innych typów auth, tylko przejdź dalej
+                        nextStep()
+                    }
+                }
             }
             is OnboardingIntent.UpdateEmail -> {
                 _state.update { it.copy(email = intent.email) }
@@ -57,6 +67,8 @@ class OnboardingViewModel(
                     selectedFocus = _state.value.selectedFocus?.name,
                     authMethod = null // TODO: Get from auth state
                 )
+                // Ukończ onboarding przez AppStartupManager
+                appStartupManager.completeOnboarding()
                 completeOnboarding()
             }
         }

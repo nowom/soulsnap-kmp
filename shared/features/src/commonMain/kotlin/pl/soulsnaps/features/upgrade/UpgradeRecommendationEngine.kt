@@ -3,9 +3,10 @@ package pl.soulsnaps.features.upgrade
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import pl.soulsnaps.features.auth.mvp.guard.PlanRegistryReader
-import pl.soulsnaps.features.auth.mvp.guard.DefaultPlans
-import pl.soulsnaps.features.auth.mvp.guard.model.PlanType
+import pl.soulsnaps.access.manager.PlanRegistryReader
+import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
+import pl.soulsnaps.access.manager.DefaultPlans
+import pl.soulsnaps.access.model.PlanType
 
 /**
  * UpgradeRecommendationEngine - inteligentny silnik rekomendacji upgrade
@@ -18,7 +19,7 @@ import pl.soulsnaps.features.auth.mvp.guard.model.PlanType
  * - Korzyści z upgrade
  */
 class UpgradeRecommendationEngine(
-    private val planRegistry: PlanRegistryReader = DefaultPlans
+    private val planRegistry: PlanRegistryReader = PlanRegistryReaderImpl()
 ) {
     
     private val _recommendations = MutableStateFlow<List<UpgradeRecommendation>>(emptyList())
@@ -27,7 +28,7 @@ class UpgradeRecommendationEngine(
     /**
      * Analizuje użytkownika i generuje rekomendacje
      */
-    fun analyzeUserAndGenerateRecommendations(
+    suspend fun analyzeUserAndGenerateRecommendations(
         currentPlan: String,
         usageStats: UsageStatistics,
         userBehavior: UserBehavior
@@ -56,13 +57,15 @@ class UpgradeRecommendationEngine(
     /**
      * Analizuje wykorzystanie limitów i sugeruje upgrade
      */
-    private fun analyzeLimitUsage(currentPlan: String, usageStats: UsageStatistics): List<UpgradeRecommendation> {
+    private suspend fun analyzeLimitUsage(currentPlan: String, usageStats: UsageStatistics): List<UpgradeRecommendation> {
         val recommendations = mutableListOf<UpgradeRecommendation>()
         val currentPlanDef = planRegistry.getPlan(currentPlan) ?: return emptyList()
         
         // Sprawdź wykorzystanie SoulSnaps
-        val snapsUsage = usageStats.soulSnapsCount.toFloat() / currentPlanDef.quotas["snaps.capacity"]!!.toFloat()
-        if (snapsUsage > 0.8f) {
+        val snapsCapacity = currentPlanDef.quotas["snaps.capacity"]
+        if (snapsCapacity != null && snapsCapacity > 0) {
+            val snapsUsage = usageStats.soulSnapsCount.toFloat() / snapsCapacity.toFloat()
+            if (snapsUsage > 0.8f) {
             recommendations.add(
                 UpgradeRecommendation(
                     type = UpgradeType.LIMIT_REACHED,
@@ -80,10 +83,13 @@ class UpgradeRecommendationEngine(
                 )
             )
         }
+        }
         
         // Sprawdź wykorzystanie AI
-        val aiUsage = usageStats.aiAnalysisCount.toFloat() / currentPlanDef.quotas["ai.daily"]!!.toFloat()
-        if (aiUsage > 0.7f) {
+        val aiDaily = currentPlanDef.quotas["ai.daily"]
+        if (aiDaily != null && aiDaily > 0) {
+            val aiUsage = usageStats.aiAnalysisCount.toFloat() / aiDaily.toFloat()
+            if (aiUsage > 0.7f) {
             recommendations.add(
                 UpgradeRecommendation(
                     type = UpgradeType.LIMIT_REACHED,
@@ -101,6 +107,7 @@ class UpgradeRecommendationEngine(
                 )
             )
         }
+        }
         
         return recommendations
     }
@@ -108,7 +115,7 @@ class UpgradeRecommendationEngine(
     /**
      * Analizuje zachowanie użytkownika
      */
-    private fun analyzeUserBehavior(currentPlan: String, userBehavior: UserBehavior): List<UpgradeRecommendation> {
+    private suspend fun analyzeUserBehavior(currentPlan: String, userBehavior: UserBehavior): List<UpgradeRecommendation> {
         val recommendations = mutableListOf<UpgradeRecommendation>()
         
         // Power user detection
@@ -159,7 +166,7 @@ class UpgradeRecommendationEngine(
     /**
      * Analizuje brakujące funkcje premium
      */
-    private fun analyzeFeatureGaps(currentPlan: String, userBehavior: UserBehavior): List<UpgradeRecommendation> {
+    private suspend fun analyzeFeatureGaps(currentPlan: String, userBehavior: UserBehavior): List<UpgradeRecommendation> {
         val recommendations = mutableListOf<UpgradeRecommendation>()
         
         when (currentPlan) {

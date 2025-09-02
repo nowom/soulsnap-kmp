@@ -1,6 +1,6 @@
 package pl.soulsnaps.features.memoryanalysis.model
 
-import kotlinx.datetime.Instant
+
 import pl.soulsnaps.domain.model.MoodType as DomainMoodType
 
 /**
@@ -85,7 +85,7 @@ data class MoodAnalysis(
     val moodScore: Float, // 0.0 - 1.0
     val confidence: Float,
     val factors: List<MoodFactor>,
-    val timestamp: Instant
+    val timestamp: Long
 )
 
 data class MoodFactor(
@@ -155,7 +155,7 @@ data class MemoryInsights(
     val weeklyStats: WeeklyStats,
     val monthlyTrends: MonthlyTrends,
     val recommendations: List<Recommendation>,
-    val generatedAt: Instant
+    val generatedAt: Long
 )
 
 data class WeeklyStats(
@@ -173,7 +173,7 @@ data class MonthlyTrends(
 )
 
 data class MoodDataPoint(
-    val date: Instant,
+    val date: Long,
     val averageMood: DomainMoodType,
     val moodScore: Float
 )
@@ -229,7 +229,7 @@ data class FocalPoint(
 )
 
 data class ImageMetadata(
-    val timestamp: Instant,
+    val timestamp: Long,
     val location: String?,
     val weather: String?,
     val deviceInfo: String?,

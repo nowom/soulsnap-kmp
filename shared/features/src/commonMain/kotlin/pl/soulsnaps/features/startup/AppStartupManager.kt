@@ -3,7 +3,7 @@ package pl.soulsnaps.features.startup
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import pl.soulsnaps.features.auth.mvp.guard.UserPlanManager
+import pl.soulsnaps.features.auth.manager.UserPlanManager
 
 /**
  * AppStartupManager - zarządza stanem startu aplikacji
@@ -17,7 +17,7 @@ class AppStartupManager(
     private val userPlanManager: UserPlanManager = UserPlanManager()
 ) {
     
-    private val _startupState = MutableStateFlow<StartupState>(StartupState.Loading)
+    private val _startupState = MutableStateFlow<StartupState>(StartupState.CHECKING)
     val startupState: Flow<StartupState> = _startupState.asStateFlow()
     
     /**
@@ -39,15 +39,15 @@ class AppStartupManager(
             val state = when {
                 currentPlan == null -> {
                     println("DEBUG: AppStartupManager - no plan found, showing onboarding")
-                    StartupState.ShowOnboarding
+                    StartupState.READY_FOR_ONBOARDING
                 }
                 !hasCompletedOnboarding -> {
                     println("DEBUG: AppStartupManager - onboarding not completed, showing onboarding")
-                    StartupState.ShowOnboarding
+                    StartupState.READY_FOR_ONBOARDING
                 }
                 else -> {
                     println("DEBUG: AppStartupManager - user ready, showing dashboard")
-                    StartupState.ShowDashboard
+                    StartupState.READY_FOR_DASHBOARD
                 }
             }
             
@@ -55,7 +55,7 @@ class AppStartupManager(
             
         } catch (e: Exception) {
             println("DEBUG: AppStartupManager - error during initialization: ${e.message}")
-            _startupState.value = StartupState.Error(e.message ?: "Unknown error")
+            _startupState.value = StartupState.READY_FOR_ONBOARDING // Fallback to onboarding on error
         }
     }
     
@@ -70,16 +70,16 @@ class AppStartupManager(
      * Resetuje stan startu (np. po logout)
      */
     fun resetStartupState() {
-        _startupState.value = StartupState.Loading
+        _startupState.value = StartupState.CHECKING
     }
 }
 
 /**
  * Stany startu aplikacji
  */
-sealed class StartupState {
-    object Loading : StartupState()
-    object ShowOnboarding : StartupState()
-    object ShowDashboard : StartupState()
-    data class Error(val message: String) : StartupState()
+enum class StartupState {
+    CHECKING,
+    READY_FOR_ONBOARDING,
+    ONBOARDING_ACTIVE,
+    READY_FOR_DASHBOARD
 }

@@ -10,8 +10,8 @@ import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.interactor.GetMemoryByIdUseCase
 import pl.soulsnaps.domain.interactor.ToggleMemoryFavoriteUseCase
 import pl.soulsnaps.domain.model.Memory
-import pl.soulsnaps.features.auth.mvp.guard.CapacityGuard
-import pl.soulsnaps.features.auth.mvp.guard.GuardFactory
+import pl.soulsnaps.access.guard.AccessGuard
+import pl.soulsnaps.access.guard.GuardFactory
 import pl.soulsnaps.features.analytics.CapacityAnalytics
 
 data class MemoryDetailsState(
@@ -20,7 +20,7 @@ data class MemoryDetailsState(
     val errorMessage: String? = null,
     
     // New fields for capacity management
-    val capacityInfo: pl.soulsnaps.features.auth.mvp.guard.CapacityInfo? = null,
+    val capacityInfo: pl.soulsnaps.access.guard.QuotaInfo? = null,
     val showPaywall: Boolean = false,
     val paywallReason: String? = null,
     val recommendedPlan: String? = null,
@@ -51,7 +51,8 @@ sealed interface MemoryDetailsIntent {
 
 class MemoryDetailsViewModel(
     private val getMemoryByIdUseCase: GetMemoryByIdUseCase,
-    private val toggleMemoryFavoriteUseCase: ToggleMemoryFavoriteUseCase
+    private val toggleMemoryFavoriteUseCase: ToggleMemoryFavoriteUseCase,
+    private val accessGuard: pl.soulsnaps.access.guard.AccessGuard
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MemoryDetailsState())
@@ -59,11 +60,8 @@ class MemoryDetailsViewModel(
 
     private var currentMemoryId: Int = 0
     
-    // CapacityGuard for checking limits before operations
-    private val capacityGuard = GuardFactory.createCapacityGuard()
-    
     // CapacityAnalytics for tracking usage
-    private val capacityAnalytics = CapacityAnalytics(capacityGuard)
+    private val capacityAnalytics = CapacityAnalytics(accessGuard)
 
     fun loadMemoryDetails(memoryId: Int) {
         currentMemoryId = memoryId
@@ -152,16 +150,16 @@ class MemoryDetailsViewModel(
     private fun shareMemory() {
         viewModelScope.launch {
             // Check export limits before sharing memory
-            val exportResult = capacityGuard.canExport("current_user") // TODO: get real user ID
+            val exportResult = accessGuard.canPerformAction("current_user", "insights.export", "feature.export")
             
             if (!exportResult.allowed) {
                 // Export limit exceeded - show paywall
-                val recommendation = capacityGuard.getUpgradeRecommendation("current_user")
+                val recommendedPlan = accessGuard.getUpgradeRecommendation("insights.export")
                 _state.update { 
                     it.copy(
                         showPaywall = true,
                         paywallReason = exportResult.message ?: "Limit eksportu przekroczony",
-                        recommendedPlan = recommendation.recommendedPlan
+                        recommendedPlan = recommendedPlan
                     ) 
                 }
                 return@launch
@@ -204,7 +202,7 @@ class MemoryDetailsViewModel(
             _state.update { it.copy(isCheckingCapacity = true) }
             
             try {
-                val capacityInfo = capacityGuard.getCapacityInfo("current_user") // TODO: get real user ID
+                val capacityInfo = accessGuard.getQuotaInfo("current_user", "memories.month")
                 _state.update { 
                     it.copy(
                         capacityInfo = capacityInfo,

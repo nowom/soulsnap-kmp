@@ -10,22 +10,20 @@ import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.model.Affirmation
 import pl.soulsnaps.domain.model.ThemeType
 import pl.soulsnaps.domain.AffirmationRepository
-import pl.soulsnaps.features.auth.mvp.guard.CapacityGuard
-import pl.soulsnaps.features.auth.mvp.guard.GuardFactory
+import pl.soulsnaps.access.guard.AccessGuard
+import pl.soulsnaps.access.guard.GuardFactory
 import pl.soulsnaps.features.analytics.CapacityAnalytics
 
 class AffirmationsViewModel(
-    private val affirmationRepository: AffirmationRepository
+    private val affirmationRepository: AffirmationRepository,
+    private val accessGuard: pl.soulsnaps.access.guard.AccessGuard
 ): ViewModel() {
 
     private val _uiState = MutableStateFlow(AffirmationsUiState())
     val uiState: StateFlow<AffirmationsUiState> = _uiState
     
-    // CapacityGuard for checking limits before AI operations
-    private val capacityGuard = GuardFactory.createCapacityGuard()
-    
     // CapacityAnalytics for tracking usage
-    private val capacityAnalytics = CapacityAnalytics(capacityGuard)
+    private val capacityAnalytics = CapacityAnalytics(accessGuard)
 
     init {
         onEvent(AffirmationsEvent.LoadInitial)
@@ -108,15 +106,15 @@ class AffirmationsViewModel(
     private fun playAffirmation(affirmation: Affirmation) {
         viewModelScope.launch {
             // Check AI analysis limits before playing affirmation
-            val aiResult = capacityGuard.canRunAIAnalysis("current_user") // TODO: get real user ID
+            val aiResult = accessGuard.canPerformAction("current_user", "analysis.run.single", "feature.analysis")
             
             if (!aiResult.allowed) {
                 // AI limit exceeded - show paywall
-                val recommendation = capacityGuard.getUpgradeRecommendation("current_user")
+                val recommendedPlan = accessGuard.getUpgradeRecommendation("analysis.run.single")
                 _uiState.value = _uiState.value.copy(
                     showPaywall = true,
                     paywallReason = aiResult.message ?: "Limit analiz AI przekroczony",
-                    recommendedPlan = recommendation.recommendedPlan
+                    recommendedPlan = recommendedPlan
                 )
                 return@launch
             }
@@ -137,7 +135,7 @@ class AffirmationsViewModel(
             _uiState.value = _uiState.value.copy(isCheckingCapacity = true)
             
             try {
-                val capacityInfo = capacityGuard.getCapacityInfo("current_user") // TODO: get real user ID
+                val capacityInfo = accessGuard.getQuotaInfo("current_user", "analysis.day")
                 _uiState.value = _uiState.value.copy(
                     capacityInfo = capacityInfo,
                     isCheckingCapacity = false
@@ -212,7 +210,7 @@ data class AffirmationsUiState(
     val error: String? = null,
     
     // New fields for capacity management
-    val capacityInfo: pl.soulsnaps.features.auth.mvp.guard.CapacityInfo? = null,
+    val capacityInfo: pl.soulsnaps.access.guard.QuotaInfo? = null,
     val showPaywall: Boolean = false,
     val paywallReason: String? = null,
     val recommendedPlan: String? = null,

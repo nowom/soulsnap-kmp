@@ -1,6 +1,6 @@
 package pl.soulsnaps.features.auth.model
 
-import kotlinx.datetime.Clock
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 /**
  * App Features - Funkcje dostępne w aplikacji SoulSnaps
@@ -172,7 +172,7 @@ data class UserUsageStats(
     val storageUsedGB: Float,
     val dailyAnalysisCount: Int,
     val monthlyExportsCount: Int,
-    val lastActivity: Long = Clock.System.now().toEpochMilliseconds()
+    val lastActivity: Long = getCurrentTimeMillis()
 )
 
 /**

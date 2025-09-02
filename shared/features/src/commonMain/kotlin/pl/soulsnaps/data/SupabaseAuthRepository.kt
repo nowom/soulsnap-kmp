@@ -1,5 +1,8 @@
 package pl.soulsnaps.data
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.AuthRepository
 import pl.soulsnaps.domain.model.UserSession
 import pl.soulsnaps.network.SupabaseAuthService
@@ -8,26 +11,41 @@ class SupabaseAuthRepository(
     private val supabaseAuthService: SupabaseAuthService
 ) : AuthRepository {
     
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private var cachedUser: UserSession? = null
+    
     override suspend fun signIn(email: String, password: String): UserSession {
-        return supabaseAuthService.signIn(email, password)
+        val user = supabaseAuthService.signIn(email, password)
+        cachedUser = user
+        return user
     }
     
     override suspend fun register(email: String, password: String): UserSession {
-        return supabaseAuthService.register(email, password)
+        val user = supabaseAuthService.register(email, password)
+        cachedUser = user
+        return user
     }
     
     override suspend fun signInAnonymously(): UserSession {
-        return supabaseAuthService.signInAnonymously()
+        val user = supabaseAuthService.signInAnonymously()
+        cachedUser = user
+        return user
     }
     
-    override fun signOut() {
-        // Note: This is a suspend function in the service, but the interface expects a non-suspend function
-        // In a real implementation, you might want to handle this differently
+    override suspend fun signOut() {
+        supabaseAuthService.signOut()
+        cachedUser = null
     }
     
-    override fun currentUser(): UserSession? {
-        // Note: This is a suspend function in the service, but the interface expects a non-suspend function
-        // In a real implementation, you might want to cache the current user or handle this differently
-        return null
+    override suspend fun currentUser(): UserSession? {
+        return cachedUser
+    }
+    
+    suspend fun refreshCurrentUser() {
+        cachedUser = supabaseAuthService.getCurrentUser()
+    }
+    
+    suspend fun refreshSession() {
+        cachedUser = supabaseAuthService.refreshSession()
     }
 }

@@ -75,6 +75,7 @@ import pl.soulsnaps.photo.rememberGalleryManager
 import pl.soulsnaps.features.auth.ui.PaywallScreen
 import pl.soulsnaps.features.analytics.CapacityAnalyticsScreen
 import pl.soulsnaps.features.memoryhub.MemoryHubRoute
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -217,7 +218,7 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
             
             if (showDatePicker) {
                 showPlatformDatePicker(
-                    initialDateMillis = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+                    initialDateMillis = getCurrentTimeMillis(),
                     onDateSelected = { timestamp ->
                         viewModel.handleIntent(CaptureMomentIntent.ChangeDate(timestamp))
                         showDatePicker = false
@@ -290,6 +291,7 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
         if (state.showAnalytics) {
             CapacityAnalyticsScreen(
                 analytics = viewModel.getAnalytics(),
+                userId = "current_user", // TODO: Get real user ID
                 onClose = { viewModel.hideAnalytics() }
             )
         }

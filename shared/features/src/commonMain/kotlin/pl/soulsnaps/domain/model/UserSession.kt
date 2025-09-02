@@ -1,12 +1,17 @@
 package pl.soulsnaps.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class UserSession(
     val userId: String,
-    val email: String?,
-    val isAnonymous: Boolean,
+    val email: String,
+    val isAnonymous: Boolean = false,
     val displayName: String? = null,
-    val createdAt: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
-    val lastActiveAt: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+    val createdAt: Long,
+    val lastActiveAt: Long,
+    val accessToken: String? = null,
+    val refreshToken: String? = null
 )
 
 

@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.datetime.Clock
 import pl.soulsnaps.domain.model.BreathingPhase
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 @Composable
 fun BreathingSessionScreen(
@@ -44,10 +44,10 @@ fun BreathingSessionScreen(
 
     // Timer
     LaunchedEffect(Unit) {
-        val start = Clock.System.now().toEpochMilliseconds()
+        val start = getCurrentTimeMillis()
         while (isActive && remainingTime > 0) {
             delay(1000L)
-            val elapsed =  Clock.System.now().toEpochMilliseconds() - start
+            val elapsed =  getCurrentTimeMillis() - start
             remainingTime = totalDurationMillis - elapsed
         }
         if (remainingTime <= 0) {

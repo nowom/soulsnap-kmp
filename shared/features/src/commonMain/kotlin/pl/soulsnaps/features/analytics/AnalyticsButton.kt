@@ -26,8 +26,8 @@ fun AnalyticsButton(
     alerts: List<CapacityAlert> = emptyList(),
     modifier: Modifier = Modifier
 ) {
-    val hasCriticalAlerts = alerts.any { it.type == AlertType.CRITICAL }
-    val hasWarnings = alerts.any { it.type == AlertType.WARNING }
+    val hasCriticalAlerts = alerts.any { it.severity == AlertSeverity.CRITICAL }
+    val hasWarnings = alerts.any { it.severity == AlertSeverity.WARNING }
     
     val buttonColor = when {
         hasCriticalAlerts -> MaterialTheme.colorScheme.error
@@ -81,8 +81,8 @@ fun AnalyticsButtonWithText(
     alerts: List<CapacityAlert> = emptyList(),
     modifier: Modifier = Modifier
 ) {
-    val hasCriticalAlerts = alerts.any { it.type == AlertType.CRITICAL }
-    val hasWarnings = alerts.any { it.type == AlertType.WARNING }
+    val hasCriticalAlerts = alerts.any { it.severity == AlertSeverity.CRITICAL }
+    val hasWarnings = alerts.any { it.severity == AlertSeverity.WARNING }
     
     val buttonColor = when {
         hasCriticalAlerts -> MaterialTheme.colorScheme.error

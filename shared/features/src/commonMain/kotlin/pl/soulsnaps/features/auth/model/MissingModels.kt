@@ -1,6 +1,6 @@
 package pl.soulsnaps.features.auth.model
 
-import kotlinx.datetime.Clock
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 /**
  * Missing Models - Classes that were referenced but not defined
@@ -16,7 +16,7 @@ data class MemoryInsight(
     val insightType: String,
     val content: String,
     val confidence: Float,
-    val generatedAt: Long = Clock.System.now().toEpochMilliseconds()
+    val generatedAt: Long = getCurrentTimeMillis()
 )
 
 /**

@@ -18,7 +18,6 @@ data object RegistrationRoute
 fun NavController.navigateToRegistration(navOptions: NavOptions? = null) =
     navigate(RegistrationRoute, navOptions)
 
-
 fun NavGraphBuilder.registrationScreen(
     onRegistrationSuccess: () -> Unit,
     onBack: () -> Unit = {},

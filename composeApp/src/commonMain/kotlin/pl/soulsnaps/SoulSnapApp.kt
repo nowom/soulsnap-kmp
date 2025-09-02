@@ -7,99 +7,129 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.AddToHomeScreen
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.NoteAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import pl.soulsnaps.designsystem.DsIcons
-import pl.soulsnaps.designsystem.SoulSnapsTheme
-import pl.soulsnaps.features.affirmation.AffirmationsScreen
-import pl.soulsnaps.components.ActionButton
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.koinInject
 import pl.soulsnaps.components.BodyText
 import pl.soulsnaps.components.HeadingText
+import pl.soulsnaps.designsystem.AppColorScheme
+import pl.soulsnaps.designsystem.SoulSnapsTheme
+import pl.soulsnaps.access.manager.AppStartupManager
+import pl.soulsnaps.access.manager.StartupState
+import pl.soulsnaps.navigation.LocalNavController
 import pl.soulsnaps.navigation.MainBottomMenu
-import pl.soulsnaps.navigation.SoulSnapAppState
 import pl.soulsnaps.navigation.SoulSnapNavHost
 import pl.soulsnaps.navigation.rememberAppState
-import pl.soulsnaps.navigation.bottomNavItems
-import pl.soulsnaps.features.onboarding.OnboardingScreen
-import pl.soulsnaps.designsystem.AppColorScheme
-import pl.soulsnaps.navigation.LocalNavController
+import pl.soulsnaps.features.auth.navigateToLogin
+import pl.soulsnaps.features.auth.navigateToRegistration
+import pl.soulsnaps.features.onboarding.OnboardingRoute
 
 @Composable
 fun SoulSnapsApp() {
     SoulSnapsTheme {
         println("DEBUG: SoulSnapsApp - initializing app")
         
-        var startupState by remember { mutableStateOf<pl.soulsnaps.features.startup.StartupState?>(null) }
+        val startupManager: AppStartupManager = koinInject()
+        val startupState by startupManager.startupState.collectAsStateWithLifecycle(initialValue = StartupState.CHECKING)
         val appState = rememberAppState()
+        val navController = appState.navController
+        val coroutineScope = rememberCoroutineScope()
         
-        // App startup screen - zapobiega mignięciu onboardingu
-        if (startupState == null) {
-            pl.soulsnaps.features.startup.AppStartupScreen(
-                onStartupComplete = { state ->
-                    println("DEBUG: SoulSnapsApp - startup complete: $state")
-                    startupState = state
-                }
-            )
-        } else {
-            // Main app content
-            when (startupState) {
-                is pl.soulsnaps.features.startup.StartupState.ShowOnboarding -> {
-                    // Pokaż onboarding bez mignięcia
-                    println("DEBUG: SoulSnapsApp - showing onboarding directly")
-                    pl.soulsnaps.features.onboarding.OnboardingScreen(
-                        onComplete = {
-                            println("DEBUG: SoulSnapsApp - onboarding completed, switching to dashboard")
-                            startupState = pl.soulsnaps.features.startup.StartupState.ShowDashboard
-                        }
-                    )
-                }
-                
-                is pl.soulsnaps.features.startup.StartupState.ShowDashboard -> {
-                    // Pokaż główną aplikację
-                    println("DEBUG: SoulSnapsApp - showing main app with dashboard")
-                    MainAppContent(appState = appState)
-                }
-                
-                is pl.soulsnaps.features.startup.StartupState.Error -> {
-                    // Pokaż ekran błędu
-                    println("DEBUG: SoulSnapsApp - showing error: ${(startupState as pl.soulsnaps.features.startup.StartupState.Error).message}")
-                    ErrorScreen(
-                        message = (startupState as pl.soulsnaps.features.startup.StartupState.Error).message,
-                        onRetry = {
-                            startupState = null // Reset startup state
-                        }
-                    )
-                }
-                
-                else -> {
-                    // Loading state - nie powinno się zdarzyć
-                    println("DEBUG: SoulSnapsApp - unexpected state: $startupState")
-                }
+        // Provide LocalNavController for all child composables
+        CompositionLocalProvider(LocalNavController provides navController) {
+        
+        // Inicjalizuj AppStartupManager przy starcie
+        LaunchedEffect(Unit) {
+            println("DEBUG: SoulSnapsApp - initializing AppStartupManager")
+            startupManager.initializeApp()
+        }
+        
+        // Main app content based on startup state
+        when (startupState) {
+            StartupState.CHECKING -> {
+                // Loading state - pokaż loading
+                println("DEBUG: SoulSnapsApp - showing loading state")
+                LoadingScreen()
             }
+            
+            StartupState.READY_FOR_ONBOARDING, StartupState.ONBOARDING_ACTIVE -> {
+                // Pokaż onboarding bezpośrednio
+                println("DEBUG: SoulSnapsApp - showing onboarding directly")
+                pl.soulsnaps.features.onboarding.OnboardingScreen(
+                    onComplete = {
+                        println("DEBUG: SoulSnapsApp - onboarding completed, switching to dashboard")
+                        coroutineScope.launch {
+                            startupManager.resetStartupState()
+                        }
+                    },
+                    onLogin = {
+                        println("DEBUG: SoulSnapsApp - login clicked")
+                        // W stanie onboarding nie używamy nawigacji - pokazujemy ekran bezpośrednio
+                        // TODO: Implement direct screen display or separate NavController for onboarding
+                    },
+                    onRegister = {
+                        println("DEBUG: SoulSnapsApp - register clicked")
+                        // W stanie onboarding nie używamy nawigacji - pokazujemy ekran bezpośrednio
+                        // TODO: Implement direct screen display or separate NavController for onboarding
+                    }
+                )
+            }
+            
+            StartupState.READY_FOR_DASHBOARD -> {
+                // Pokaż główną aplikację
+                println("DEBUG: SoulSnapsApp - showing main app with dashboard")
+                MainAppContent(appState = appState)
+            }
+        }
         }
     }
 }
 
 @Composable
-private fun MainAppContent(appState: pl.soulsnaps.navigation.SoulSnapAppState) {
+private fun LoadingScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppColorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            HeadingText(
+                text = "Ładowanie aplikacji...",
+                color = AppColorScheme.onBackground
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            BodyText(
+                text = "Sprawdzanie stanu użytkownika...",
+                color = AppColorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun MainAppContent(
+    appState: pl.soulsnaps.navigation.SoulSnapAppState,
+    onOnboardingComplete: (() -> Unit)? = null
+) {
     println("DEBUG: MainAppContent - rendering main app with dashboard")
     // Provide LocalNavController for all child composables
     CompositionLocalProvider(LocalNavController provides appState.navController) {
@@ -129,45 +159,9 @@ private fun MainAppContent(appState: pl.soulsnaps.navigation.SoulSnapAppState) {
     ) { paddingValues ->
         SoulSnapNavHost(
             appState = appState,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(paddingValues),
+            onOnboardingComplete = onOnboardingComplete
         )
     }
-    }
-}
-
-@Composable
-private fun ErrorScreen(
-    message: String,
-    onRetry: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppColorScheme.background),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            HeadingText(
-                text = "Wystąpił błąd",
-                color = AppColorScheme.error
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            BodyText(
-                text = message,
-                color = AppColorScheme.onBackground
-            )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            pl.soulsnaps.components.ActionButton(
-                icon = "🔄",
-                text = "Spróbuj ponownie",
-                onClick = onRetry
-            )
-        }
     }
 }

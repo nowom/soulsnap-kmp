@@ -8,28 +8,27 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.interactor.SaveMemoryUseCase
 import pl.soulsnaps.domain.model.Memory
-import pl.soulsnaps.features.auth.mvp.guard.CapacityGuard
-import pl.soulsnaps.features.auth.mvp.guard.GuardFactory
-import pl.soulsnaps.features.auth.mvp.guard.AccessResult
+import pl.soulsnaps.access.guard.AccessGuard
+import pl.soulsnaps.access.guard.GuardFactory
+import pl.soulsnaps.access.guard.AccessResult
 import pl.soulsnaps.features.analytics.CapacityAnalytics
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 class CaptureMomentViewModel(
     private val saveMemoryUseCase: SaveMemoryUseCase,
+    private val accessGuard: pl.soulsnaps.access.guard.AccessGuard
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CaptureMomentState())
     
     init {
         println("DEBUG: CaptureMomentViewModel.init() - initial state date: ${_state.value.date}")
-        println("DEBUG: CaptureMomentViewModel.init() - current timestamp: ${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}")
+        println("DEBUG: CaptureMomentViewModel.init() - current timestamp: ${getCurrentTimeMillis()}")
     }
     val state: StateFlow<CaptureMomentState> = _state
     
-    // CapacityGuard for checking limits before saving memory
-    private val capacityGuard = GuardFactory.createCapacityGuard()
-    
     // CapacityAnalytics for tracking usage
-    private val capacityAnalytics = CapacityAnalytics(capacityGuard)
+    private val capacityAnalytics = CapacityAnalytics(accessGuard)
 
     fun handleIntent(intent: CaptureMomentIntent) {
         when (intent) {
@@ -87,12 +86,12 @@ class CaptureMomentViewModel(
             if (!capacityResult.allowed) {
                 println("DEBUG: CaptureMomentViewModel.saveMemory() - capacity limit exceeded, showing paywall")
                 // Capacity limit exceeded - show paywall
-                val recommendation = capacityGuard.getUpgradeRecommendation("current_user") // TODO: get real user ID
+                val recommendedPlan = accessGuard.getUpgradeRecommendation("memories.create")
                 _state.update { 
                     it.copy(
                         showPaywall = true,
                         paywallReason = capacityResult.message ?: "Limit pojemności przekroczony",
-                        recommendedPlan = recommendation.recommendedPlan
+                        recommendedPlan = recommendedPlan
                     ) 
                 }
                 return@launch
@@ -116,7 +115,7 @@ class CaptureMomentViewModel(
             
             println("DEBUG: CaptureMomentViewModel.saveMemory() - memory object created: title='${memory.title}', description='${memory.description}', mood='${memory.mood}', photoUri='${memory.photoUri}', audioUri='${memory.audioUri}', createdAt=${memory.createdAt}")
             println("DEBUG: CaptureMomentViewModel.saveMemory() - state.value.date=${state.value.date}")
-            println("DEBUG: CaptureMomentViewModel.saveMemory() - current timestamp=${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}")
+            println("DEBUG: CaptureMomentViewModel.saveMemory() - current timestamp=${getCurrentTimeMillis()}")
 
             try {
                 println("DEBUG: CaptureMomentViewModel.saveMemory() - calling saveMemoryUseCase.invoke()")
@@ -158,7 +157,7 @@ class CaptureMomentViewModel(
         println("DEBUG: CaptureMomentViewModel.checkCapacityBeforeSave() - estimated file size: ${estimatedSizeMB}MB")
         
         try {
-            val result = capacityGuard.canAddSnapWithSize("current_user", estimatedSizeMB) // TODO: get real user ID
+            val result = accessGuard.canPerformAction("current_user", "memories.create", "feature.memories")
             println("DEBUG: CaptureMomentViewModel.checkCapacityBeforeSave() - capacity check result: $result")
             return result
         } catch (e: Exception) {
@@ -207,7 +206,7 @@ class CaptureMomentViewModel(
             _state.update { it.copy(isCheckingCapacity = true) }
             
             try {
-                val capacityInfo = capacityGuard.getCapacityInfo("current_user") // TODO: get real user ID
+                val capacityInfo = accessGuard.getQuotaInfo("current_user", "memories.month")
                 _state.update { 
                     it.copy(
                         capacityInfo = capacityInfo,

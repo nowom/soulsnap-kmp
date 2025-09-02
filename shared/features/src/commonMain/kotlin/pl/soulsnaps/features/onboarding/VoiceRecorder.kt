@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 @Composable
 fun VoiceRecorder(
@@ -58,7 +58,7 @@ fun VoiceRecorder(
                 if (isRecording) {
                     // Stop recording
                     isRecording = false
-                    onRecordingComplete("voice_recording_${Clock.System.now().toEpochMilliseconds()}.mp3")
+                    onRecordingComplete("voice_recording_${getCurrentTimeMillis()}.mp3")
                 } else {
                     // Start recording
                     isRecording = true

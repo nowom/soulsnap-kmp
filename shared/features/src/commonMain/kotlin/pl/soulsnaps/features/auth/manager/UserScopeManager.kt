@@ -1,8 +1,9 @@
 package pl.soulsnaps.features.auth.manager
 
-import kotlinx.datetime.Clock
 import pl.soulsnaps.features.auth.model.*
 import pl.soulsnaps.features.auth.repository.UserScopeRepository
+import pl.soulsnaps.utils.getCurrentTimeMillis
+import kotlin.time.ExperimentalTime
 
 /**
  * User Scope Manager
@@ -129,12 +130,13 @@ class UserScopeManager(
     /**
      * Check scope validity
      */
+    @OptIn(ExperimentalTime::class)
     private fun isScopeValid(userScope: UserScope): Boolean {
         if (!userScope.isActive) return false
         
         // Check if scope has expired
         userScope.validUntil?.let { expiryTime ->
-            if (Clock.System.now().toEpochMilliseconds() > expiryTime) {
+            if (getCurrentTimeMillis() > expiryTime) {
                 return false
             }
         }

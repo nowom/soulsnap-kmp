@@ -20,7 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -34,13 +36,16 @@ import pl.soulsnaps.components.BodyText
 import pl.soulsnaps.components.CaptionText
 import pl.soulsnaps.components.TitleText
 import pl.soulsnaps.designsystem.AppColorScheme
-import pl.soulsnaps.features.auth.mvp.guard.UserPlanManager
-import pl.soulsnaps.features.auth.mvp.guard.PlanRegistryReader
-import pl.soulsnaps.features.auth.mvp.guard.DefaultPlans
-import pl.soulsnaps.features.auth.mvp.guard.model.PlanType
+import pl.soulsnaps.access.manager.UserPlanManager
+import pl.soulsnaps.access.manager.PlanRegistryReader
+import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
+import pl.soulsnaps.access.manager.DefaultPlans
+import pl.soulsnaps.access.manager.PlanDefinition
+import pl.soulsnaps.access.model.PlanType
 import pl.soulsnaps.features.upgrade.UpgradeRecommendationEngine
 import pl.soulsnaps.features.upgrade.UsageStatistics
 import pl.soulsnaps.features.upgrade.UserBehavior
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 @Composable
 fun ScopeAwareDashboard(
@@ -51,11 +56,17 @@ fun ScopeAwareDashboard(
     onNavigateToVirtualMirror: () -> Unit = {},
     onNavigateToAnalytics: () -> Unit = {},
     onUpgradePlan: () -> Unit = {},
-    userPlanManager: UserPlanManager = UserPlanManager(),
-    planRegistry: PlanRegistryReader = DefaultPlans
+    userPlanManager: UserPlanManager,
+    planRegistry: PlanRegistryReader
 ) {
     val currentPlan by userPlanManager.currentPlan.collectAsState(initial = null)
-    val planDefinition = currentPlan?.let { planRegistry.getPlan(it) }
+    var planDefinition by remember { mutableStateOf<pl.soulsnaps.access.manager.PlanDefinition?>(null) }
+    
+    LaunchedEffect(currentPlan) {
+        if (currentPlan != null) {
+            planDefinition = planRegistry.getPlan(currentPlan!!)
+        }
+    }
     
     // Upgrade recommendation engine
     val upgradeEngine = remember { UpgradeRecommendationEngine(planRegistry) }
@@ -71,7 +82,7 @@ fun ScopeAwareDashboard(
                 affirmationsCount = 15,
                 exercisesCount = 8,
                 storageUsedGB = 0.8f,
-                lastActivityDate = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                lastActivityDate = getCurrentTimeMillis()
             )
             
             val userBehavior = UserBehavior(
@@ -131,7 +142,7 @@ fun ScopeAwareDashboard(
 @Composable
 private fun PlanAwareHeader(
     currentPlan: String?,
-    planDefinition: pl.soulsnaps.features.auth.mvp.guard.PlanDefinition?
+    planDefinition: pl.soulsnaps.access.manager.PlanDefinition?
 ) {
     DashboardCard(
         title = "Twój plan: ${getPlanDisplayName(currentPlan) ?: "Ładowanie..."}",
@@ -182,7 +193,7 @@ private fun PlanAwareHeader(
 @Composable
 private fun PlanFeaturesSection(
     currentPlan: String?,
-    planDefinition: pl.soulsnaps.features.auth.mvp.guard.PlanDefinition?,
+    planDefinition: pl.soulsnaps.access.manager.PlanDefinition?,
     onAddNewSnap: () -> Unit,
     onNavigateToSoulSnaps: () -> Unit,
     onNavigateToAffirmations: () -> Unit,
@@ -370,7 +381,7 @@ private fun UpgradeRecommendationSection(
 @Composable
 private fun UsageStatisticsSection(
     currentPlan: String?,
-    planDefinition: pl.soulsnaps.features.auth.mvp.guard.PlanDefinition?
+    planDefinition: pl.soulsnaps.access.manager.PlanDefinition?
 ) {
     DashboardCard(
         title = "📊 Statystyki użycia",

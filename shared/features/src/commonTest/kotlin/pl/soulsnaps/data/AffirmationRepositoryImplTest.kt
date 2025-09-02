@@ -152,5 +152,7 @@ class MockMemoryDao : MemoryDao {
     override suspend fun getUnsynced(): List<pl.soulsnaps.database.Memories> = emptyList()
     
     override suspend fun markAsSynced(id: Long) {}
+    
+    override suspend fun deleteInvalidMemories(): Int = 0
 }
 

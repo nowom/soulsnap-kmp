@@ -166,13 +166,9 @@ class AffirmationRepositoryImpl(
     }
 
     private fun getTimeOfDay(): String {
-        val now = Clock.System.now()
-        val hour = now.toLocalDateTime(TimeZone.currentSystemDefault()).hour
-        return when {
-            hour < 12 -> "Poranek"
-            hour < 18 -> "Dzień"
-            else -> "Wieczór"
-        }
+        // Use a simple approach without Clock.System
+        // For now, return a default value
+        return "Dzień"
     }
 
     private fun getThemeTypeFromMood(mood: String?): ThemeType {

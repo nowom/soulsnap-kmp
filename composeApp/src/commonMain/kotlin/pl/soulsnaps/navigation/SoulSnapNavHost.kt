@@ -51,19 +51,9 @@ import pl.soulsnaps.features.settings.settingsScreen
 internal fun SoulSnapNavHost(
     appState: SoulSnapAppState,
     modifier: Modifier = Modifier,
+    onOnboardingComplete: (() -> Unit)? = null,
 ) {
     val navController = appState.navController
-    
-    // Use the OnboardingCompletionTracker composable to handle completion status
-//    OnboardingCompletionTracker(
-//        dataStore = createOnboardingDataStore(),
-//        onComplete = {
-//            // Navigate to dashboard if onboarding is completed
-//            navController.navigate("dashboard") {
-//                popUpTo(OnboardingRoute) { inclusive = true }
-//            }
-//        }
-//    )
     
     NavHost(
         navController = navController,
@@ -72,6 +62,7 @@ internal fun SoulSnapNavHost(
     ) {
         onboardingScreen(
             onComplete = { 
+                onOnboardingComplete?.invoke()
                 navController.navigate(DashboardRoute) {
                     popUpTo(OnboardingRoute) { inclusive = true }
                 }

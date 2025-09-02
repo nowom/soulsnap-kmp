@@ -66,8 +66,14 @@ kotlin {
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.content.negotiation)
                 implementation(libs.ktor.serialization.kotlinx.json)
-                
 
+                // Supabase KMP dependencies
+                implementation(libs.supabase.auth)
+                implementation(libs.supabase.postgrest)
+                implementation(libs.supabase.storage)
+                implementation(libs.supabase.realtime)
+                implementation(libs.supabase.compose.auth)
+                implementation(libs.supabase.compose.auth.ui)
 
             }
         }
@@ -97,7 +103,7 @@ kotlin {
             dependencies {
                 // Add iOS-specific dependencies here. This a source set created by Kotlin Gradle
                 // Plugin (KGP) that each specific iOS target (e.g., iosX64) depends on as
-                // part of KMP’s default source set hierarchy. Note that this source set depends
+                // part of KMP's default source set hierarchy. Note that this source set depends
                 // on common by default and will correctly pull the iOS artifacts of any
                 // KMP dependencies declared in commonMain.
                 implementation(libs.ktor.client.darwin)
@@ -112,5 +118,18 @@ android {
     compileSdk = 34
     defaultConfig {
         minSdk = 26
+        
+        // BuildConfig configuration for secrets
+        buildConfigField("String", "SUPABASE_URL", "\"${project.findProperty("SUPABASE_URL") ?: ""}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${project.findProperty("SUPABASE_ANON_KEY") ?: ""}\"")
+    }
+    
+    buildFeatures {
+        buildConfig = true
+    }
+    
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }

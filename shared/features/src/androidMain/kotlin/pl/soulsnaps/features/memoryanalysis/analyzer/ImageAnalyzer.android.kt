@@ -2,18 +2,21 @@ package pl.soulsnaps.features.memoryanalysis.analyzer
 
 import android.graphics.Bitmap
 import android.graphics.Color
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+
 import pl.soulsnaps.photo.SharedImageInterface
 import pl.soulsnaps.features.memoryanalysis.model.*
 import pl.soulsnaps.domain.model.MoodType as DomainMoodType
 import pl.soulsnaps.utils.BitmapUtils
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /**
  * Android implementation of ImageAnalyzer using TensorFlow Lite and OpenCV
  */
 actual class ImageAnalyzer : ImageAnalyzerInterface {
     
+    @OptIn(ExperimentalTime::class)
     override actual suspend fun analyzeImage(image: SharedImageInterface): ImageAnalysis {
         val startTime = Clock.System.now()
         
@@ -29,7 +32,7 @@ actual class ImageAnalyzer : ImageAnalyzerInterface {
         val processingTime = (Clock.System.now() - startTime).inWholeMilliseconds
         
         val metadata = ImageMetadata(
-            timestamp = startTime,
+            timestamp = startTime.toEpochMilliseconds(),
             location = null, // TODO: Extract from image metadata
             weather = null, // TODO: Extract from image metadata
             deviceInfo = "Android",
@@ -91,6 +94,7 @@ actual class ImageAnalyzer : ImageAnalyzerInterface {
         )
     }
     
+    @OptIn(ExperimentalTime::class)
     override actual suspend fun analyzeMood(image: SharedImageInterface): MoodAnalysis {
         val colorAnalysis = analyzeColors(image)
         val faceDetection = detectFaces(image)
@@ -105,7 +109,7 @@ actual class ImageAnalyzer : ImageAnalyzerInterface {
             moodScore = moodScore,
             confidence = 0.7f, // TODO: Improve confidence calculation
             factors = factors,
-            timestamp = Clock.System.now()
+            timestamp = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -332,6 +336,7 @@ actual class ImageAnalyzer : ImageAnalyzerInterface {
     private fun calculateBalance(bitmap: Bitmap): Float = 0.7f
     private fun findFocalPoint(bitmap: Bitmap): FocalPoint? = FocalPoint(0.5f, 0.5f, 0.8f)
     
+    @OptIn(ExperimentalTime::class)
     private fun createDefaultAnalysis(startTime: Instant): ImageAnalysis {
         return ImageAnalysis(
             colorAnalysis = createDefaultColorAnalysis(),
@@ -341,11 +346,11 @@ actual class ImageAnalyzer : ImageAnalyzerInterface {
                 moodScore = 0.5f,
                 confidence = 0.5f,
                 factors = emptyList(),
-                timestamp = startTime
+                timestamp = startTime.toEpochMilliseconds()
             ),
             composition = createDefaultCompositionAnalysis(),
             metadata = ImageMetadata(
-                timestamp = startTime,
+                timestamp = startTime.toEpochMilliseconds(),
                 location = null,
                 weather = null,
                 deviceInfo = "Android",

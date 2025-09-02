@@ -6,8 +6,8 @@ interface AuthRepository {
     suspend fun signIn(email: String, password: String): UserSession
     suspend fun register(email: String, password: String): UserSession
     suspend fun signInAnonymously(): UserSession
-    fun signOut()
-    fun currentUser(): UserSession?
+    suspend fun signOut()
+    suspend fun currentUser(): UserSession?
 }
 
 

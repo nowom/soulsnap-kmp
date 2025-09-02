@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import pl.soulsnaps.features.auth.mvp.guard.UserPlanManager
+import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.data.MemoryRepositoryImpl
 import pl.soulsnaps.domain.MemoryRepository
 import kotlin.getValue

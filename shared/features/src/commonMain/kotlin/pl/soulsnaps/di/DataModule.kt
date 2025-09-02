@@ -1,5 +1,6 @@
 package pl.soulsnaps.di
 
+import org.koin.core.module.Module
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
@@ -18,68 +19,45 @@ import pl.soulsnaps.network.HttpClientFactory
 import pl.soulsnaps.domain.AffirmationRepository
 import pl.soulsnaps.domain.MemoryRepository
 import pl.soulsnaps.domain.QuoteRepository
-import pl.soulsnaps.database.dao.MemoryDao
-import pl.soulsnaps.database.DatabaseModule
+import pl.soulsnaps.data.AnalyticsRepository
+import pl.soulsnaps.data.FakeAnalyticsRepository
+import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.auth.SessionDataStore
 import pl.soulsnaps.features.auth.InMemorySessionDataStore
-import pl.soulsnaps.features.auth.UserSessionManager
-import pl.soulsnaps.features.auth.mvp.guard.PaywallTrigger
-import pl.soulsnaps.features.auth.mvp.guard.GuardFactory
+import pl.soulsnaps.network.SupabaseClientProvider
 
 object DataModule {
-    fun get() = module {
-        includes(DatabaseModule.get())
-        
-        single<AffirmationRepository> { AffirmationRepositoryImpl(get<MemoryDao>()) }
+    fun get(): Module = module {
+        single { HttpClientFactory() }
+        single { SupabaseClientProvider.getClient() }
+        single { SupabaseAuthService() }
+        single { SupabaseDatabaseService(get()) }
 
-        single<QuoteRepository> { FakeQuoteRepository() }
-        single { FakeAuthService() }
+
+        // Analytics Repository
+        single<AnalyticsRepository> { FakeAnalyticsRepository() }
         
-        // Supabase configuration
-        single {
-            SupabaseAuthService(
-                httpClient = get(),
-                supabaseUrl = AuthConfig.SUPABASE_URL,
-                supabaseAnonKey = AuthConfig.SUPABASE_ANON_KEY
-            )
-        }
-        
-        single {
-            SupabaseDatabaseService(
-                httpClient = get(),
-                supabaseUrl = AuthConfig.SUPABASE_URL,
-                supabaseAnonKey = AuthConfig.SUPABASE_ANON_KEY
-            )
-        }
-        
-        single<AuthRepository> { 
+        single<AuthRepository> {
             if (AuthConfig.USE_SUPABASE_AUTH) {
                 SupabaseAuthRepository(get())
             } else {
-                AuthRepositoryImpl(get())
+                AuthRepositoryImpl(FakeAuthService())
             }
         }
         
-        single<MemoryRepository> { 
+        single<MemoryRepository> {
             if (AuthConfig.USE_SUPABASE_AUTH) {
-                SupabaseMemoryRepository(get())
+                SupabaseMemoryRepository(get(), get())
             } else {
-                MemoryRepositoryImpl(
-                    networkMonitor = get(),
-                    memoryDao = get<MemoryDao>(),
-                    userSessionManager = get(),
-                    remoteService = if (AuthConfig.USE_SUPABASE_AUTH) get() else null
-                )
+                MemoryRepositoryImpl(get(), get(), get())
             }
         }
         
-        // Access Control & Paywall
-        single { GuardFactory.createDefaultGuard() }
-        single { PaywallTrigger(get(), get()) }
+        single<AffirmationRepository> { AffirmationRepositoryImpl(get()) }
+        single<QuoteRepository> { FakeQuoteRepository() }
         
+        // Session management
         single<SessionDataStore> { InMemorySessionDataStore() }
         single { UserSessionManager(get()) }
-        single { HttpClientFactory().create() }
-
     }
 }

@@ -14,9 +14,9 @@ class AuthRepositoryImpl(
 
     override suspend fun signInAnonymously(): UserSession = service.signInAnonymously()
 
-    override fun signOut() = service.signOut()
+    override suspend fun signOut() = service.signOut()
 
-    override fun currentUser(): UserSession? = service.currentUser()
+    override suspend fun currentUser(): UserSession? = service.getCurrentUser()
 }
 
 
