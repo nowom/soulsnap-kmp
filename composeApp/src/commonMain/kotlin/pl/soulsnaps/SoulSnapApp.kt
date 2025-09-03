@@ -34,9 +34,10 @@ import pl.soulsnaps.navigation.LocalNavController
 import pl.soulsnaps.navigation.MainBottomMenu
 import pl.soulsnaps.navigation.SoulSnapNavHost
 import pl.soulsnaps.navigation.rememberAppState
-import pl.soulsnaps.features.auth.navigateToLogin
-import pl.soulsnaps.features.auth.navigateToRegistration
-import pl.soulsnaps.features.onboarding.OnboardingRoute
+import pl.soulsnaps.navigation.OnboardingGraph
+import pl.soulsnaps.navigation.AuthenticationGraph
+import pl.soulsnaps.navigation.HomeGraph
+import pl.soulsnaps.navigation.getStartDestination
 
 @Composable
 fun SoulSnapsApp() {
@@ -67,32 +68,29 @@ fun SoulSnapsApp() {
             }
             
             StartupState.READY_FOR_ONBOARDING, StartupState.ONBOARDING_ACTIVE -> {
-                // Pokaż onboarding bezpośrednio
-                println("DEBUG: SoulSnapsApp - showing onboarding directly")
-                pl.soulsnaps.features.onboarding.OnboardingScreen(
-                    onComplete = {
-                        println("DEBUG: SoulSnapsApp - onboarding completed, switching to dashboard")
-                        coroutineScope.launch {
-                            startupManager.resetStartupState()
-                        }
-                    },
-                    onLogin = {
-                        println("DEBUG: SoulSnapsApp - login clicked")
-                        // W stanie onboarding nie używamy nawigacji - pokazujemy ekran bezpośrednio
-                        // TODO: Implement direct screen display or separate NavController for onboarding
-                    },
-                    onRegister = {
-                        println("DEBUG: SoulSnapsApp - register clicked")
-                        // W stanie onboarding nie używamy nawigacji - pokazujemy ekran bezpośrednio
-                        // TODO: Implement direct screen display or separate NavController for onboarding
-                    }
+                // Pokaż onboarding przez nawigację
+                println("DEBUG: SoulSnapsApp - showing onboarding via navigation")
+                val startDestination = getStartDestination(
+                    hasCompletedOnboarding = false,
+                    isAuthenticated = false
+                )
+                SoulSnapNavHost(
+                    appState = appState,
+                    startDestination = startDestination
                 )
             }
             
             StartupState.READY_FOR_DASHBOARD -> {
                 // Pokaż główną aplikację
                 println("DEBUG: SoulSnapsApp - showing main app with dashboard")
-                MainAppContent(appState = appState)
+                val startDestination = getStartDestination(
+                    hasCompletedOnboarding = true,
+                    isAuthenticated = true
+                )
+                MainAppContent(
+                    appState = appState,
+                    startDestination = startDestination
+                )
             }
         }
         }
@@ -128,7 +126,7 @@ private fun LoadingScreen() {
 @Composable
 private fun MainAppContent(
     appState: pl.soulsnaps.navigation.SoulSnapAppState,
-    onOnboardingComplete: (() -> Unit)? = null
+    startDestination: Any = HomeGraph
 ) {
     println("DEBUG: MainAppContent - rendering main app with dashboard")
     // Provide LocalNavController for all child composables
@@ -160,7 +158,7 @@ private fun MainAppContent(
         SoulSnapNavHost(
             appState = appState,
             modifier = Modifier.padding(paddingValues),
-            onOnboardingComplete = onOnboardingComplete
+            startDestination = startDestination
         )
     }
     }

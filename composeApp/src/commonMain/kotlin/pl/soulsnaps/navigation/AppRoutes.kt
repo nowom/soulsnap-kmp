@@ -9,10 +9,10 @@ import kotlinx.serialization.Serializable
 data object OnboardingGraph
 
 @Serializable
-data object AuthGraph
+data object AuthenticationGraph
 
 @Serializable
-data object MainAppGraph
+data object HomeGraph
 
 // Navigation functions for switching between graphs
 fun NavController.navigateToOnboarding(navOptions: NavOptions? = null) {
@@ -22,13 +22,22 @@ fun NavController.navigateToOnboarding(navOptions: NavOptions? = null) {
 }
 
 fun NavController.navigateToAuth(navOptions: NavOptions? = null) {
-    navigate(AuthGraph, navOptions ?: navOptions {
+    navigate(AuthenticationGraph, navOptions ?: navOptions {
         popUpTo(0) { inclusive = true }
     })
 }
 
-fun NavController.navigateToMainApp(navOptions: NavOptions? = null) {
-    navigate(MainAppGraph, navOptions ?: navOptions {
+fun NavController.navigateToHome(navOptions: NavOptions? = null) {
+    navigate(HomeGraph, navOptions ?: navOptions {
         popUpTo(0) { inclusive = true }
     })
+}
+
+// Helper function to determine start destination based on app state
+fun getStartDestination(hasCompletedOnboarding: Boolean, isAuthenticated: Boolean): Any {
+    return when {
+        !hasCompletedOnboarding -> OnboardingGraph
+        !isAuthenticated -> AuthenticationGraph
+        else -> HomeGraph
+    }
 } 

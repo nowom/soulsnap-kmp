@@ -6,8 +6,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navigation
 import pl.soulsnaps.features.affirmation.affirmationsScreen
 import pl.soulsnaps.features.affirmation.navigateToAffirmations
 import pl.soulsnaps.features.capturemoment.captureMomentScreen
@@ -28,7 +31,6 @@ import pl.soulsnaps.features.memoryhub.memoryHubTab
 import pl.soulsnaps.features.memoryhub.navigateToMemoryHub
 import pl.soulsnaps.features.memoryhub.MemoryHubRoute
 import pl.soulsnaps.features.onboarding.OnboardingRoute
-import pl.soulsnaps.features.onboarding.createOnboardingDataStore
 import pl.soulsnaps.features.onboarding.onboardingScreen
 import pl.soulsnaps.features.virtualmirror.navigateToVirtualMirror
 import pl.soulsnaps.features.virtualmirror.virtualMirrorScreen
@@ -51,85 +53,102 @@ import pl.soulsnaps.features.settings.settingsScreen
 internal fun SoulSnapNavHost(
     appState: SoulSnapAppState,
     modifier: Modifier = Modifier,
-    onOnboardingComplete: (() -> Unit)? = null,
+    startDestination: Any = OnboardingGraph
 ) {
     val navController = appState.navController
-    
+
     NavHost(
         navController = navController,
-        startDestination = DashboardRoute, // Start with dashboard, onboarding will be handled by AppStartupManager
+        startDestination = startDestination,
         modifier = modifier,
     ) {
+        // Onboarding Graph
+        onboardingGraph(navController)
+        
+        // Authentication Graph
+        authenticationGraph(navController)
+        
+        // Home Graph (Main App)
+        homeGraph(navController)
+    }
+}
+
+fun NavGraphBuilder.onboardingGraph(navController: NavController) {
+    navigation<OnboardingGraph>(startDestination = OnboardingRoute) {
         onboardingScreen(
-            onComplete = { 
-                onOnboardingComplete?.invoke()
-                navController.navigate(DashboardRoute) {
-                    popUpTo(OnboardingRoute) { inclusive = true }
+            onComplete = {
+                // Navigate to home graph after onboarding completion
+                navController.navigate(HomeGraph) {
+                    popUpTo(OnboardingGraph) { inclusive = true }
                 }
             },
-            onLogin = { 
-                navController.navigateToLogin()
+            onLogin = {
+                navController.navigate(AuthenticationGraph) {
+                    popUpTo(OnboardingGraph) { inclusive = true }
+                }
             },
-            onRegister = { 
-                navController.navigateToRegistration()
+            onRegister = {
+                navController.navigate(AuthenticationGraph) {
+                    popUpTo(OnboardingGraph) { inclusive = true }
+                }
             }
         )
+    }
+}
+
+fun NavGraphBuilder.authenticationGraph(navController: NavController) {
+    navigation<AuthenticationGraph>(startDestination = LoginRoute) {
+        loginScreen(
+            onLoginSuccess = {
+                navController.navigate(HomeGraph) {
+                    popUpTo(AuthenticationGraph) { inclusive = true }
+                }
+            },
+            onBack = { navController.popBackStack() },
+            onNavigateToRegister = { navController.navigateToRegistration() },
+            onContinueAsGuest = {
+                navController.navigate(HomeGraph) {
+                    popUpTo(AuthenticationGraph) { inclusive = true }
+                }
+            }
+        )
+        registrationScreen(
+            onRegistrationSuccess = {
+                navController.navigate(HomeGraph) {
+                    popUpTo(AuthenticationGraph) { inclusive = true }
+                }
+            }
+        )
+    }
+}
+
+fun NavGraphBuilder.homeGraph(navController: NavController) {
+    navigation<HomeGraph>(startDestination = DashboardRoute) {
         dashboardScreen(
             onAddNewSnap = { navController.navigateToCaptureMoment() },
             onNavigateToSoulSnaps = { navController.navigateToMemoryHub() },
             onNavigateToAffirmations = { navController.navigateToAffirmations() },
             onNavigateToExercises = { navController.navigateToExercises() },
             onNavigateToVirtualMirror = { navController.navigateToVirtualMirror() },
-            onNavigateToAnalytics = { 
-                // TODO: Navigate to analytics
+            onNavigateToAnalytics = {
                 println("DEBUG: Navigate to analytics")
             },
-            onUpgradePlan = { 
+            onUpgradePlan = {
                 navController.navigateToUpgrade()
             }
         )
-        virtualMirrorScreen(
-            onBack = { navController.popBackStack() }
-        )
-        loginScreen(
-            onLoginSuccess = { 
-                println("DEBUG: onLoginSuccess called")
-                navController.navigate(DashboardRoute) {
-                    popUpTo(LoginRoute) { inclusive = true }
-                }
-            },
-            onBack = { navController.popBackStack() },
-            onNavigateToRegister = { navController.navigateToRegistration() },
-            onContinueAsGuest = { 
-                println("DEBUG: onContinueAsGuest called")
-                navController.navigate(DashboardRoute) {
-                    popUpTo(LoginRoute) { inclusive = true }
-                }
-            }
-        )
-        registrationScreen(
-            onRegistrationSuccess = {}
-        )
+        // Add other destinations for the home graph here
+        virtualMirrorScreen(onBack = { navController.popBackStack() })
         captureMomentScreen()
         affirmationsScreen()
         memoryHubTab(
-            onMemoryClick = { memoryId ->
-                navController.navigateToMemoryDetails(memoryId)
-            }
+            onMemoryClick = { memoryId -> navController.navigateToMemoryDetails(memoryId) }
         )
         memoryDetailsScreen(
             onBack = { navController.popBackStack() },
-            onEdit = { 
-                // TODO: Navigate to edit screen
-                navController.popBackStack()
-            },
-            onDelete = { 
-                // TODO: Show delete confirmation
-                navController.popBackStack()
-            },
-            onShare = { 
-                // TODO: Implement share functionality
-            }
+            onEdit = { navController.popBackStack() },
+            onDelete = { navController.popBackStack() },
+            onShare = { /* TODO */ }
         )
         exercisesScreen(
             onOpenBreathing = { navController.navigateToBreathingSession() },
@@ -139,26 +158,22 @@ internal fun SoulSnapNavHost(
         breathingSessionScreen(onDone = { navController.popBackStack() })
         gratitudeScreen(onDone = { navController.popBackStack() })
         modernEmotionWheelScreen(onDone = { navController.popBackStack() })
-
         settingsScreen(
             {
-                navController.navigate(OnboardingRoute) {
+                navController.navigate(OnboardingGraph) {
                     popUpTo(0) { inclusive = true }
                 }
             }
         )
-        
-        // Upgrade screen
         upgradeScreen(
             onBack = { navController.popBackStack() },
             onUpgradeToPlan = { planName ->
-                // TODO: Handle plan upgrade
                 println("DEBUG: Upgrade to plan: $planName")
                 navController.popBackStack()
             },
             onDismiss = { navController.popBackStack() },
-            currentPlan = "FREE_USER", // TODO: Get from UserPlanManager
-            recommendations = emptyList() // TODO: Get from UpgradeRecommendationEngine
+            currentPlan = "FREE_USER",
+            recommendations = emptyList()
         )
     }
 }

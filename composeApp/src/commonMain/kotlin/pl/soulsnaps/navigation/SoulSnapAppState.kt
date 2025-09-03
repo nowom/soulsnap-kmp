@@ -29,6 +29,7 @@ import pl.soulsnaps.features.coach.GratitudeRoute
 import pl.soulsnaps.features.exersises.plutchikwheel.ModernEmotionWheelRoute
 import pl.soulsnaps.features.settings.SettingsRoute
 import pl.soulsnaps.features.settings.navigateToSettings
+import pl.soulsnaps.navigation.HomeGraph
 import kotlin.reflect.KClass
 
 @Stable
@@ -36,11 +37,6 @@ internal class SoulSnapAppState(
     val navController: NavHostController
 ) {
     private val previousDestination = mutableStateOf<NavDestination?>(null)
-
-    val shouldShowBottomBar: Boolean
-        @Composable get() = currentTopLevelDestination?.route?.let {
-            currentDestination?.hasRoute(route = it) == true
-        } ?: false
 
     val currentDestination: NavDestination?
         @Composable get() {
@@ -56,10 +52,24 @@ internal class SoulSnapAppState(
             } ?: previousDestination.value
         }
 
+    val shouldShowBottomBar: Boolean
+        @Composable get() {
+            // Show bottom bar only when we're in the HomeGraph (main app)
+            // Check if we can find a top level destination
+            val currentRoute = currentDestination?.route
+            return bottomNavItems.any { topLevelDestination ->
+                currentRoute == topLevelDestination.route.qualifiedName
+            }
+        }
+
     val currentTopLevelDestination: BottomNavItem?
         @Composable get() {
+            // Only show top level destinations when we're in the HomeGraph
+            if (!shouldShowBottomBar) return null
+            
+            val currentRoute = currentDestination?.route
             return bottomNavItems.firstOrNull { topLevelDestination ->
-                currentDestination?.hasRoute(route = topLevelDestination.route) == true
+                currentRoute == topLevelDestination.route.qualifiedName
             }
         }
 
@@ -132,7 +142,11 @@ internal class SoulSnapAppState(
 
     val shouldShowFab: Boolean
         @Composable get() {
+            // Show FAB only when we're in the HomeGraph and on appropriate screens
+            if (!shouldShowBottomBar) return false
+            
             val currentRoute = currentDestination?.route
+            // Show FAB on main screens but not on settings
             return currentRoute == DashboardRoute::class.qualifiedName ||
                     currentRoute == AffirmationsRoute::class.qualifiedName ||
                     currentRoute == MemoryHubRoute::class.qualifiedName ||
