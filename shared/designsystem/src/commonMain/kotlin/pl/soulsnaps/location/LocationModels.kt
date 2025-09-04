@@ -1,5 +1,7 @@
 package pl.soulsnaps.location
 
+import pl.soulsnaps.utils.getCurrentTimeMillis
+
 /**
  * Location data for photos
  */
@@ -7,7 +9,7 @@ data class PhotoLocation(
     val latitude: Double,
     val longitude: Double,
     val accuracy: Float? = null,
-    val timestamp: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+    val timestamp: Long = getCurrentTimeMillis(),
     val placeId: String? = null,
     val placeType: PlaceType? = null
 )

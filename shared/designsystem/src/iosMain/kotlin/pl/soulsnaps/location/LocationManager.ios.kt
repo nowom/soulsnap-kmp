@@ -1,10 +1,11 @@
 package pl.soulsnaps.location
 
 import androidx.compose.runtime.*
-import platform.CoreLocation.*
-import platform.Foundation.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import platform.CoreLocation.*
+import platform.Foundation.*
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 @Composable
 actual fun rememberLocationManager(): LocationManager {
@@ -35,7 +36,7 @@ actual class LocationManager {
                     latitude = 40.7128,
                     longitude = -74.0060,
                     accuracy = 10f,
-                    timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                    timestamp = getCurrentTimeMillis()
                 )
             } else {
                 null
@@ -51,7 +52,7 @@ actual class LocationManager {
                 latitude = 40.7128,
                 longitude = -74.0060,
                 accuracy = 10f,
-                timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                timestamp = getCurrentTimeMillis()
             )
         )
     }

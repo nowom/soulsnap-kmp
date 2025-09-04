@@ -25,3 +25,5 @@ fun localDateTimeToNSDate(dateTime: LocalDateTime): NSDate {
     val calendar = NSCalendar.currentCalendar()
     return calendar.dateFromComponents(components)!!
 }
+
+actual fun getCurrentTimeMillis(): Long = (NSDate().timeIntervalSince1970 * 1000).toLong()

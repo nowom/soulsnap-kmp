@@ -54,7 +54,7 @@ kotlin {
                 implementation(libs.koin.compose.viewmodel)
                 implementation(libs.coil.compose)
                 implementation(libs.navigation.compose)
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+                implementation(libs.kotlinx.serialization)
                 implementation(libs.material.icons.extended)
                 implementation(project(":shared:designsystem"))
                 implementation(project(":shared:database"))
