@@ -72,6 +72,13 @@ class SupabaseMemoryRepository(
         println("DEBUG: SupabaseMemoryRepository.cleanupInvalidMemories() - no cleanup needed for remote storage")
         return 0
     }
+
+    override suspend fun clearAllMemories(): Int {
+        // For Supabase, we don't clear remote memories on logout
+        // as they belong to the user and should persist
+        println("DEBUG: SupabaseMemoryRepository.clearAllMemories() - no remote cleanup on logout")
+        return 0
+    }
     
     suspend fun updateMemory(memory: Memory): Boolean {
         return try {

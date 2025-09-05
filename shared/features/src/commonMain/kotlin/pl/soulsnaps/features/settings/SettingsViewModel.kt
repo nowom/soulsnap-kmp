@@ -15,6 +15,7 @@ import org.koin.core.component.inject
 import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.data.MemoryRepositoryImpl
 import pl.soulsnaps.domain.MemoryRepository
+import pl.soulsnaps.domain.interactor.SignOutUseCase
 import kotlin.getValue
 
 data class SettingsState(
@@ -22,8 +23,10 @@ data class SettingsState(
     val isLoading: Boolean = false
 )
 
-class SettingsViewModel(val userPlanManager: UserPlanManager,
-                        val memoryRepository: MemoryRepository
+class SettingsViewModel(
+    val userPlanManager: UserPlanManager,
+    val memoryRepository: MemoryRepository,
+    val signOutUseCase: SignOutUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsState())
@@ -42,26 +45,24 @@ class SettingsViewModel(val userPlanManager: UserPlanManager,
     fun logout() {
         println("DEBUG: SettingsViewModel.logout() - starting logout process")
         
-        // Clean up invalid memories before logout
         viewModelScope.launch {
             try {
-                println("DEBUG: SettingsViewModel.logout() - cleaning up invalid memories")
-                memoryRepository.cleanupInvalidMemories()
-                println("DEBUG: SettingsViewModel.logout() - cleanup completed")
+                // Use SignOutUseCase which handles all logout logic including clearing local memories
+                signOutUseCase()
+                
+                // Reset user plan (this will clear all user data)
+                userPlanManager.resetUserPlan()
+                println("DEBUG: SettingsViewModel.logout() - user plan reset completed")
+                
+                // Update state
+                _state.value = _state.value.copy(
+                    currentPlan = null
+                )
+                
+                println("DEBUG: SettingsViewModel.logout() - logout process completed")
             } catch (e: Exception) {
-                println("ERROR: SettingsViewModel.logout() - cleanup failed: ${e.message}")
+                println("ERROR: SettingsViewModel.logout() - logout failed: ${e.message}")
             }
         }
-        
-        // Reset user plan (this will clear all user data)
-        userPlanManager.resetUserPlan()
-        println("DEBUG: SettingsViewModel.logout() - user plan reset completed")
-        
-        // Update state
-        _state.value = _state.value.copy(
-            currentPlan = null
-        )
-        
-        println("DEBUG: SettingsViewModel.logout() - logout process completed")
     }
 }

@@ -18,6 +18,7 @@ import pl.soulsnaps.domain.model.MoodType
 import pl.soulsnaps.util.NetworkMonitor
 import pl.soulsnaps.network.SupabaseDatabaseService
 import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.access.guard.CapacityGuard
 
 /**
  * Offline-first Memory Repository Implementation
@@ -33,7 +34,8 @@ class MemoryRepositoryImpl(
     private val networkMonitor: NetworkMonitor,
     private val memoryDao: MemoryDao,
     private val userSessionManager: UserSessionManager,
-    private val remoteService: SupabaseDatabaseService? = null
+    private val remoteService: SupabaseDatabaseService,
+    private val capacityGuard: CapacityGuard
 ) : MemoryRepository {
     
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -65,7 +67,7 @@ class MemoryRepositoryImpl(
             println("DEBUG: MemoryRepositoryImpl.addMemory() - saved locally with ID: $newId")
             
             // 2. Trigger background sync if online and user is authenticated
-            if (networkMonitor.isOnline() && remoteService != null && userSessionManager.isAuthenticated()) {
+            if (networkMonitor.isOnline() && userSessionManager.isAuthenticated()) {
                 println("DEBUG: MemoryRepositoryImpl.addMemory() - triggering background sync for authenticated user")
                 syncScope.launch {
                     try {
@@ -81,8 +83,6 @@ class MemoryRepositoryImpl(
                     println("DEBUG: MemoryRepositoryImpl.addMemory() - user not authenticated, skipping sync")
                 } else if (!networkMonitor.isOnline()) {
                     println("DEBUG: MemoryRepositoryImpl.addMemory() - offline mode, sync will be retried later")
-                } else {
-                    println("DEBUG: MemoryRepositoryImpl.addMemory() - no remote service available")
                 }
             }
             
@@ -144,7 +144,7 @@ class MemoryRepositoryImpl(
             println("DEBUG: MemoryRepositoryImpl.markAsFavorite() - updated locally")
             
             // Trigger background sync if online and user is authenticated
-            if (networkMonitor.isOnline() && remoteService != null && userSessionManager.isAuthenticated()) {
+            if (networkMonitor.isOnline() && userSessionManager.isAuthenticated()) {
                 syncScope.launch {
                     try {
                         // TODO: Implement remote favorite update
@@ -158,8 +158,6 @@ class MemoryRepositoryImpl(
                     println("DEBUG: MemoryRepositoryImpl.markAsFavorite() - user not authenticated, skipping sync")
                 } else if (!networkMonitor.isOnline()) {
                     println("DEBUG: MemoryRepositoryImpl.markAsFavorite() - offline mode, sync will be retried later")
-                } else {
-                    println("DEBUG: MemoryRepositoryImpl.markAsFavorite() - no remote service available")
                 }
             }
         } catch (e: Exception) {
@@ -172,13 +170,11 @@ class MemoryRepositoryImpl(
      * Sync unsynced memories to remote service
      */
     suspend fun syncUnsyncedMemories() {
-        if (!networkMonitor.isOnline() || remoteService == null || !userSessionManager.isAuthenticated()) {
+        if (!networkMonitor.isOnline() || !userSessionManager.isAuthenticated()) {
             if (!userSessionManager.isAuthenticated()) {
                 println("DEBUG: MemoryRepositoryImpl.syncUnsyncedMemories() - user not authenticated, skipping sync")
             } else if (!networkMonitor.isOnline()) {
                 println("DEBUG: MemoryRepositoryImpl.syncUnsyncedMemories() - offline, skipping sync")
-            } else {
-                println("DEBUG: MemoryRepositoryImpl.syncUnsyncedMemories() - no remote service available")
             }
             return
         }
@@ -189,8 +185,21 @@ class MemoryRepositoryImpl(
             val unsynced = memoryDao.getUnsynced()
             println("DEBUG: MemoryRepositoryImpl.syncUnsyncedMemories() - found ${unsynced.size} unsynced memories")
             
+            val currentUser = userSessionManager.getCurrentUser()
+            if (currentUser == null) {
+                println("DEBUG: MemoryRepositoryImpl.syncUnsyncedMemories() - no current user, skipping sync")
+                return
+            }
+            
             unsynced.forEach { memory ->
                 try {
+                    // Check quota before syncing each memory
+                    val canAddResult = capacityGuard.canAddSnap(currentUser.userId)
+                    if (!canAddResult.allowed) {
+                        println("DEBUG: MemoryRepositoryImpl.syncUnsyncedMemories() - quota exceeded, stopping sync: ${canAddResult.message}")
+                        return
+                    }
+                    
                     syncToRemote(memory.toDomainModel())
                     memoryDao.markAsSynced(memory.id)
                     println("DEBUG: MemoryRepositoryImpl.syncUnsyncedMemories() - synced memory ID: ${memory.id}")
@@ -209,13 +218,11 @@ class MemoryRepositoryImpl(
      * Pull latest data from remote service
      */
     suspend fun pullFromRemote() {
-        if (!networkMonitor.isOnline() || remoteService == null || !userSessionManager.isAuthenticated()) {
+        if (!networkMonitor.isOnline() || !userSessionManager.isAuthenticated()) {
             if (!userSessionManager.isAuthenticated()) {
                 println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - user not authenticated, skipping pull")
             } else if (!networkMonitor.isOnline()) {
                 println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - offline, skipping pull")
-            } else {
-                println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - no remote service available")
             }
             return
         }
@@ -234,12 +241,22 @@ class MemoryRepositoryImpl(
      * Sync single memory to remote service
      */
     private suspend fun syncToRemote(memory: Memory) {
-        if (remoteService == null || !userSessionManager.isAuthenticated()) {
-            if (!userSessionManager.isAuthenticated()) {
-                println("DEBUG: MemoryRepositoryImpl.syncToRemote() - user not authenticated, skipping sync")
-            } else {
-                println("DEBUG: MemoryRepositoryImpl.syncToRemote() - no remote service available")
-            }
+        if (!userSessionManager.isAuthenticated()) {
+            println("DEBUG: MemoryRepositoryImpl.syncToRemote() - user not authenticated, skipping sync")
+            return
+        }
+        
+        val currentUser = userSessionManager.getCurrentUser()
+        if (currentUser == null) {
+            println("DEBUG: MemoryRepositoryImpl.syncToRemote() - no current user, skipping sync")
+            return
+        }
+        
+        // Check if user can add more memories to Supabase (quota check)
+        val canAddResult = capacityGuard.canAddSnap(currentUser.userId)
+        if (!canAddResult.allowed) {
+            println("DEBUG: MemoryRepositoryImpl.syncToRemote() - quota exceeded for user ${currentUser.userId}: ${canAddResult.message}")
+            // Don't throw exception - local save was successful, just skip remote sync
             return
         }
         
@@ -266,6 +283,21 @@ class MemoryRepositoryImpl(
             invalidCount
         } catch (e: Exception) {
             println("ERROR: MemoryRepositoryImpl.cleanupInvalidMemories() - failed: ${e.message}")
+            -1
+        }
+    }
+
+    /**
+     * Clear all memories from local database (used during logout)
+     */
+    override suspend fun clearAllMemories(): Int {
+        return try {
+            println("DEBUG: MemoryRepositoryImpl.clearAllMemories() - clearing all memories from local database")
+            memoryDao.clearAll()
+            println("DEBUG: MemoryRepositoryImpl.clearAllMemories() - all memories cleared successfully")
+            0 // Return 0 to indicate successful cleanup
+        } catch (e: Exception) {
+            println("ERROR: MemoryRepositoryImpl.clearAllMemories() - failed: ${e.message}")
             -1
         }
     }

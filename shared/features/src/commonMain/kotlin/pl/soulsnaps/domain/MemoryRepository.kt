@@ -11,4 +11,5 @@ interface MemoryRepository {
 //    suspend fun updateMemory(memory: Memory)
     suspend fun markAsFavorite(id: Int, isFavorite: Boolean)
     suspend fun cleanupInvalidMemories(): Int
+    suspend fun clearAllMemories(): Int // Returns the number of deleted memories
 }

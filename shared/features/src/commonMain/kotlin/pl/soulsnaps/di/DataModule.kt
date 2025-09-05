@@ -25,6 +25,7 @@ import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.auth.SessionDataStore
 import pl.soulsnaps.features.auth.InMemorySessionDataStore
 import pl.soulsnaps.network.SupabaseClientProvider
+import pl.soulsnaps.access.guard.GuardFactory
 import io.github.jan.supabase.SupabaseClient
 
 object DataModule {
@@ -42,12 +43,11 @@ object DataModule {
             SupabaseAuthRepository(get())
         }
         
+        // CapacityGuard - singleton for capacity management
+        single { GuardFactory.createCapacityGuard(get()) }
+        
         single<MemoryRepository> {
-            if (AuthConfig.USE_SUPABASE_AUTH) {
-                SupabaseMemoryRepository(get(), get())
-            } else {
-                MemoryRepositoryImpl(get(), get(), get())
-            }
+            MemoryRepositoryImpl(get(), get(), get(), get(), get())
         }
         
         single<AffirmationRepository> { AffirmationRepositoryImpl(get()) }
