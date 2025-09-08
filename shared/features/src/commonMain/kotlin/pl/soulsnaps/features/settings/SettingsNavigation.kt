@@ -9,10 +9,14 @@ import pl.soulsnaps.features.onboarding.OnboardingRoute
 fun NavController.navigateToSettings(navOptions: NavOptions? = null) =
     navigate(SettingsRoute, navOptions)
 
-fun NavGraphBuilder.settingsScreen(onNavigateToOnboarding: ()-> Unit) {
+fun NavGraphBuilder.settingsScreen(
+    onNavigateToOnboarding: () -> Unit,
+    onNavigateToUpgrade: () -> Unit
+) {
     composable<SettingsRoute> {
         SettingsScreen(
-            onNavigateToOnboarding = onNavigateToOnboarding
+            onNavigateToOnboarding = onNavigateToOnboarding,
+            onNavigateToUpgrade = onNavigateToUpgrade
         )
     }
 }

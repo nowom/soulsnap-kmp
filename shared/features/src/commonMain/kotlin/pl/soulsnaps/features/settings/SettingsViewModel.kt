@@ -16,17 +16,23 @@ import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.data.MemoryRepositoryImpl
 import pl.soulsnaps.domain.MemoryRepository
 import pl.soulsnaps.domain.interactor.SignOutUseCase
+import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.domain.model.UserSession
 import kotlin.getValue
 
 data class SettingsState(
     val currentPlan: String? = null,
+    val userEmail: String? = null,
+    val userDisplayName: String? = null,
+    val appVersion: String = "1.0.0",
     val isLoading: Boolean = false
 )
 
 class SettingsViewModel(
     val userPlanManager: UserPlanManager,
     val memoryRepository: MemoryRepository,
-    val signOutUseCase: SignOutUseCase
+    val signOutUseCase: SignOutUseCase,
+    val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsState())
@@ -37,9 +43,18 @@ class SettingsViewModel(
     }
     
     private fun loadUserData() {
+        val currentUser = userSessionManager.getCurrentUser()
         _state.value = _state.value.copy(
-            currentPlan = userPlanManager.getUserPlan()
+            currentPlan = userPlanManager.getUserPlan(),
+            userEmail = currentUser?.email,
+            userDisplayName = currentUser?.displayName,
+            appVersion = getAppVersion()
         )
+    }
+    
+    private fun getAppVersion(): String {
+        // For now, return hardcoded version. In a real app, this would come from BuildConfig
+        return "1.0.0"
     }
     
     fun logout() {
@@ -56,7 +71,9 @@ class SettingsViewModel(
                 
                 // Update state
                 _state.value = _state.value.copy(
-                    currentPlan = null
+                    currentPlan = null,
+                    userEmail = null,
+                    userDisplayName = null
                 )
                 
                 println("DEBUG: SettingsViewModel.logout() - logout process completed")

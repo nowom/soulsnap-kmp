@@ -173,10 +173,13 @@ fun NavGraphBuilder.homeGraph(navController: NavController) {
         gratitudeScreen(onDone = { navController.popBackStack() })
         modernEmotionWheelScreen(onDone = { navController.popBackStack() })
         settingsScreen(
-            {
+            onNavigateToOnboarding = {
                 navController.navigate(OnboardingGraph) {
                     popUpTo(0) { inclusive = true }
                 }
+            },
+            onNavigateToUpgrade = {
+                navController.navigateToUpgrade()
             }
         )
         upgradeScreen(
