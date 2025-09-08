@@ -37,7 +37,6 @@ import pl.soulsnaps.navigation.rememberAppState
 import pl.soulsnaps.navigation.OnboardingGraph
 import pl.soulsnaps.navigation.AuthenticationGraph
 import pl.soulsnaps.navigation.HomeGraph
-import pl.soulsnaps.navigation.getStartDestination
 
 @Composable
 fun SoulSnapsApp() {
@@ -60,6 +59,7 @@ fun SoulSnapsApp() {
         }
         
         // Main app content based on startup state
+        println("DEBUG: SoulSnapsApp - current startupState: $startupState")
         when (startupState) {
             StartupState.CHECKING -> {
                 // Loading state - pokaż loading
@@ -69,27 +69,28 @@ fun SoulSnapsApp() {
             
             StartupState.READY_FOR_ONBOARDING, StartupState.ONBOARDING_ACTIVE -> {
                 // Pokaż onboarding przez nawigację
-                println("DEBUG: SoulSnapsApp - showing onboarding via navigation")
-                val startDestination = getStartDestination(
-                    hasCompletedOnboarding = false,
-                    isAuthenticated = false
-                )
+                println("DEBUG: SoulSnapsApp - showing onboarding via navigation, state: $startupState")
                 SoulSnapNavHost(
                     appState = appState,
-                    startDestination = startDestination
+                    startDestination = OnboardingGraph
+                )
+            }
+            
+            StartupState.READY_FOR_AUTH -> {
+                // Pokaż ekran logowania
+                println("DEBUG: SoulSnapsApp - showing authentication via navigation, state: $startupState")
+                SoulSnapNavHost(
+                    appState = appState,
+                    startDestination = AuthenticationGraph
                 )
             }
             
             StartupState.READY_FOR_DASHBOARD -> {
                 // Pokaż główną aplikację
-                println("DEBUG: SoulSnapsApp - showing main app with dashboard")
-                val startDestination = getStartDestination(
-                    hasCompletedOnboarding = true,
-                    isAuthenticated = true
-                )
+                println("DEBUG: SoulSnapsApp - showing main app with dashboard, state: $startupState")
                 MainAppContent(
                     appState = appState,
-                    startDestination = startDestination
+                    startDestination = HomeGraph
                 )
             }
         }

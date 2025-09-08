@@ -29,23 +29,11 @@ class SupabaseAuthService(private val client: SupabaseClient) {
 
     suspend fun register(email: String, password: String): UserSession {
         try {
-            val result = client.auth.signUpWith(Email) {
+            client.auth.signUpWith(Email) {
                 this.email = email
                 this.password = password
             }
-
-            // Z auto-confirm, użytkownik powinien być automatycznie zalogowany
-            // Ale sesja może potrzebować chwili żeby się zaktualizować
-            var attempts = 0
-            var userSession: UserSession? = null
-
-            while (attempts < 5 && userSession == null) {
-                kotlinx.coroutines.delay(500) // Czekaj 500ms
-                userSession = getCurrentUser()
-                attempts++
-            }
-
-            return userSession ?: throw IllegalStateException("Registration failed: Session not available after auto-confirm")
+            return getCurrentUser() ?: throw IllegalStateException("Registration failed: Session not available after auto-confirm")
         } catch (e: Exception) {
             throw AuthException("Registration failed: ${e.message}", e)
         }

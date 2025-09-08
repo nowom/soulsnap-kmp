@@ -32,6 +32,7 @@ import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
 import pl.soulsnaps.access.storage.UserPreferencesStorage
 import pl.soulsnaps.access.storage.UserPreferencesStorageFactory
 import pl.soulsnaps.access.guard.GuardFactory
+import pl.soulsnaps.network.SupabaseAuthService
 
 object FeatureModule {
     fun get() = module {
@@ -75,8 +76,8 @@ object FeatureModule {
         // AccessGuard - singleton for access control
         single { GuardFactory.createDefaultGuard(get()) }
         
-        // AppStartupManager - singleton for managing app startup
-        single { AppStartupManager(get(), get()) }
+        // AppStartupManager - singleton for managing app startup (now with auth service)
+        single { AppStartupManager(get(), get(), get<SupabaseAuthService>()) }
 
         single<ExerciseRepository> { InMemoryExerciseRepository() }
         single { GetCompletedExercisesUseCase(get()) }

@@ -8,12 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,28 +23,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
+import pl.soulsnaps.access.manager.PlanDefinition
 import pl.soulsnaps.components.ActionButton
 import pl.soulsnaps.components.DashboardCard
-import pl.soulsnaps.components.HeadingText
-import pl.soulsnaps.components.SubtitleText
 import pl.soulsnaps.components.BodyText
-import pl.soulsnaps.components.CaptionText
 import pl.soulsnaps.components.TitleText
 import pl.soulsnaps.designsystem.AppColorScheme
 import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.access.manager.PlanRegistryReader
-import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
-import pl.soulsnaps.access.manager.DefaultPlans
-import pl.soulsnaps.access.manager.PlanDefinition
 import pl.soulsnaps.access.model.PlanType
-import pl.soulsnaps.features.upgrade.UpgradeRecommendationEngine
-import pl.soulsnaps.features.upgrade.UsageStatistics
-import pl.soulsnaps.features.upgrade.UserBehavior
-import pl.soulsnaps.utils.getCurrentTimeMillis
 
 @Composable
 fun ScopeAwareDashboard(
+    state: DashboardState,
     onAddNewSnap: () -> Unit = {},
     onNavigateToSoulSnaps: () -> Unit = {},
     onNavigateToAffirmations: () -> Unit = {},
@@ -56,51 +43,25 @@ fun ScopeAwareDashboard(
     onNavigateToVirtualMirror: () -> Unit = {},
     onNavigateToAnalytics: () -> Unit = {},
     onUpgradePlan: () -> Unit = {},
+    onPlayAffirmation: () -> Unit = {},
+    onPauseAffirmation: () -> Unit = {},
+    onChangeAffirmation: () -> Unit = {},
+    onFavoriteAffirmation: () -> Unit = {},
+    onTakeMoodQuiz: () -> Unit = {},
+    onShowNotifications: () -> Unit = {},
+    onRefreshDashboard: () -> Unit = {},
     userPlanManager: UserPlanManager,
     planRegistry: PlanRegistryReader
 ) {
     val currentPlan by userPlanManager.currentPlan.collectAsState(initial = null)
-    var planDefinition by remember { mutableStateOf<pl.soulsnaps.access.manager.PlanDefinition?>(null) }
-    
+    var planDefinition by remember { mutableStateOf<PlanDefinition?>(null) }
+
     LaunchedEffect(currentPlan) {
         if (currentPlan != null) {
             planDefinition = planRegistry.getPlan(currentPlan!!)
         }
     }
-    
-    // Upgrade recommendation engine
-    val upgradeEngine = remember { UpgradeRecommendationEngine(planRegistry) }
-    val recommendations by upgradeEngine.recommendations.collectAsState(initial = emptyList())
-    
-    // Generate recommendations when current plan changes
-    LaunchedEffect(currentPlan) {
-        currentPlan?.let { plan ->
-            // Mock usage statistics and user behavior for demo
-            val usageStats = UsageStatistics(
-                soulSnapsCount = 8, // 80% of 10 limit for GUEST
-                aiAnalysisCount = 1, // 100% of 1 limit for GUEST
-                affirmationsCount = 15,
-                exercisesCount = 8,
-                storageUsedGB = 0.8f,
-                lastActivityDate = getCurrentTimeMillis()
-            )
-            
-            val userBehavior = UserBehavior(
-                dailyActiveDays = 25, // Power user
-                avgSessionDuration = 20, // 20 minutes
-                affirmationsUsage = 0.9f, // High usage
-                analyticsInterest = 0.7f, // Interested in analytics
-                featureUsagePattern = mapOf(
-                    "affirmations" to 0.9f,
-                    "exercises" to 0.8f,
-                    "analytics" to 0.7f
-                )
-            )
-            
-            upgradeEngine.analyzeUserAndGenerateRecommendations(plan, usageStats, userBehavior)
-        }
-    }
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -108,82 +69,66 @@ fun ScopeAwareDashboard(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header with plan info
-        PlanAwareHeader(currentPlan = currentPlan, planDefinition = planDefinition)
-        
-        // Plan-specific features
-        PlanFeaturesSection(
-            currentPlan = currentPlan,
-            planDefinition = planDefinition,
-            onAddNewSnap = onAddNewSnap,
-            onNavigateToSoulSnaps = onNavigateToSoulSnaps,
-            onNavigateToAffirmations = onNavigateToAffirmations,
-            onNavigateToExercises = onNavigateToExercises,
-            onNavigateToVirtualMirror = onNavigateToVirtualMirror,
-            onNavigateToAnalytics = onNavigateToAnalytics
+        // 1) Pasek powitania + data
+        GreetingCard(
+            userName = state.userName,
+            onNotificationClick = onShowNotifications
         )
-        
-        // Upgrade recommendations
-        if (recommendations.isNotEmpty()) {
-            UpgradeRecommendationSection(
-                recommendations = recommendations,
-                onUpgrade = onUpgradePlan
+
+        // 2) Karta "Afirmacja dnia"
+        AffirmationOfTheDayCard(
+            affirmation = state.affirmationOfTheDay,
+            isPlaying = state.isAffirmationPlaying,
+            isOffline = state.isOffline,
+            onPlayClick = onPlayAffirmation,
+            onPauseClick = onPauseAffirmation,
+            onChangeClick = onChangeAffirmation,
+            onFavoriteClick = onFavoriteAffirmation,
+            onNavigateToAffirmations = onNavigateToAffirmations
+        )
+
+        // 3) "Twoje emocje dziś"
+        MoodTodayCard(
+            emotion = state.emotionOfTheDay.name,
+            emoji = state.emotionOfTheDay.emoji,
+            description = state.emotionOfTheDay.description,
+            onQuizClick = onTakeMoodQuiz
+        )
+
+        // 4) "Ostatni SoulSnap"
+        LastSnapCard(
+            lastSnap = state.lastSoulSnap,
+            monthlyUsage = state.monthlyUsage,
+            monthlyLimit = state.monthlyLimit,
+            onSnapClick = { /* TODO: Navigate to snap details */ },
+            onAddFirstSnap = onAddNewSnap
+        )
+
+        // 5) Biofeedback (light) - opcjonalny
+        if (state.biofeedbackData.heartRate != null ||
+            state.biofeedbackData.sleep != null ||
+            state.biofeedbackData.steps != null) {
+            BiofeedbackStrip(
+                heartRate = state.biofeedbackData.heartRate,
+                sleep = state.biofeedbackData.sleep,
+                steps = state.biofeedbackData.steps
             )
         }
-        
-        // Usage statistics
-        UsageStatisticsSection(
-            currentPlan = currentPlan,
-            planDefinition = planDefinition
-        )
-    }
-}
 
-@Composable
-private fun PlanAwareHeader(
-    currentPlan: String?,
-    planDefinition: pl.soulsnaps.access.manager.PlanDefinition?
-) {
-    DashboardCard(
-        title = "Twój plan: ${getPlanDisplayName(currentPlan) ?: "Ładowanie..."}",
-        subtitle = getPlanDescription(currentPlan) ?: ""
-    ) {
-        Column {
-            if (currentPlan != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        TitleText(
-                            text = getPlanDisplayName(currentPlan) ?: currentPlan,
-                            color = AppColorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        BodyText(
-                            text = getPlanDescription(currentPlan) ?: "",
-                            color = AppColorScheme.onSurfaceVariant
-                        )
-                    }
-                    
-                    // Plan badge
-                    Text(
-                        text = currentPlan,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = when (currentPlan) {
-                            PlanType.GUEST.name -> AppColorScheme.error
-                            PlanType.FREE_USER.name -> AppColorScheme.primary
-                            PlanType.PREMIUM_USER.name -> AppColorScheme.secondary
-                            else -> AppColorScheme.onSurfaceVariant
-                        }
-                    )
-                }
-            } else {
-                BodyText(
-                    text = "Ładowanie planu...",
-                    color = AppColorScheme.onSurfaceVariant
+        // 6) Szybkie skróty
+        QuickShortcutsRow(
+            onSnapsClick = onNavigateToSoulSnaps,
+            onAffirmationsClick = onNavigateToAffirmations,
+            onExercisesClick = onNavigateToExercises
+        )
+
+        // Plan-specific information (if needed)
+        currentPlan?.let { plan ->
+            planDefinition?.let { definition ->
+                PlanInfoCard(
+                    currentPlan = plan,
+                    planDefinition = definition,
+                    onUpgrade = onUpgradePlan
                 )
             }
         }
@@ -191,257 +136,61 @@ private fun PlanAwareHeader(
 }
 
 @Composable
-private fun PlanFeaturesSection(
-    currentPlan: String?,
-    planDefinition: pl.soulsnaps.access.manager.PlanDefinition?,
-    onAddNewSnap: () -> Unit,
-    onNavigateToSoulSnaps: () -> Unit,
-    onNavigateToAffirmations: () -> Unit,
-    onNavigateToExercises: () -> Unit,
-    onNavigateToVirtualMirror: () -> Unit,
-    onNavigateToAnalytics: () -> Unit
-) {
-    DashboardCard(
-        title = "Dostępne funkcje",
-        subtitle = "Funkcje dostępne w Twoim planie"
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Basic features (available in all plans)
-            ActionButton(
-                icon = "📸",
-                text = "Dodaj SoulSnap",
-                onClick = onAddNewSnap,
-                modifier = Modifier.fillMaxWidth()
-            )
-            
-            ActionButton(
-                icon = "📚",
-                text = "Przeglądaj SoulSnaps",
-                onClick = onNavigateToSoulSnaps,
-                modifier = Modifier.fillMaxWidth()
-            )
-            
-            // Plan-specific features
-            when (currentPlan) {
-                PlanType.GUEST.name -> {
-                    // Guest features
-                    ActionButton(
-                        icon = "🎧",
-                        text = "Afirmacje (ograniczone)",
-                        onClick = onNavigateToAffirmations,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    
-                    ActionButton(
-                        icon = "🧠",
-                        text = "Ćwiczenia (podstawowe)",
-                        onClick = onNavigateToExercises,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                
-                PlanType.FREE_USER.name -> {
-                    // Free user features
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        ActionButton(
-                            icon = "🎧",
-                            text = "Afirmacje",
-                            onClick = onNavigateToAffirmations,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ActionButton(
-                            icon = "🧠",
-                            text = "Ćwiczenia",
-                            onClick = onNavigateToExercises,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    
-                    ActionButton(
-                        icon = "🪞",
-                        text = "Wirtualne Lustro",
-                        onClick = onNavigateToVirtualMirror,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    
-                    ActionButton(
-                        icon = "📊",
-                        text = "Podstawowa analityka",
-                        onClick = onNavigateToAnalytics,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                
-                PlanType.PREMIUM_USER.name -> {
-                    // Premium features
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        ActionButton(
-                            icon = "🎧",
-                            text = "Afirmacje Premium",
-                            onClick = onNavigateToAffirmations,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ActionButton(
-                            icon = "🧠",
-                            text = "Ćwiczenia Premium",
-                            onClick = onNavigateToExercises,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        ActionButton(
-                            icon = "🪞",
-                            text = "Wirtualne Lustro",
-                            onClick = onNavigateToVirtualMirror,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ActionButton(
-                            icon = "📊",
-                            text = "Pełna analityka",
-                            onClick = onNavigateToAnalytics,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    
-                    ActionButton(
-                        icon = "🚀",
-                        text = "Funkcje eksperymentalne",
-                        onClick = { /* TODO: Premium features */ },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                
-                else -> {
-                    // Loading state
-                    BodyText(
-                        text = "Ładowanie funkcji...",
-                        color = AppColorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun UpgradeRecommendationSection(
-    recommendations: List<pl.soulsnaps.features.upgrade.UpgradeRecommendation>,
+private fun PlanInfoCard(
+    currentPlan: String,
+    planDefinition: PlanDefinition,
     onUpgrade: () -> Unit
 ) {
     DashboardCard(
-        title = "💡 Rekomendacje dla Ciebie",
-        subtitle = "Odkryj pełny potencjał SoulSnaps"
+        title = "Twój plan: ${getPlanDisplayName(currentPlan)}",
+        subtitle = getPlanDescription(currentPlan)
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            recommendations.take(2).forEach { recommendation ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = Color.Green
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    TitleText(
+                        text = getPlanDisplayName(currentPlan) ?: currentPlan,
+                        color = AppColorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.size(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     BodyText(
-                        text = recommendation.title,
-                        color = AppColorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
+                        text = getPlanDescription(currentPlan) ?: "",
+                        color = AppColorScheme.onSurfaceVariant
                     )
                 }
+                
+                // Plan badge
+                Text(
+                    text = currentPlan,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = when (currentPlan) {
+                        PlanType.GUEST.name -> AppColorScheme.error
+                        PlanType.FREE_USER.name -> AppColorScheme.primary
+                        PlanType.PREMIUM_USER.name -> AppColorScheme.secondary
+                        else -> AppColorScheme.onSurfaceVariant
+                    }
+                )
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            ActionButton(
-                icon = "⬆️",
-                text = "Zobacz wszystkie rekomendacje",
-                onClick = onUpgrade,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Composable
-private fun UsageStatisticsSection(
-    currentPlan: String?,
-    planDefinition: pl.soulsnaps.access.manager.PlanDefinition?
-) {
-    DashboardCard(
-        title = "📊 Statystyki użycia",
-        subtitle = "Jak wykorzystujesz swój plan"
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (planDefinition != null) {
-                // Show plan limits and usage
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    BodyText(
-                        text = "SoulSnaps:",
-                        color = AppColorScheme.onSurface
-                    )
-                    BodyText(
-                        text = "0 / ${planDefinition.quotas["snaps.capacity"] ?: "∞"}",
-                        color = AppColorScheme.onSurfaceVariant
-                    )
-                }
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    BodyText(
-                        text = "Analiza AI dziennie:",
-                        color = AppColorScheme.onSurface
-                    )
-                    BodyText(
-                        text = "0 / ${planDefinition.quotas["ai.daily"] ?: "∞"}",
-                        color = AppColorScheme.onSurfaceVariant
-                    )
-                }
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    BodyText(
-                        text = "Przestrzeń dyskowa:",
-                        color = AppColorScheme.onSurface
-                    )
-                    BodyText(
-                        text = "0 GB / ${planDefinition.quotas["storage.gb"] ?: "∞"} GB",
-                        color = AppColorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                BodyText(
-                    text = "Ładowanie statystyk...",
-                    color = AppColorScheme.onSurfaceVariant
+            // Show upgrade option for non-premium users
+            if (currentPlan != PlanType.PREMIUM_USER.name) {
+                Spacer(modifier = Modifier.height(12.dp))
+                ActionButton(
+                    icon = "⬆️",
+                    text = "Upgrade Plan",
+                    onClick = onUpgrade,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
     }
 }
+
 
 // Helper functions
 private fun getPlanDisplayName(planName: String?): String? {

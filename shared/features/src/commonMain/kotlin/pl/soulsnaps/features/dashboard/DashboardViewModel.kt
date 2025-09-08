@@ -41,11 +41,16 @@ class DashboardViewModel(
             is DashboardIntent.LoadDashboard -> loadDashboard()
             is DashboardIntent.PlayAffirmation -> playAffirmation()
             is DashboardIntent.PauseAffirmation -> pauseAffirmation()
+            is DashboardIntent.ChangeAffirmation -> changeAffirmation()
+            is DashboardIntent.FavoriteAffirmation -> favoriteAffirmation()
             is DashboardIntent.AddNewSnap -> addNewSnap()
             is DashboardIntent.NavigateToSoulSnaps -> navigateToSoulSnaps()
             is DashboardIntent.NavigateToAffirmations -> navigateToAffirmations()
             is DashboardIntent.NavigateToExercises -> navigateToExercises()
             is DashboardIntent.NavigateToVirtualMirror -> navigateToVirtualMirror()
+            is DashboardIntent.TakeMoodQuiz -> takeMoodQuiz()
+            is DashboardIntent.ShowNotifications -> showNotifications()
+            is DashboardIntent.RefreshDashboard -> refreshDashboard()
         }
     }
 
@@ -113,5 +118,33 @@ class DashboardViewModel(
 
     private fun navigateToVirtualMirror() {
         // TODO: Navigate to Virtual Mirror screen
+    }
+
+    private fun changeAffirmation() {
+        viewModelScope.launch {
+            try {
+                val newQuote = getQuoteOfTheDayUseCase()
+                _state.update { it.copy(affirmationOfTheDay = newQuote) }
+            } catch (e: Exception) {
+                _state.update { it.copy(errorMessage = "Failed to change affirmation: ${e.message}") }
+            }
+        }
+    }
+
+    private fun favoriteAffirmation() {
+        // TODO: Implement favorite affirmation functionality
+        // This would save the current affirmation to favorites
+    }
+
+    private fun takeMoodQuiz() {
+        // TODO: Navigate to mood quiz screen
+    }
+
+    private fun showNotifications() {
+        // TODO: Navigate to notifications center
+    }
+
+    private fun refreshDashboard() {
+        loadDashboard()
     }
 } 

@@ -40,4 +40,4 @@ fun getStartDestination(hasCompletedOnboarding: Boolean, isAuthenticated: Boolea
         !isAuthenticated -> AuthenticationGraph
         else -> HomeGraph
     }
-} 
+}

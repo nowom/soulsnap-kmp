@@ -48,6 +48,8 @@ import pl.soulsnaps.features.settings.SettingsRoute
 import pl.soulsnaps.features.settings.SettingsScreen
 import pl.soulsnaps.features.settings.navigateToSettings
 import pl.soulsnaps.features.settings.settingsScreen
+import pl.soulsnaps.access.manager.AppStartupManager
+import org.koin.compose.koinInject
 
 @Composable
 internal fun SoulSnapNavHost(
@@ -56,6 +58,7 @@ internal fun SoulSnapNavHost(
     startDestination: Any = OnboardingGraph
 ) {
     val navController = appState.navController
+    val startupManager: AppStartupManager = koinInject()
 
     NavHost(
         navController = navController,
@@ -66,7 +69,7 @@ internal fun SoulSnapNavHost(
         onboardingGraph(navController)
         
         // Authentication Graph
-        authenticationGraph(navController)
+        authenticationGraph(navController, startupManager)
         
         // Home Graph (Main App)
         homeGraph(navController)
@@ -96,17 +99,25 @@ fun NavGraphBuilder.onboardingGraph(navController: NavController) {
     }
 }
 
-fun NavGraphBuilder.authenticationGraph(navController: NavController) {
+fun NavGraphBuilder.authenticationGraph(navController: NavController, startupManager: AppStartupManager) {
     navigation<AuthenticationGraph>(startDestination = LoginRoute) {
         loginScreen(
             onLoginSuccess = {
+                println("DEBUG: SoulSnapNavHost - login success, updating startup manager")
+                // Mark onboarding as completed and go to dashboard
+                startupManager.completeOnboarding()
+                println("DEBUG: SoulSnapNavHost - after completeOnboarding, navigating to HomeGraph")
                 navController.navigate(HomeGraph) {
                     popUpTo(AuthenticationGraph) { inclusive = true }
                 }
+                println("DEBUG: SoulSnapNavHost - navigation to HomeGraph completed")
             },
             onBack = { navController.popBackStack() },
             onNavigateToRegister = { navController.navigateToRegistration() },
             onContinueAsGuest = {
+                println("DEBUG: SoulSnapNavHost - continue as guest, updating startup manager")
+                // Mark onboarding as completed and go to dashboard for guest
+                startupManager.completeOnboarding()
                 navController.navigate(HomeGraph) {
                     popUpTo(AuthenticationGraph) { inclusive = true }
                 }
@@ -114,6 +125,9 @@ fun NavGraphBuilder.authenticationGraph(navController: NavController) {
         )
         registrationScreen(
             onRegistrationSuccess = {
+                println("DEBUG: SoulSnapNavHost - registration success, updating startup manager")
+                // Mark onboarding as completed and go to dashboard
+                startupManager.completeOnboarding()
                 navController.navigate(HomeGraph) {
                     popUpTo(AuthenticationGraph) { inclusive = true }
                 }
