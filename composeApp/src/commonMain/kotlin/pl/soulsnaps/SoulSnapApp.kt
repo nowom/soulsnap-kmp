@@ -47,8 +47,6 @@ fun SoulSnapsApp() {
         val startupState by startupManager.startupState.collectAsStateWithLifecycle(initialValue = StartupState.CHECKING)
         val appState = rememberAppState()
         val navController = appState.navController
-        val coroutineScope = rememberCoroutineScope()
-        
         // Provide LocalNavController for all child composables
         CompositionLocalProvider(LocalNavController provides navController) {
         

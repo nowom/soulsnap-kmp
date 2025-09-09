@@ -47,7 +47,7 @@ class AppStartupManager(
         _userPlan.value = currentPlan
         _shouldShowOnboarding.value = !hasCompletedOnboarding
         
-        // Nowa logika uwzględniająca stan uwierzytelnienia - priorytet dla uwierzytelnienia
+        // Logika uwzględniająca stan uwierzytelnienia i plan użytkownika
         when {
             isAuthenticated -> {
                 // Jeśli użytkownik jest uwierzytelniony, idź do dashboard niezależnie od onboarding
@@ -55,8 +55,14 @@ class AppStartupManager(
                 _startupState.value = StartupState.READY_FOR_DASHBOARD
             }
             hasCompletedOnboarding && !isAuthenticated -> {
-                println("DEBUG: AppStartupManager.checkAppState() - READY_FOR_AUTH")
-                _startupState.value = StartupState.READY_FOR_AUTH
+                // Sprawdź plan użytkownika - goście mogą iść do dashboard bez uwierzytelnienia
+                if (currentPlan == "GUEST") {
+                    println("DEBUG: AppStartupManager.checkAppState() - READY_FOR_DASHBOARD (guest user)")
+                    _startupState.value = StartupState.READY_FOR_DASHBOARD
+                } else {
+                    println("DEBUG: AppStartupManager.checkAppState() - READY_FOR_AUTH")
+                    _startupState.value = StartupState.READY_FOR_AUTH
+                }
             }
             else -> {
                 println("DEBUG: AppStartupManager.checkAppState() - READY_FOR_ONBOARDING")

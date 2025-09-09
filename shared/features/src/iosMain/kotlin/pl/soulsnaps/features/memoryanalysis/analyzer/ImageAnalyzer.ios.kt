@@ -1,21 +1,23 @@
 package pl.soulsnaps.features.memoryanalysis.analyzer
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import pl.soulsnaps.photo.SharedImageInterface
 import pl.soulsnaps.features.memoryanalysis.model.*
+import pl.soulsnaps.utils.getCurrentTimeMillis
 import pl.soulsnaps.domain.model.MoodType as DomainMoodType
 import platform.UIKit.*
 import platform.Foundation.*
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /**
  * iOS implementation of ImageAnalyzer using Core Image and Vision framework
  * Note: This is a simplified implementation for now
  */
+@OptIn(ExperimentalTime::class)
 actual class ImageAnalyzer : ImageAnalyzerInterface {
     
     override actual suspend fun analyzeImage(image: SharedImageInterface): ImageAnalysis {
-        val startTime = Clock.System.now()
+        val startTime = getCurrentTimeMillis()
         
         // For now, return default analysis since SharedImage integration needs to be implemented
         val colorAnalysis = createDefaultColorAnalysis()
@@ -23,7 +25,7 @@ actual class ImageAnalyzer : ImageAnalyzerInterface {
         val moodAnalysis = createDefaultMoodAnalysis(startTime)
         val composition = createDefaultCompositionAnalysis()
         
-        val processingTime = (Clock.System.now() - startTime).inWholeMilliseconds
+        val processingTime = (getCurrentTimeMillis() - startTime)
         
         val metadata = ImageMetadata(
             timestamp = startTime,
@@ -58,7 +60,7 @@ actual class ImageAnalyzer : ImageAnalyzerInterface {
     
     override actual suspend fun analyzeMood(image: SharedImageInterface): MoodAnalysis {
         // Simplified mood analysis
-        return createDefaultMoodAnalysis(Clock.System.now())
+        return createDefaultMoodAnalysis(getCurrentTimeMillis())
     }
     
     override actual suspend fun analyzeComposition(image: SharedImageInterface): CompositionAnalysis {
@@ -108,7 +110,8 @@ actual class ImageAnalyzer : ImageAnalyzerInterface {
         )
     }
     
-    private fun createDefaultMoodAnalysis(timestamp: Instant): MoodAnalysis {
+    @OptIn(ExperimentalTime::class)
+    private fun createDefaultMoodAnalysis(timestamp: Long): MoodAnalysis {
         return MoodAnalysis(
             primaryMood = DomainMoodType.NEUTRAL,
             moodScore = 0.5f,

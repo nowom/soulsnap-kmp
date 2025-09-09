@@ -131,6 +131,14 @@ fun NavGraphBuilder.authenticationGraph(navController: NavController, startupMan
                 navController.navigate(HomeGraph) {
                     popUpTo(AuthenticationGraph) { inclusive = true }
                 }
+            },
+            onContinueAsGuest = {
+                println("DEBUG: SoulSnapNavHost - continue as guest from registration, updating startup manager")
+                // Mark onboarding as completed and go to dashboard for guest
+                startupManager.completeOnboarding()
+                navController.navigate(HomeGraph) {
+                    popUpTo(AuthenticationGraph) { inclusive = true }
+                }
             }
         )
     }
@@ -180,6 +188,9 @@ fun NavGraphBuilder.homeGraph(navController: NavController) {
             },
             onNavigateToUpgrade = {
                 navController.navigateToUpgrade()
+            },
+            onNavigateToAuth = {
+                navController.navigate(AuthenticationGraph)
             }
         )
         upgradeScreen(

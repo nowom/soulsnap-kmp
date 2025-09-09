@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.interactor.SignInUseCase
-import pl.soulsnaps.domain.interactor.SignInAnonymouslyUseCase
+import pl.soulsnaps.access.manager.AppStartupManager
 
 data class LoginUiState(
     val email: String = "",
@@ -34,7 +34,7 @@ sealed interface LoginNavigationEvent {
 
 class LoginViewModel(
     private val signInUseCase: SignInUseCase,
-    private val signInAnonymouslyUseCase: SignInAnonymouslyUseCase
+    private val appStartupManager: AppStartupManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginUiState())
@@ -91,7 +91,8 @@ class LoginViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                signInAnonymouslyUseCase()
+                // Użyj AppStartupManager.skipOnboarding() tak jak w onboardingu
+                appStartupManager.skipOnboarding()
                 _state.update { it.copy(isLoading = false) }
                 _navigationEvents.update { LoginNavigationEvent.NavigateToDashboard }
             } catch (t: Throwable) {

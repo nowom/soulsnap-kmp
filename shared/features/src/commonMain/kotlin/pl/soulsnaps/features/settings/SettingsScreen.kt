@@ -13,6 +13,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun SettingsScreen(
     onNavigateToOnboarding: () -> Unit = {},
     onNavigateToUpgrade: () -> Unit = {},
+    onNavigateToAuth: () -> Unit = {},
     viewModel: SettingsViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -106,13 +107,39 @@ fun SettingsScreen(
         // Upgrade Plan Button
         if (state.currentPlan != "PREMIUM_USER" && state.currentPlan != "ENTERPRISE_USER") {
             Button(
-                onClick = onNavigateToUpgrade,
+                onClick = {
+                    // Jeśli użytkownik jest gościem (nie ma emaila), przekieruj do logowania/rejestracji
+                    if (state.currentPlan == "GUEST" || state.userEmail == null) {
+                        onNavigateToAuth()
+                    } else {
+                        onNavigateToUpgrade()
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text("Rozszerz plan")
+                Text(
+                    if (state.currentPlan == "GUEST" || state.userEmail == null) {
+                        "Zaloguj się aby rozszerzyć plan"
+                    } else {
+                        "Rozszerz plan"
+                    }
+                )
+            }
+        }
+        
+        // Login Button for Guest Users
+        if (state.currentPlan == "GUEST" || state.userEmail == null) {
+            Button(
+                onClick = onNavigateToAuth,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text("Zaloguj się")
             }
         }
         
