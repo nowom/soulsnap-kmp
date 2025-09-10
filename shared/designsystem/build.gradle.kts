@@ -56,9 +56,11 @@ minSdk = 26
                 api(compose.foundation)
                 api(compose.material3)
                 api(compose.ui)
+                implementation(libs.material.icons.extended)
                 implementation(compose.components.resources)
                 api(compose.components.resources)
                 implementation(libs.kotlinx.datetime)
+                implementation(libs.koin.core)
                 // Add KMP dependencies here
             }
         }
@@ -81,6 +83,9 @@ minSdk = 26
                 implementation("com.google.accompanist:accompanist-permissions:0.37.3")
                 implementation("com.google.android.gms:play-services-location:21.0.1")
                 implementation("com.google.android.gms:play-services-maps:18.2.0")
+                implementation("androidx.media:media:1.7.0")
+                implementation("androidx.media3:media3-exoplayer:1.2.1")
+                implementation("androidx.media3:media3-ui:1.2.1")
                 // Add Android-specific dependencies here. Note that this source set depends on
                 // commonMain by default and will correctly pull the Android artifacts of any KMP
                 // dependencies declared in commonMain.

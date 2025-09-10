@@ -13,10 +13,13 @@ import pl.soulsnaps.domain.AffirmationRepository
 import pl.soulsnaps.access.guard.AccessGuard
 import pl.soulsnaps.access.guard.GuardFactory
 import pl.soulsnaps.features.analytics.CapacityAnalytics
+import pl.soulsnaps.audio.AudioManager
+import pl.soulsnaps.audio.VoiceType
 
 class AffirmationsViewModel(
     private val affirmationRepository: AffirmationRepository,
-    private val accessGuard: pl.soulsnaps.access.guard.AccessGuard
+    private val accessGuard: AccessGuard,
+    private val audioManager: AudioManager
 ): ViewModel() {
 
     private val _uiState = MutableStateFlow(AffirmationsUiState())
@@ -33,6 +36,7 @@ class AffirmationsViewModel(
         when (event) {
             is AffirmationsEvent.LoadInitial -> loadAffirmations()
             is AffirmationsEvent.Play -> playAffirmation(event.affirmation)
+            is AffirmationsEvent.Stop -> stopAffirmation()
             is AffirmationsEvent.ToggleFavorite -> toggleFavorite(event.affirmation.id)
             is AffirmationsEvent.SelectFilter -> {
                 _uiState.value = _uiState.value.copy(selectedFilter = event.filter)
@@ -67,19 +71,50 @@ class AffirmationsViewModel(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                 
-                val emotionFilter = if (_uiState.value.selectedFilter == "Emotion") null else null
-                val all = affirmationRepository.getAffirmations(emotionFilter)
-                
-                val filtered = if (_uiState.value.showOnlyFavorites) {
-                    all.filter { it.isFavorite }
-                } else {
-                    all
+                // Use Flow to get real-time updates
+                affirmationRepository.getAffirmationsFlow().collect { allAffirmations ->
+                    var filtered = allAffirmations
+                    
+                    // Apply emotion filter
+                    when (_uiState.value.selectedFilter) {
+                        "Wszystkie" -> {
+                            // Show all affirmations
+                            filtered = allAffirmations
+                        }
+                        "Emocja" -> {
+                            // Show affirmations with calming emotions
+                            filtered = allAffirmations.filter { 
+                                it.emotion in listOf("Spokój", "Relaks", "Wdzięczność")
+                            }
+                        }
+                        "Pora dnia" -> {
+                            // Show morning affirmations for motivation
+                            filtered = allAffirmations.filter { it.timeOfDay == "Poranek" }
+                        }
+                        "Temat" -> {
+                            // Show affirmations with self-love and confidence themes
+                            filtered = allAffirmations.filter { 
+                                it.themeType in listOf(ThemeType.SELF_LOVE, ThemeType.CONFIDENCE)
+                            }
+                        }
+                        else -> {
+                            // Default - show all
+                            filtered = allAffirmations
+                        }
+                    }
+                    
+                    // Apply favorites filter
+                    val finalFiltered = if (_uiState.value.showOnlyFavorites) {
+                        filtered.filter { it.isFavorite }
+                    } else {
+                        filtered
+                    }
+                    
+                    _uiState.value = _uiState.value.copy(
+                        affirmations = finalFiltered,
+                        isLoading = false
+                    )
                 }
-                
-                _uiState.value = _uiState.value.copy(
-                    affirmations = filtered,
-                    isLoading = false
-                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -93,8 +128,7 @@ class AffirmationsViewModel(
         viewModelScope.launch {
             try {
                 affirmationRepository.updateIsFavorite(id)
-                // Reload affirmations to get updated state
-                loadAffirmations()
+                // No need to reload - Flow will automatically update the UI
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = "Failed to update favorite: ${e.message}"
@@ -105,25 +139,44 @@ class AffirmationsViewModel(
 
     private fun playAffirmation(affirmation: Affirmation) {
         viewModelScope.launch {
-            // Check AI analysis limits before playing affirmation
-            val aiResult = accessGuard.canPerformAction("current_user", "analysis.run.single", "feature.analysis")
-            
-            if (!aiResult.allowed) {
-                // AI limit exceeded - show paywall
-                val recommendedPlan = accessGuard.getUpgradeRecommendation("analysis.run.single")
+            try {
+                println("🎵 AffirmationsViewModel: Starting to play affirmation: ${affirmation.text}")
+                
+                // Play affirmation directly - no AI limits needed for basic TTS
+                audioManager.playAffirmation(affirmation.text, VoiceType.DEFAULT)
+                
+                println("🎵 AffirmationsViewModel: audioManager.playAffirmation called, updating UI state")
+                
+                // Update UI state to show playing
                 _uiState.value = _uiState.value.copy(
-                    showPaywall = true,
-                    paywallReason = aiResult.message ?: "Limit analiz AI przekroczony",
-                    recommendedPlan = recommendedPlan
+                    isPlaying = true,
+                    currentPlayingId = affirmation.id
                 )
-                return@launch
+                
+                println("✅ AffirmationsViewModel: UI state updated, isPlaying = true")
+                
+            } catch (e: Exception) {
+                println("❌ AffirmationsViewModel: Error playing affirmation: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to play affirmation: ${e.message}"
+                )
             }
-            
-            // AI limit OK - play affirmation and update analytics
-            affirmationRepository.playAffirmation(affirmation.text)
-            
-            // Update analytics after successful operation
-            capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
+        }
+    }
+    
+    private fun stopAffirmation() {
+        viewModelScope.launch {
+            try {
+                audioManager.stop()
+                _uiState.value = _uiState.value.copy(
+                    isPlaying = false,
+                    currentPlayingId = null
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to stop affirmation: ${e.message}"
+                )
+            }
         }
     }
     
@@ -204,10 +257,14 @@ class AffirmationsViewModel(
 
 data class AffirmationsUiState(
     val affirmations: List<Affirmation> = emptyList(),
-    val selectedFilter: String = "Emotion",
+    val selectedFilter: String = "Wszystkie",
     val showOnlyFavorites: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null,
+    
+    // Audio playback state
+    val isPlaying: Boolean = false,
+    val currentPlayingId: String? = null,
     
     // New fields for capacity management
     val capacityInfo: pl.soulsnaps.access.guard.QuotaInfo? = null,
@@ -225,6 +282,7 @@ data class AffirmationsUiState(
 sealed class AffirmationsEvent {
     data object LoadInitial : AffirmationsEvent()
     data class Play(val affirmation: Affirmation) : AffirmationsEvent()
+    data object Stop : AffirmationsEvent()
     data class ToggleFavorite(val affirmation: Affirmation) : AffirmationsEvent()
     data class SelectFilter(val filter: String) : AffirmationsEvent()
     data object ToggleFavoritesOnly : AffirmationsEvent()

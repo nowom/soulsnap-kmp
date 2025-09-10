@@ -9,11 +9,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.interactor.GetAllMemoriesUseCase
 import pl.soulsnaps.domain.interactor.GetQuoteOfTheDayUseCase
+import pl.soulsnaps.audio.AudioManager
+import pl.soulsnaps.audio.VoiceType
 import kotlin.random.Random
 
 class DashboardViewModel(
     private val getAllMemoriesUseCase: GetAllMemoriesUseCase,
-    private val getQuoteOfTheDayUseCase: GetQuoteOfTheDayUseCase
+    private val getQuoteOfTheDayUseCase: GetQuoteOfTheDayUseCase,
+    private val audioManager: AudioManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardState())
@@ -91,13 +94,35 @@ class DashboardViewModel(
     }
 
     private fun playAffirmation() {
-        _state.update { it.copy(isAffirmationPlaying = true) }
-        // TODO: Implement actual audio playback
+        viewModelScope.launch {
+            try {
+                val affirmationText = _state.value.affirmationOfTheDay
+                audioManager.playAffirmation(affirmationText, VoiceType.DEFAULT)
+                _state.update { it.copy(isAffirmationPlaying = true) }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        isAffirmationPlaying = false,
+                        errorMessage = "Failed to play affirmation: ${e.message}"
+                    )
+                }
+            }
+        }
     }
 
     private fun pauseAffirmation() {
-        _state.update { it.copy(isAffirmationPlaying = false) }
-        // TODO: Implement actual audio pause
+        viewModelScope.launch {
+            try {
+                audioManager.pause()
+                _state.update { it.copy(isAffirmationPlaying = false) }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        errorMessage = "Failed to pause affirmation: ${e.message}"
+                    )
+                }
+            }
+        }
     }
 
     private fun addNewSnap() {

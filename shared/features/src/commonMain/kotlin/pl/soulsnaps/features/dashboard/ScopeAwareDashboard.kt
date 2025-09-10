@@ -28,6 +28,8 @@ import pl.soulsnaps.components.ActionButton
 import pl.soulsnaps.components.DashboardCard
 import pl.soulsnaps.components.BodyText
 import pl.soulsnaps.components.TitleText
+import pl.soulsnaps.components.AudioPlayerComponent
+import pl.soulsnaps.audio.AudioManager
 import pl.soulsnaps.designsystem.AppColorScheme
 import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.access.manager.PlanRegistryReader
@@ -51,7 +53,8 @@ fun ScopeAwareDashboard(
     onShowNotifications: () -> Unit = {},
     onRefreshDashboard: () -> Unit = {},
     userPlanManager: UserPlanManager,
-    planRegistry: PlanRegistryReader
+    planRegistry: PlanRegistryReader,
+    audioManager: AudioManager = org.koin.compose.koinInject()
 ) {
     val currentPlan by userPlanManager.currentPlan.collectAsState(initial = null)
     var planDefinition by remember { mutableStateOf<PlanDefinition?>(null) }
@@ -85,6 +88,12 @@ fun ScopeAwareDashboard(
             onChangeClick = onChangeAffirmation,
             onFavoriteClick = onFavoriteAffirmation,
             onNavigateToAffirmations = onNavigateToAffirmations
+        )
+        
+        // Audio Player Component
+        AudioPlayerComponent(
+            audioManager = audioManager,
+            compactMode = true
         )
 
         // 3) "Twoje emocje dziś"

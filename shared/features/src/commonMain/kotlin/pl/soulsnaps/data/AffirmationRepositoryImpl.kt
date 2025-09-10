@@ -1,6 +1,9 @@
 package pl.soulsnaps.data
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -17,7 +20,8 @@ class AffirmationRepositoryImpl(
 ) : AffirmationRepository {
     
     // Mock data for affirmations when no database entries exist
-    private val mockAffirmations = listOf(
+    private val _mockAffirmations = MutableStateFlow(
+        listOf(
         Affirmation(
             id = "1",
             text = "Jestem spokojem i światłem.",
@@ -81,7 +85,10 @@ class AffirmationRepositoryImpl(
             isFavorite = true,
             themeType = ThemeType.HEALTH
         )
+        )
     )
+    
+    val mockAffirmations: StateFlow<List<Affirmation>> = _mockAffirmations.asStateFlow()
 
     override suspend fun getAffirmations(emotionFilter: String?): List<Affirmation> {
         // Get affirmations from memories database
@@ -89,10 +96,11 @@ class AffirmationRepositoryImpl(
         
         // If no affirmations in database, return mock data
         if (memoryAffirmations.isEmpty()) {
+            val currentAffirmations = _mockAffirmations.value
             return if (emotionFilter != null) {
-                mockAffirmations.filter { it.emotion.contains(emotionFilter, ignoreCase = true) }
+                currentAffirmations.filter { it.emotion.contains(emotionFilter, ignoreCase = true) }
             } else {
-                mockAffirmations
+                currentAffirmations
             }
         }
         
@@ -134,11 +142,17 @@ class AffirmationRepositoryImpl(
     }
 
     override suspend fun updateIsFavorite(id: String) {
-        // For now, we'll just update the mock data
-        // In a real implementation, you'd update the database
-        // Since we don't have a separate affirmations table, 
-        // we'd need to create one or handle favorites differently
-        println("Updating favorite status for affirmation: $id")
+        // Update the mock data using StateFlow
+        val currentAffirmations = _mockAffirmations.value.toMutableList()
+        val index = currentAffirmations.indexOfFirst { it.id == id }
+        if (index != -1) {
+            val affirmation = currentAffirmations[index]
+            currentAffirmations[index] = affirmation.copy(isFavorite = !affirmation.isFavorite)
+            _mockAffirmations.value = currentAffirmations
+            println("Updated favorite status for affirmation: $id to ${currentAffirmations[index].isFavorite}")
+        } else {
+            println("Affirmation with id $id not found")
+        }
     }
 
     override fun playAffirmation(text: String) {
@@ -150,6 +164,20 @@ class AffirmationRepositoryImpl(
     override fun stopAudio() {
         // TODO: Implement audio stop functionality
         println("Stopping audio playback")
+    }
+    
+    override fun getAffirmationsFlow(): Flow<List<Affirmation>> {
+        return _mockAffirmations
+    }
+    
+    override suspend fun clearAllFavorites() {
+        // Reset all affirmations to not favorite
+        val currentAffirmations = _mockAffirmations.value.toMutableList()
+        val updatedAffirmations = currentAffirmations.map { affirmation ->
+            affirmation.copy(isFavorite = false)
+        }
+        _mockAffirmations.value = updatedAffirmations
+        println("✅ AffirmationRepository: Cleared all favorites - ${updatedAffirmations.count { it.isFavorite }} favorites remaining")
     }
 
     // Helper methods

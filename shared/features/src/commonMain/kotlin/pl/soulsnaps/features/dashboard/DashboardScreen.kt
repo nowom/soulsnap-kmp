@@ -41,6 +41,8 @@ import pl.soulsnaps.components.EmotionCard
 import pl.soulsnaps.components.HeadingText
 import pl.soulsnaps.components.LabelText
 import pl.soulsnaps.components.TitleText
+import pl.soulsnaps.components.AudioPlayerComponent
+import pl.soulsnaps.audio.AudioManager
 import pl.soulsnaps.utils.formatDate
 import pl.soulsnaps.utils.toLocalDateTime
 
@@ -55,7 +57,8 @@ fun DashboardScreen(
     onUpgradePlan: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel(),
     userPlanManager: UserPlanManager = koinInject(),
-    planRegistry: PlanRegistryReader = koinInject()
+    planRegistry: PlanRegistryReader = koinInject(),
+    audioManager: AudioManager = koinInject()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     

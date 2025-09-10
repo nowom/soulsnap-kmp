@@ -8,6 +8,8 @@ interface AffirmationRepository {
     suspend fun getAffirmationByMemoryId(memoryId: Int): Affirmation?
     suspend fun getFavoriteAffirmations(): List<Affirmation>
     suspend fun updateIsFavorite(id: String)
+    suspend fun clearAllFavorites()
     fun playAffirmation(text: String)
     fun stopAudio()
+    fun getAffirmationsFlow(): kotlinx.coroutines.flow.Flow<List<Affirmation>>
 }
