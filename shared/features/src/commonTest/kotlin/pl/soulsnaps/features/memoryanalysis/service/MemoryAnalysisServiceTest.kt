@@ -292,7 +292,7 @@ class MemoryAnalysisServiceTest {
         // Then
         assertEquals(100, quotaStatus["analysis.day"])
         assertEquals(20, quotaStatus["analysis.patterns.day"])
-        assertEquals(1000, quotaStatus["memories.month"])
+        assertEquals(1000, quotaStatus["snaps.capacity"])
     }
     
     @Test

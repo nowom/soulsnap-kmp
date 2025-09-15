@@ -69,7 +69,7 @@ class GuardFactoryTest {
             userScopes = mapOf("user123" to listOf("memory.create"))
         )
         val customQuotaPolicy = MockQuotaPolicy(
-            userQuotas = mapOf("user123" to mapOf("memories.month" to 10))
+            userQuotas = mapOf("user123" to mapOf("snaps.capacity" to 10))
         )
         val customFeatureToggle = MockFeatureToggle(
             features = mapOf("feature.memories" to true)

@@ -31,7 +31,7 @@ object DomainModule {
         factoryOf(::SignInUseCase)
         factoryOf(::RegisterUseCase)
         factoryOf(::SignInAnonymouslyUseCase)
-        factoryOf(::SignOutUseCase)
+        factory { SignOutUseCase(get(), get(), get(), get(), get()) }
         factoryOf(::GetMemoryByIdUseCase)
         factoryOf(::ToggleMemoryFavoriteUseCase)
         single<AffirmationGenerator>(qualifier = named("openai")) {

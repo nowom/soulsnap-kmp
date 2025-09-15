@@ -306,7 +306,7 @@ class MemoryAnalysisService(
             "analysis.day" to guard.getQuotaStatus(userId, "analysis.day"),
             "analysis.patterns.day" to guard.getQuotaStatus(userId, "analysis.patterns.day"),
             "analysis.batch.day" to guard.getQuotaStatus(userId, "analysis.batch.day"),
-            "memories.month" to guard.getQuotaStatus(userId, "memories.month")
+            "snaps.capacity" to guard.getQuotaStatus(userId, "snaps.capacity")
         )
     }
     

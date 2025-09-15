@@ -29,7 +29,15 @@ data class CaptureMomentState(
     // New fields for analytics
     val showAnalytics: Boolean = false,
     val analyticsData: pl.soulsnaps.features.analytics.CapacityUsageStats? = null,
-    val analyticsAlerts: List<pl.soulsnaps.features.analytics.CapacityAlert> = emptyList()
+    val analyticsAlerts: List<pl.soulsnaps.features.analytics.CapacityAlert> = emptyList(),
+    
+    // New fields for affirmation
+    val affirmationRequested: Boolean = true,
+    val generatedAffirmationData: pl.soulsnaps.domain.model.AffirmationData? = null,
+    val isGeneratingAffirmation: Boolean = false,
+    val affirmationError: String? = null,
+    val showAffirmationSnackbar: Boolean = false,
+    val showAffirmationDialog: Boolean = false
 )
 
 sealed class CaptureMomentIntent {
@@ -51,4 +59,11 @@ sealed class CaptureMomentIntent {
     // New intents for analytics
     object ShowAnalytics : CaptureMomentIntent()
     object UpdateAnalytics : CaptureMomentIntent()
+    
+    // New intents for affirmation
+    data class ToggleAffirmationRequested(val requested: Boolean) : CaptureMomentIntent()
+    object GenerateAffirmation : CaptureMomentIntent()
+    object ShowAffirmationDialog : CaptureMomentIntent()
+    object HideAffirmationDialog : CaptureMomentIntent()
+    object DismissAffirmationSnackbar : CaptureMomentIntent()
 }

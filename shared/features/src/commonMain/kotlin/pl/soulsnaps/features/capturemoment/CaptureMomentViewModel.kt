@@ -13,10 +13,13 @@ import pl.soulsnaps.access.guard.GuardFactory
 import pl.soulsnaps.access.guard.AccessResult
 import pl.soulsnaps.features.analytics.CapacityAnalytics
 import pl.soulsnaps.utils.getCurrentTimeMillis
+import pl.soulsnaps.domain.service.AffirmationService
+import pl.soulsnaps.domain.model.AffirmationRequest
 
 class CaptureMomentViewModel(
     private val saveMemoryUseCase: SaveMemoryUseCase,
-    private val accessGuard: pl.soulsnaps.access.guard.AccessGuard
+    private val accessGuard: pl.soulsnaps.access.guard.AccessGuard,
+    private val affirmationService: AffirmationService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CaptureMomentState())
@@ -63,6 +66,21 @@ class CaptureMomentViewModel(
             // New analytics intents
             is CaptureMomentIntent.ShowAnalytics -> showAnalytics()
             is CaptureMomentIntent.UpdateAnalytics -> updateAnalytics()
+            
+            // New affirmation intents
+            is CaptureMomentIntent.ToggleAffirmationRequested -> {
+                _state.update { it.copy(affirmationRequested = intent.requested) }
+            }
+            is CaptureMomentIntent.GenerateAffirmation -> generateAffirmation()
+            is CaptureMomentIntent.ShowAffirmationDialog -> {
+                _state.update { it.copy(showAffirmationDialog = true) }
+            }
+            is CaptureMomentIntent.HideAffirmationDialog -> {
+                _state.update { it.copy(showAffirmationDialog = false) }
+            }
+            is CaptureMomentIntent.DismissAffirmationSnackbar -> {
+                _state.update { it.copy(showAffirmationSnackbar = false) }
+            }
         }
     }
 
@@ -86,7 +104,7 @@ class CaptureMomentViewModel(
             if (!capacityResult.allowed) {
                 println("DEBUG: CaptureMomentViewModel.saveMemory() - capacity limit exceeded, showing paywall")
                 // Capacity limit exceeded - show paywall
-                val recommendedPlan = accessGuard.getUpgradeRecommendation("memories.create")
+                val recommendedPlan = accessGuard.getUpgradeRecommendation("memory.create")
                 _state.update { 
                     it.copy(
                         showPaywall = true,
@@ -129,6 +147,11 @@ class CaptureMomentViewModel(
                         savedMemoryId = memoryId
                     ) 
                 }
+                
+                // Generate affirmation if requested
+                if (state.value.affirmationRequested) {
+                    generateAffirmation()
+                }
             } catch (e: Exception) {
                 println("ERROR: CaptureMomentViewModel.saveMemory() - exception occurred while saving memory")
                 println("ERROR: CaptureMomentViewModel.saveMemory() - exception type: ${e::class.simpleName}")
@@ -157,7 +180,7 @@ class CaptureMomentViewModel(
         println("DEBUG: CaptureMomentViewModel.checkCapacityBeforeSave() - estimated file size: ${estimatedSizeMB}MB")
         
         try {
-            val result = accessGuard.canPerformAction("current_user", "memories.create", "feature.memories")
+            val result = accessGuard.allowAction("current_user", "memory.create", "snaps.capacity", "feature.memories")
             println("DEBUG: CaptureMomentViewModel.checkCapacityBeforeSave() - capacity check result: $result")
             return result
         } catch (e: Exception) {
@@ -206,7 +229,7 @@ class CaptureMomentViewModel(
             _state.update { it.copy(isCheckingCapacity = true) }
             
             try {
-                val capacityInfo = accessGuard.getQuotaInfo("current_user", "memories.month")
+                val capacityInfo = accessGuard.getQuotaInfo("current_user", "snaps.capacity")
                 _state.update { 
                     it.copy(
                         capacityInfo = capacityInfo,
@@ -270,5 +293,118 @@ class CaptureMomentViewModel(
      */
     fun getAnalytics(): CapacityAnalytics {
         return capacityAnalytics
+    }
+    
+    private fun generateAffirmation() {
+        viewModelScope.launch {
+            _state.update { it.copy(isGeneratingAffirmation = true, affirmationError = null) }
+            
+            try {
+                val request = AffirmationRequest(
+                    emotion = state.value.selectedMood?.name,
+                    intensity = null, // Could be calculated from mood
+                    timeOfDay = getTimeOfDay(state.value.date),
+                    location = state.value.location,
+                    tags = extractTagsFromDescription(state.value.description),
+                    memoryId = state.value.savedMemoryId?.toString()
+                )
+                
+                val result = affirmationService.generateAffirmation(request)
+                
+                if (result.success) {
+                    val affirmationData = pl.soulsnaps.domain.model.AffirmationData(
+                        content = result.content,
+                        upgradedByAi = false,
+                        affirmationRequested = true,
+                        memoryId = state.value.savedMemoryId?.toString(),
+                        emotion = request.emotion,
+                        intensity = request.intensity,
+                        timeOfDay = request.timeOfDay,
+                        location = request.location,
+                        tags = request.tags,
+                        version = result.version,
+                        generationTimeMs = result.generationTimeMs
+                    )
+                    
+                    val affirmationId = affirmationService.saveAffirmation(affirmationData)
+                    val savedAffirmation = affirmationData.copy(id = affirmationId)
+                    
+                    _state.update { 
+                        it.copy(
+                            isGeneratingAffirmation = false,
+                            generatedAffirmationData = savedAffirmation,
+                            showAffirmationSnackbar = true
+                        ) 
+                    }
+                    
+                    // Try AI upgrade in background
+                    tryAiUpgrade(savedAffirmation)
+                } else {
+                    _state.update { 
+                        it.copy(
+                            isGeneratingAffirmation = false,
+                            affirmationError = result.error ?: "Nie udało się wygenerować afirmacji"
+                        ) 
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        isGeneratingAffirmation = false,
+                        affirmationError = e.message ?: "Nie udało się wygenerować afirmacji"
+                    ) 
+                }
+            }
+        }
+    }
+    
+    private fun tryAiUpgrade(originalAffirmation: pl.soulsnaps.domain.model.AffirmationData) {
+        viewModelScope.launch {
+            try {
+                if (affirmationService.isAiUpgradeAvailable()) {
+                    val upgradeResult = affirmationService.generateAiUpgrade(originalAffirmation)
+                    
+                    if (upgradeResult.success) {
+                        val upgradedAffirmation = originalAffirmation.copy(
+                            content = upgradeResult.content,
+                            upgradedByAi = true,
+                            version = upgradeResult.version,
+                            generationTimeMs = upgradeResult.generationTimeMs
+                        )
+                        
+                        val affirmationId = affirmationService.saveAffirmation(upgradedAffirmation)
+                        val savedUpgradedAffirmation = upgradedAffirmation.copy(id = affirmationId)
+                        
+                        _state.update { 
+                            it.copy(
+                                generatedAffirmationData = savedUpgradedAffirmation,
+                                showAffirmationSnackbar = true
+                            ) 
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Silent fail for AI upgrade - don't show error to user
+                println("AI upgrade failed: ${e.message}")
+            }
+        }
+    }
+    
+    private fun getTimeOfDay(timestamp: Long): String {
+        val hour = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }.get(java.util.Calendar.HOUR_OF_DAY)
+        return when (hour) {
+            in 5..11 -> "Poranek"
+            in 12..17 -> "Południe"
+            in 18..22 -> "Wieczór"
+            else -> "Noc"
+        }
+    }
+    
+    private fun extractTagsFromDescription(description: String): List<String> {
+        // Simple tag extraction - look for words starting with #
+        return description.split(" ")
+            .filter { it.startsWith("#") }
+            .map { it.removePrefix("#") }
+            .take(2) // Limit to 2 tags as per requirements
     }
 }

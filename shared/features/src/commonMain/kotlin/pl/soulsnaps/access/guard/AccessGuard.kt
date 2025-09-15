@@ -38,6 +38,7 @@ open class AccessGuard(
     protected val userPlanManager: UserPlanManagerInterface
 ) {
     
+    
     /**
      * Sprawdź czy użytkownik może wykonać akcję
      */
@@ -235,6 +236,15 @@ open class AccessGuard(
      */
     fun isFeatureEnabled(key: String): Boolean {
         return featureToggle.isOn(key)
+    }
+    
+    /**
+     * Clear user data from quota policy (used for sign out)
+     */
+    fun clearUserQuotaData(userId: String) {
+        if (quotaPolicy is InMemoryQuotaPolicy) {
+            quotaPolicy.clearUserData(userId)
+        }
     }
     
     // Helper methods

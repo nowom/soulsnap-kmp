@@ -202,7 +202,7 @@ class MemoryDetailsViewModel(
             _state.update { it.copy(isCheckingCapacity = true) }
             
             try {
-                val capacityInfo = accessGuard.getQuotaInfo("current_user", "memories.month")
+                val capacityInfo = accessGuard.getQuotaInfo("current_user", "snaps.capacity")
                 _state.update { 
                     it.copy(
                         capacityInfo = capacityInfo,

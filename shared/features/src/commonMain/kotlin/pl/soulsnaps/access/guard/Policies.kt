@@ -151,11 +151,18 @@ class InMemoryQuotaPolicy(
     private val quotaResetTimes = mutableMapOf<String, MutableMap<String, Long>>()
     
     override fun checkAndConsume(userId: String, key: String, amount: Int): Boolean {
+        println("DEBUG: InMemoryQuotaPolicy.checkAndConsume() - userId: $userId, key: $key, amount: $amount")
         val remaining = getRemaining(userId, key)
-        if (remaining < amount) return false
+        println("DEBUG: InMemoryQuotaPolicy.checkAndConsume() - remaining: $remaining, amount: $amount")
+        if (remaining < amount) {
+            println("DEBUG: InMemoryQuotaPolicy.checkAndConsume() - quota exceeded, returning false")
+            return false
+        }
         
         val userQuota = userQuotas.getOrPut(userId) { mutableMapOf() }
-        userQuota[key] = (userQuota[key] ?: 0) + amount
+        val newUsed = (userQuota[key] ?: 0) + amount
+        userQuota[key] = newUsed
+        println("DEBUG: InMemoryQuotaPolicy.checkAndConsume() - quota consumed, new used: $newUsed")
         return true
     }
     
@@ -169,13 +176,20 @@ class InMemoryQuotaPolicy(
         val plan = planRegistry.getPlanByType(planType) ?: return 0
         val limit = plan.quotas[key] ?: return 0
         
+        println("DEBUG: InMemoryQuotaPolicy.getRemaining() - userId: $userId, key: $key, userPlan: $userPlan, limit: $limit")
+        
         // Handle unlimited quotas (value of -1)
         if (limit == -1) return Int.MAX_VALUE
         
-        val userQuota = userQuotas[userId] ?: return limit
-        val used = userQuota[key] ?: 0
+        val userQuota = userQuotas[userId]
+        val used = userQuota?.get(key) ?: 0
         
-        return maxOf(0, limit - used)
+        println("DEBUG: InMemoryQuotaPolicy.getRemaining() - userQuota: $userQuota, used: $used")
+        
+        val remaining = maxOf(0, limit - used)
+        println("DEBUG: InMemoryQuotaPolicy.getRemaining() - remaining: $remaining")
+        
+        return remaining
     }
     
     override fun resetQuota(userId: String, key: String): Boolean {
@@ -185,6 +199,24 @@ class InMemoryQuotaPolicy(
         val userResetTimes = quotaResetTimes[userId]
         userResetTimes?.remove(key)
         
+        return true
+    }
+    
+    /**
+     * Clear all quota data for a specific user (used on logout)
+     */
+    fun clearUserData(userId: String): Boolean {
+        userQuotas.remove(userId)
+        quotaResetTimes.remove(userId)
+        return true
+    }
+    
+    /**
+     * Clear all quota data for all users (used for testing or complete reset)
+     */
+    fun clearAllUserData(): Boolean {
+        userQuotas.clear()
+        quotaResetTimes.clear()
         return true
     }
     

@@ -90,7 +90,7 @@ class CapacityGuard(
         return accessGuard.allowAction(
             userId = userId,
             action = "memory.create",
-            quotaKey = "memories.month"
+            quotaKey = "snaps.capacity"
         )
     }
     
@@ -123,13 +123,12 @@ class CapacityGuard(
         val snapQuota = accessGuard.getQuotaInfo(userId, "snaps.capacity")
         val storageQuota = accessGuard.getQuotaInfo(userId, "storage.gb")
         val aiQuota = accessGuard.getQuotaInfo(userId, "ai.daily")
-        val memoryQuota = accessGuard.getQuotaInfo(userId, "memories.month")
         
         return CapacityInfo(
             snaps = snapQuota,
             storage = storageQuota,
             aiAnalysis = aiQuota,
-            memories = memoryQuota
+            memories = snapQuota
         )
     }
     

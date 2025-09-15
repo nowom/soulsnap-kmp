@@ -16,7 +16,7 @@ import pl.soulsnaps.domain.MemoryRepository
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.domain.model.MoodType
 import pl.soulsnaps.util.NetworkMonitor
-import pl.soulsnaps.network.SupabaseDatabaseService
+import pl.soulsnaps.data.OnlineDataSource
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.access.guard.CapacityGuard
 
@@ -34,7 +34,7 @@ class MemoryRepositoryImpl(
     private val networkMonitor: NetworkMonitor,
     private val memoryDao: MemoryDao,
     private val userSessionManager: UserSessionManager,
-    private val remoteService: SupabaseDatabaseService,
+    private val onlineDataSource: OnlineDataSource,
     private val capacityGuard: CapacityGuard
 ) : MemoryRepository {
     

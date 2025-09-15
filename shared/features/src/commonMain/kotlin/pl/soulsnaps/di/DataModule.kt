@@ -10,9 +10,9 @@ import pl.soulsnaps.data.FakeQuoteRepository
 import pl.soulsnaps.data.FakeAuthService
 import pl.soulsnaps.data.MemoryRepositoryImpl
 import pl.soulsnaps.data.SupabaseAuthRepository
-import pl.soulsnaps.data.SupabaseMemoryRepository
+import pl.soulsnaps.data.SupabaseMemoryDataSource
+import pl.soulsnaps.data.OnlineDataSource
 import pl.soulsnaps.network.SupabaseAuthService
-import pl.soulsnaps.network.SupabaseDatabaseService
 import pl.soulsnaps.config.AuthConfig
 import pl.soulsnaps.domain.AuthRepository
 import pl.soulsnaps.network.HttpClientFactory
@@ -27,13 +27,15 @@ import pl.soulsnaps.features.auth.InMemorySessionDataStore
 import pl.soulsnaps.network.SupabaseClientProvider
 import pl.soulsnaps.access.guard.GuardFactory
 import io.github.jan.supabase.SupabaseClient
+import pl.soulsnaps.domain.service.AffirmationService
+import pl.soulsnaps.domain.service.AffirmationServiceImpl
 
 object DataModule {
     fun get(): Module = module {
         single { HttpClientFactory() }
         single { SupabaseClientProvider.getClient() }
         single { SupabaseAuthService(get()) }
-        single { SupabaseDatabaseService(get<SupabaseClient>()) }
+        single<OnlineDataSource> { SupabaseMemoryDataSource(get<SupabaseClient>()) }
 
 
         // Analytics Repository
@@ -47,11 +49,14 @@ object DataModule {
         single { GuardFactory.createCapacityGuard(get()) }
         
         single<MemoryRepository> {
-            MemoryRepositoryImpl(get(), get(), get(), get(), get())
+            MemoryRepositoryImpl(get(), get(), get(), get<OnlineDataSource>(), get())
         }
         
         single<AffirmationRepository> { AffirmationRepositoryImpl(get()) }
         single<QuoteRepository> { FakeQuoteRepository() }
+        
+        // Affirmation Service
+        single<AffirmationService> { AffirmationServiceImpl() }
         
         // Session management
         single<SessionDataStore> { InMemorySessionDataStore() }

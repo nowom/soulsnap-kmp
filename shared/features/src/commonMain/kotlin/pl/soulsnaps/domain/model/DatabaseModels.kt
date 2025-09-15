@@ -44,8 +44,24 @@ data class DatabaseMemory(
     }
 }
 
-fun Memory.toDatabaseMemory(): CreateMemoryRequest {
+fun Memory.toDatabaseMemory(userId: String): CreateMemoryRequest {
     return CreateMemoryRequest(
+        user_id = userId,
+        title = title,
+        description = description,
+        mood_type = mood?.name?.lowercase(),
+        photo_url = photoUri,
+        audio_url = audioUri,
+        location_lat = latitude,
+        location_lng = longitude,
+        location_name = locationName,
+        affirmation = affirmation,
+        is_favorite = isFavorite
+    )
+}
+
+fun Memory.toUpdateMemoryRequest(): UpdateMemoryRequest {
+    return UpdateMemoryRequest(
         title = title,
         description = description,
         mood_type = mood?.name?.lowercase(),
@@ -61,6 +77,7 @@ fun Memory.toDatabaseMemory(): CreateMemoryRequest {
 
 @Serializable
 data class CreateMemoryRequest(
+    val user_id: String,
     val title: String,
     val description: String? = null,
     val mood_type: String? = null,

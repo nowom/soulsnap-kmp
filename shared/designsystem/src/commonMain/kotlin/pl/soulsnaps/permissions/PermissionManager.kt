@@ -8,19 +8,19 @@ import androidx.compose.runtime.Composable
 @Composable
 expect fun WithCameraPermission(
     content: @Composable () -> Unit,
-    deniedContent: @Composable () -> Unit
+    deniedContent: @Composable (() -> Unit) -> Unit
 )
 
 @Composable
 expect fun WithGalleryPermission(
     content: @Composable () -> Unit,
-    deniedContent: @Composable () -> Unit
+    deniedContent: @Composable (() -> Unit) -> Unit
 )
 
 @Composable
 expect fun WithLocationPermission(
     content: @Composable () -> Unit,
-    deniedContent: @Composable () -> Unit
+    deniedContent: @Composable (() -> Unit) -> Unit
 )
 
 /**
