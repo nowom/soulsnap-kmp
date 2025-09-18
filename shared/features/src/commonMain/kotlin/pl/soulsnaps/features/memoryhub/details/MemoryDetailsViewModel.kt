@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.interactor.GetMemoryByIdUseCase
 import pl.soulsnaps.domain.interactor.ToggleMemoryFavoriteUseCase
+import pl.soulsnaps.domain.interactor.DeleteMemoryUseCase
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.access.guard.AccessGuard
 import pl.soulsnaps.access.guard.GuardFactory
@@ -18,6 +19,9 @@ data class MemoryDetailsState(
     val memory: Memory? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val isDeleted: Boolean = false, // New field to track deletion
+    val showDeleteConfirmation: Boolean = false, // New field for delete confirmation dialog
+    val navigateToEdit: Boolean = false, // New field for edit navigation
     
     // New fields for capacity management
     val capacityInfo: pl.soulsnaps.access.guard.QuotaInfo? = null,
@@ -36,6 +40,8 @@ sealed interface MemoryDetailsIntent {
     data object LoadMemory : MemoryDetailsIntent
     data object ToggleFavorite : MemoryDetailsIntent
     data object DeleteMemory : MemoryDetailsIntent
+    data object ConfirmDelete : MemoryDetailsIntent // New intent for confirmed deletion
+    data object CancelDelete : MemoryDetailsIntent // New intent for canceling deletion
     data object ShareMemory : MemoryDetailsIntent
     data object EditMemory : MemoryDetailsIntent
     
@@ -52,6 +58,7 @@ sealed interface MemoryDetailsIntent {
 class MemoryDetailsViewModel(
     private val getMemoryByIdUseCase: GetMemoryByIdUseCase,
     private val toggleMemoryFavoriteUseCase: ToggleMemoryFavoriteUseCase,
+    private val deleteMemoryUseCase: DeleteMemoryUseCase,
     private val accessGuard: pl.soulsnaps.access.guard.AccessGuard
 ) : ViewModel() {
 
@@ -72,7 +79,9 @@ class MemoryDetailsViewModel(
         when (intent) {
             is MemoryDetailsIntent.LoadMemory -> loadMemory()
             is MemoryDetailsIntent.ToggleFavorite -> toggleFavorite()
-            is MemoryDetailsIntent.DeleteMemory -> deleteMemory()
+            is MemoryDetailsIntent.DeleteMemory -> showDeleteConfirmation()
+            is MemoryDetailsIntent.ConfirmDelete -> deleteMemory()
+            is MemoryDetailsIntent.CancelDelete -> hideDeleteConfirmation()
             is MemoryDetailsIntent.ShareMemory -> shareMemory()
             is MemoryDetailsIntent.EditMemory -> editMemory()
             
@@ -97,11 +106,15 @@ class MemoryDetailsViewModel(
 
     private fun loadMemory() {
         viewModelScope.launch {
+            println("DEBUG: MemoryDetailsViewModel.loadMemory() - starting to load memory ID: $currentMemoryId")
             _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val memory = getMemoryByIdUseCase(currentMemoryId)
+                println("DEBUG: MemoryDetailsViewModel.loadMemory() - loaded memory: title='${memory.title}', photoUri='${memory.photoUri}'")
                 _state.update { it.copy(memory = memory, isLoading = false) }
             } catch (e: Exception) {
+                println("ERROR: MemoryDetailsViewModel.loadMemory() - failed to load memory: ${e.message}")
+                e.printStackTrace()
                 _state.update { 
                     it.copy(
                         isLoading = false, 
@@ -134,17 +147,48 @@ class MemoryDetailsViewModel(
     }
 
     private fun deleteMemory() {
-        // TODO: Implement delete functionality
         viewModelScope.launch {
+            println("DEBUG: MemoryDetailsViewModel.deleteMemory() - starting deletion for memory ID: $currentMemoryId")
+            _state.update { it.copy(isLoading = true, errorMessage = null) }
+            
             try {
                 // Call delete use case
-                _state.update { it.copy(errorMessage = "Delete functionality not implemented yet") }
-            } catch (e: Exception) {
+                deleteMemoryUseCase(currentMemoryId)
+                println("DEBUG: MemoryDetailsViewModel.deleteMemory() - memory deleted successfully")
+                
+                // Update state to indicate successful deletion
                 _state.update { 
-                    it.copy(errorMessage = "Failed to delete memory: ${e.message}")
+                    it.copy(
+                        isLoading = false,
+                        memory = null,
+                        errorMessage = null,
+                        isDeleted = true
+                    ) 
+                }
+                
+                // Note: Navigation back should be handled by the UI layer
+                
+            } catch (e: Exception) {
+                println("ERROR: MemoryDetailsViewModel.deleteMemory() - deletion failed: ${e.message}")
+                e.printStackTrace()
+                _state.update { 
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Failed to delete memory: ${e.message}"
+                    )
                 }
             }
         }
+    }
+
+    private fun showDeleteConfirmation() {
+        println("DEBUG: MemoryDetailsViewModel.showDeleteConfirmation() - showing delete confirmation dialog")
+        _state.update { it.copy(showDeleteConfirmation = true) }
+    }
+
+    private fun hideDeleteConfirmation() {
+        println("DEBUG: MemoryDetailsViewModel.hideDeleteConfirmation() - hiding delete confirmation dialog")
+        _state.update { it.copy(showDeleteConfirmation = false) }
     }
 
     private fun shareMemory() {
@@ -181,17 +225,12 @@ class MemoryDetailsViewModel(
     }
 
     private fun editMemory() {
-        // TODO: Implement edit functionality
-        viewModelScope.launch {
-            try {
-                // Call edit use case
-                _state.update { it.copy(errorMessage = "Edit functionality not implemented yet") }
-            } catch (e: Exception) {
-                _state.update { 
-                    it.copy(errorMessage = "Failed to edit memory: ${e.message}")
-                }
-            }
-        }
+        println("DEBUG: MemoryDetailsViewModel.editMemory() - triggering navigation to edit")
+        _state.update { it.copy(navigateToEdit = true) }
+    }
+    
+    fun clearEditNavigation() {
+        _state.update { it.copy(navigateToEdit = false) }
     }
     
     /**
@@ -268,3 +307,4 @@ class MemoryDetailsViewModel(
         return capacityAnalytics
     }
 }
+

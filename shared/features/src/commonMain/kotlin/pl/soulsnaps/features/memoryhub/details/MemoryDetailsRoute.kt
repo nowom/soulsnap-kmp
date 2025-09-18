@@ -1,6 +1,7 @@
 package pl.soulsnaps.features.memoryhub.details
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -10,39 +11,60 @@ import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
+import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 import org.koin.compose.viewmodel.koinViewModel
 
 @Serializable
-data object MemoryDetailsRoute
+data class MemoryDetailsRoute(val memoryId: Int)
 
 fun NavController.navigateToMemoryDetails(memoryId: Int, navOptions: NavOptions? = null) =
-    navigate(MemoryDetailsRoute, navOptions)
+    navigate(MemoryDetailsRoute(memoryId), navOptions)
 
 fun NavGraphBuilder.memoryDetailsScreen(
     onBack: () -> Unit = {},
-    onEdit: () -> Unit = {},
+    onEdit: (Int) -> Unit = {},
     onDelete: () -> Unit = {},
     onShare: () -> Unit = {}
 ) {
-    composable<MemoryDetailsRoute> {
+    composable<MemoryDetailsRoute> { backStackEntry ->
         val vm: MemoryDetailsViewModel = koinViewModel()
+        val route = backStackEntry.toRoute<MemoryDetailsRoute>()
         
-        // For now, we'll load a default memory (ID 1) for testing
-        // In a real implementation, you'd pass the memory ID through navigation
-        remember {
-            vm.loadMemoryDetails(1)
+        // Load the correct memory using the ID from navigation
+        remember(route.memoryId) {
+            println("DEBUG: MemoryDetailsRoute - loading memory with ID: ${route.memoryId}")
+            vm.loadMemoryDetails(route.memoryId)
         }
         
         val state by vm.state.collectAsStateWithLifecycle()
         
+        // Handle successful deletion by navigating back
+        LaunchedEffect(state.isDeleted) {
+            if (state.isDeleted) {
+                println("DEBUG: MemoryDetailsRoute - memory was deleted, navigating back")
+                onBack()
+            }
+        }
+        
+        // Handle navigation to edit
+        LaunchedEffect(state.navigateToEdit) {
+            if (state.navigateToEdit) {
+                println("DEBUG: MemoryDetailsRoute - navigating to edit for memory ID: ${route.memoryId}")
+                vm.clearEditNavigation()
+                onEdit(route.memoryId)
+            }
+        }
+        
         MemoryDetailsScreen(
             state = state,
             onBack = onBack,
-            onEdit = onEdit,
-            onDelete = onDelete,
+            onEdit = { vm.handleIntent(MemoryDetailsIntent.EditMemory) },
+            onDelete = { vm.handleIntent(MemoryDetailsIntent.DeleteMemory) },
             onShare = onShare,
-            onToggleFavorite = { vm.handleIntent(MemoryDetailsIntent.ToggleFavorite) }
+            onToggleFavorite = { vm.handleIntent(MemoryDetailsIntent.ToggleFavorite) },
+            onConfirmDelete = { vm.handleIntent(MemoryDetailsIntent.ConfirmDelete) },
+            onCancelDelete = { vm.handleIntent(MemoryDetailsIntent.CancelDelete) }
         )
     }
 }

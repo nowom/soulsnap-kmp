@@ -19,6 +19,8 @@ import pl.soulsnaps.domain.interactor.SignInAnonymouslyUseCase
 import pl.soulsnaps.domain.interactor.SignOutUseCase
 import pl.soulsnaps.domain.interactor.GetMemoryByIdUseCase
 import pl.soulsnaps.domain.interactor.ToggleMemoryFavoriteUseCase
+import pl.soulsnaps.domain.interactor.DeleteMemoryUseCase
+import pl.soulsnaps.domain.interactor.EditMemoryUseCase
 
 object DomainModule {
     fun get() = module {
@@ -34,6 +36,8 @@ object DomainModule {
         factory { SignOutUseCase(get(), get(), get(), get(), get()) }
         factoryOf(::GetMemoryByIdUseCase)
         factoryOf(::ToggleMemoryFavoriteUseCase)
+        factoryOf(::DeleteMemoryUseCase)
+        factoryOf(::EditMemoryUseCase)
         single<AffirmationGenerator>(qualifier = named("openai")) {
             RuleBasedAffirmationGenerator()
         }

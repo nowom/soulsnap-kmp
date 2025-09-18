@@ -93,8 +93,9 @@ private fun MemoryHubScreen(onMemoryDetailsClick: (Int) -> Unit,) {
                 )
                 memoryMapScreen(onMemoryDetailsClick)
                 momentsGalleryScreen(
-                    onMemoryClick =  {
-                        onMemoryDetailsClick(1)
+                    onMemoryClick = { memoryId ->
+                        println("DEBUG: MemoryHubScreen - navigating to memory details with ID: $memoryId")
+                        onMemoryDetailsClick(memoryId)
                     },
                     onAddMemoryClick = navController::navigateToCaptureMoment
                 )

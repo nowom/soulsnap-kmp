@@ -23,6 +23,7 @@ import pl.soulsnaps.features.auth.AuthViewModel
 import pl.soulsnaps.features.auth.LoginViewModel
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.memoryhub.details.MemoryDetailsViewModel
+import pl.soulsnaps.features.memoryhub.edit.EditMemoryViewModel
 import pl.soulsnaps.features.settings.SettingsViewModel
 import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.access.manager.AppStartupManager
@@ -56,6 +57,7 @@ object FeatureModule {
         viewModelOf(::AuthViewModel)
         viewModelOf(::LoginViewModel)
         viewModelOf(::MemoryDetailsViewModel)
+        viewModelOf(::EditMemoryViewModel)
         viewModelOf(::SettingsViewModel)
 
         // UserPreferencesStorage - singleton for user preferences

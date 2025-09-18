@@ -42,6 +42,8 @@ import pl.soulsnaps.features.auth.navigateToRegistration
 import pl.soulsnaps.features.auth.registrationScreen
 import pl.soulsnaps.features.memoryhub.details.memoryDetailsScreen
 import pl.soulsnaps.features.memoryhub.details.navigateToMemoryDetails
+import pl.soulsnaps.features.memoryhub.edit.editMemoryScreen
+import pl.soulsnaps.features.memoryhub.edit.navigateToEditMemory
 import pl.soulsnaps.features.upgrade.upgradeScreen
 import pl.soulsnaps.features.upgrade.navigateToUpgrade
 import pl.soulsnaps.features.settings.SettingsRoute
@@ -168,9 +170,13 @@ fun NavGraphBuilder.homeGraph(navController: NavController) {
         )
         memoryDetailsScreen(
             onBack = { navController.popBackStack() },
-            onEdit = { navController.popBackStack() },
+            onEdit = { memoryId -> navController.navigateToEditMemory(memoryId) },
             onDelete = { navController.popBackStack() },
             onShare = { /* TODO */ }
+        )
+        editMemoryScreen(
+            onBack = { navController.popBackStack() },
+            onSaveComplete = { navController.popBackStack() }
         )
         exercisesScreen(
             onOpenBreathing = { navController.navigateToBreathingSession() },
