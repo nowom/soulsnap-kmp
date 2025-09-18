@@ -7,14 +7,21 @@ CREATE TABLE memories (
     description TEXT NOT NULL,
     timestamp INTEGER NOT NULL,
     mood TEXT,
-    photoUri TEXT,
-    audioUri TEXT,
+    photoUri TEXT, -- Local file path
+    audioUri TEXT, -- Local file path
     locationName TEXT,
     latitude REAL,
     longitude REAL,
     affirmation TEXT,
     isFavorite INTEGER AS Boolean NOT NULL,
-    isSynced INTEGER AS Boolean NOT NULL DEFAULT 0
+    isSynced INTEGER AS Boolean NOT NULL DEFAULT 0,
+    -- New sync fields
+    remotePhotoPath TEXT, -- Supabase Storage path
+    remoteAudioPath TEXT, -- Supabase Storage path
+    remoteId TEXT, -- Remote database ID
+    syncState TEXT NOT NULL DEFAULT 'PENDING', -- PENDING, SYNCING, SYNCED, FAILED
+    retryCount INTEGER NOT NULL DEFAULT 0,
+    errorMessage TEXT
 );
 
 selectAll:
@@ -26,8 +33,9 @@ SELECT * FROM memories WHERE id = ?;
 insertMemory:
 INSERT INTO memories (
     title, description, timestamp, mood, photoUri, audioUri,
-    locationName, latitude, longitude, affirmation, isFavorite, isSynced
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    locationName, latitude, longitude, affirmation, isFavorite, isSynced,
+    remotePhotoPath, remoteAudioPath, remoteId, syncState, retryCount, errorMessage
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateMemory:
 UPDATE memories SET
@@ -42,7 +50,13 @@ UPDATE memories SET
     longitude = ?,
     affirmation = ?,
     isFavorite = ?,
-    isSynced = ?
+    isSynced = ?,
+    remotePhotoPath = ?,
+    remoteAudioPath = ?,
+    remoteId = ?,
+    syncState = ?,
+    retryCount = ?,
+    errorMessage = ?
 WHERE id = ?;
 
 deleteMemoryById:
@@ -62,3 +76,216 @@ DELETE FROM memories;
 
 deleteInvalidMemories:
 DELETE FROM memories WHERE timestamp = 0;
+
+-- Snap Drafts table for local-first sync
+CREATE TABLE snap_drafts (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT,
+    description TEXT,
+    mood TEXT,
+    photo_uri TEXT,
+    audio_uri TEXT,
+    location_name TEXT,
+    latitude REAL,
+    longitude REAL,
+    affirmation TEXT,
+    is_favorite INTEGER AS Boolean NOT NULL DEFAULT 0,
+    sync_state TEXT NOT NULL DEFAULT 'PENDING', -- PENDING, SYNCING, SYNCED, FAILED
+    remote_id TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    error_message TEXT
+);
+
+-- Snap Drafts queries
+selectAllDrafts:
+SELECT * FROM snap_drafts ORDER BY created_at DESC;
+
+selectDraftById:
+SELECT * FROM snap_drafts WHERE id = ?;
+
+selectPendingDrafts:
+SELECT * FROM snap_drafts WHERE sync_state = 'PENDING' ORDER BY created_at ASC;
+
+selectSyncingDrafts:
+SELECT * FROM snap_drafts WHERE sync_state = 'SYNCING' ORDER BY created_at ASC;
+
+selectFailedDrafts:
+SELECT * FROM snap_drafts WHERE sync_state = 'FAILED' ORDER BY created_at DESC;
+
+insertDraft:
+INSERT INTO snap_drafts (
+    id, title, description, mood, photo_uri, audio_uri,
+    location_name, latitude, longitude, affirmation, is_favorite,
+    sync_state, remote_id, created_at, updated_at, retry_count, error_message
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateDraftSyncState:
+UPDATE snap_drafts SET 
+    sync_state = ?,
+    remote_id = ?,
+    updated_at = ?,
+    retry_count = ?,
+    error_message = ?
+WHERE id = ?;
+
+updateDraftContent:
+UPDATE snap_drafts SET
+    title = ?,
+    description = ?,
+    mood = ?,
+    photo_uri = ?,
+    audio_uri = ?,
+    location_name = ?,
+    latitude = ?,
+    longitude = ?,
+    affirmation = ?,
+    is_favorite = ?,
+    updated_at = ?
+WHERE id = ?;
+
+deleteDraftById:
+DELETE FROM snap_drafts WHERE id = ?;
+
+deleteSyncedDrafts:
+DELETE FROM snap_drafts WHERE sync_state = 'SYNCED';
+
+incrementRetryCount:
+UPDATE snap_drafts SET 
+    retry_count = retry_count + 1,
+    updated_at = ?
+WHERE id = ?;
+
+-- Memory sync queries
+selectPendingMemories:
+SELECT * FROM memories WHERE syncState = 'PENDING' ORDER BY timestamp ASC;
+
+selectSyncingMemories:
+SELECT * FROM memories WHERE syncState = 'SYNCING' ORDER BY timestamp ASC;
+
+selectFailedMemories:
+SELECT * FROM memories WHERE syncState = 'FAILED' ORDER BY timestamp DESC;
+
+updateMemorySyncState:
+UPDATE memories SET 
+    syncState = ?,
+    remoteId = ?,
+    retryCount = ?,
+    errorMessage = ?
+WHERE id = ?;
+
+updateMemoryRemotePaths:
+UPDATE memories SET 
+    remotePhotoPath = ?,
+    remoteAudioPath = ?,
+    syncState = ?,
+    remoteId = ?
+WHERE id = ?;
+
+incrementMemoryRetryCount:
+UPDATE memories SET 
+    retryCount = retryCount + 1,
+    errorMessage = ?
+WHERE id = ?;
+
+updateMemoryWithSync:
+UPDATE memories SET 
+    title = ?,
+    description = ?,
+    timestamp = ?,
+    mood = ?,
+    photoUri = ?,
+    audioUri = ?,
+    locationName = ?,
+    latitude = ?,
+    longitude = ?,
+    affirmation = ?,
+    isFavorite = ?,
+    isSynced = ?,
+    remotePhotoPath = ?,
+    remoteAudioPath = ?,
+    remoteId = ?,
+    syncState = ?,
+    retryCount = ?,
+    errorMessage = ?
+WHERE id = ?;
+
+-- Sync Queue table
+CREATE TABLE sync_queue (
+    id TEXT NOT NULL PRIMARY KEY,
+    type TEXT NOT NULL,
+    payload TEXT NOT NULL, -- JSON
+    state TEXT NOT NULL DEFAULT 'PENDING', -- PENDING, RUNNING, COMPLETED, FAILED, CANCELLED
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    next_run_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    local_id INTEGER NOT NULL
+);
+
+-- Sync Queue indexes
+CREATE INDEX IF NOT EXISTS idx_sync_queue_next_run_state ON sync_queue(next_run_at, state);
+CREATE INDEX IF NOT EXISTS idx_sync_queue_local_id ON sync_queue(local_id);
+CREATE INDEX IF NOT EXISTS idx_sync_queue_state ON sync_queue(state);
+
+-- Sync Queue queries
+insertSyncTask:
+INSERT OR IGNORE INTO sync_queue (
+    id, type, payload, state, attempt_count, next_run_at, created_at, updated_at, local_id
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectDueTasks:
+SELECT * FROM sync_queue 
+WHERE state = 'PENDING' AND next_run_at <= ? 
+ORDER BY next_run_at ASC 
+LIMIT ?;
+
+selectRunningTasks:
+SELECT * FROM sync_queue WHERE state = 'RUNNING';
+
+selectTasksByLocalId:
+SELECT * FROM sync_queue WHERE local_id = ? ORDER BY created_at DESC;
+
+updateTaskState:
+UPDATE sync_queue SET 
+    state = ?,
+    attempt_count = ?,
+    next_run_at = ?,
+    updated_at = ?
+WHERE id = ?;
+
+markTaskRunning:
+UPDATE sync_queue SET 
+    state = 'RUNNING',
+    updated_at = ?
+WHERE id = ?;
+
+markTaskCompleted:
+UPDATE sync_queue SET 
+    state = 'COMPLETED',
+    updated_at = ?
+WHERE id = ?;
+
+markTaskFailed:
+UPDATE sync_queue SET 
+    state = 'FAILED',
+    attempt_count = attempt_count + 1,
+    next_run_at = ?,
+    updated_at = ?
+WHERE id = ?;
+
+cancelTasksForLocalId:
+UPDATE sync_queue SET 
+    state = 'CANCELLED',
+    updated_at = ?
+WHERE local_id = ?;
+
+countPendingTasks:
+SELECT COUNT(*) FROM sync_queue WHERE state = 'PENDING';
+
+countRunningTasks:
+SELECT COUNT(*) FROM sync_queue WHERE state = 'RUNNING';
+
+deleteCompletedTasks:
+DELETE FROM sync_queue WHERE state = 'COMPLETED' AND updated_at < ?;

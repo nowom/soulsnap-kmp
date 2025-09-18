@@ -19,6 +19,9 @@ import pl.soulsnaps.util.NetworkMonitor
 import pl.soulsnaps.data.OnlineDataSource
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.access.guard.CapacityGuard
+import pl.soulsnaps.sync.manager.SyncManager
+import pl.soulsnaps.sync.model.CreateMemory
+import pl.soulsnaps.sync.model.StoragePaths
 
 /**
  * Offline-first Memory Repository Implementation
@@ -35,7 +38,8 @@ class MemoryRepositoryImpl(
     private val memoryDao: MemoryDao,
     private val userSessionManager: UserSessionManager,
     private val onlineDataSource: OnlineDataSource,
-    private val capacityGuard: CapacityGuard
+    private val capacityGuard: CapacityGuard,
+    private val syncManager: SyncManager
 ) : MemoryRepository {
     
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -59,31 +63,47 @@ class MemoryRepositoryImpl(
                 longitude = memory.longitude,
                 affirmation = memory.affirmation,
                 isFavorite = memory.isFavorite,
-                isSynced = false // Mark as unsynced
+                isSynced = false, // Mark as unsynced
+                remotePhotoPath = null,
+                remoteAudioPath = null,
+                remoteId = null,
+                syncState = "PENDING",
+                retryCount = 0,
+                errorMessage = null
             )
             println("DEBUG: MemoryRepositoryImpl.addMemory() - memoriesEntity.timestamp=${memoriesEntity.timestamp}")
             
             val newId = memoryDao.insert(memoriesEntity)
             println("DEBUG: MemoryRepositoryImpl.addMemory() - saved locally with ID: $newId")
             
-            // 2. Trigger background sync if online and user is authenticated
-            if (networkMonitor.isOnline() && userSessionManager.isAuthenticated()) {
-                println("DEBUG: MemoryRepositoryImpl.addMemory() - triggering background sync for authenticated user")
-                syncScope.launch {
-                    try {
-                        syncToRemote(memory.copy(id = newId.toInt()))
-                        println("DEBUG: MemoryRepositoryImpl.addMemory() - sync completed successfully")
-                    } catch (e: Exception) {
-                        println("ERROR: MemoryRepositoryImpl.addMemory() - sync failed: ${e.message}")
-                        // Sync will be retried later
+            // 2. Enqueue sync task using new sync system
+            if (userSessionManager.isAuthenticated()) {
+                val currentUser = userSessionManager.getCurrentUser()
+                if (currentUser != null) {
+                    val plannedRemotePhotoPath = if (memory.photoUri != null) {
+                        StoragePaths.photoPath(currentUser.userId, newId.toLong())
+                    } else {
+                        ""
                     }
+                    val plannedRemoteAudioPath = if (memory.audioUri != null) {
+                        StoragePaths.audioPath(currentUser.userId, newId.toLong())
+                    } else {
+                        null
+                    }
+                    
+                    val createTask = CreateMemory(
+                        localId = newId.toLong(),
+                        plannedRemotePhotoPath = plannedRemotePhotoPath,
+                        plannedRemoteAudioPath = plannedRemoteAudioPath
+                    )
+                    
+                    syncManager.enqueue(createTask)
+                    println("DEBUG: MemoryRepositoryImpl.addMemory() - enqueued sync task for memory: $newId")
+                } else {
+                    println("DEBUG: MemoryRepositoryImpl.addMemory() - no current user, skipping sync")
                 }
             } else {
-                if (!userSessionManager.isAuthenticated()) {
-                    println("DEBUG: MemoryRepositoryImpl.addMemory() - user not authenticated, skipping sync")
-                } else if (!networkMonitor.isOnline()) {
-                    println("DEBUG: MemoryRepositoryImpl.addMemory() - offline mode, sync will be retried later")
-                }
+                println("DEBUG: MemoryRepositoryImpl.addMemory() - user not authenticated, skipping sync")
             }
             
             newId.toInt()
@@ -166,10 +186,69 @@ class MemoryRepositoryImpl(
         }
     }
 
+    override suspend fun deleteMemory(id: Int) {
+        println("DEBUG: MemoryRepositoryImpl.deleteMemory() - deleting memory ID: $id")
+        
+        try {
+            // Delete from local database
+            memoryDao.delete(id.toLong())
+            println("DEBUG: MemoryRepositoryImpl.deleteMemory() - deleted locally")
+            
+            // If user is authenticated, we should also handle remote deletion
+            if (userSessionManager.isAuthenticated()) {
+                // TODO: Implement remote deletion or mark for deletion sync
+                println("DEBUG: MemoryRepositoryImpl.deleteMemory() - memory deleted for authenticated user")
+                // For now, we just delete locally. Remote sync can be implemented later.
+            } else {
+                println("DEBUG: MemoryRepositoryImpl.deleteMemory() - guest user, local deletion only")
+            }
+        } catch (e: Exception) {
+            println("ERROR: MemoryRepositoryImpl.deleteMemory() - deletion failed: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun updateMemory(memory: Memory) {
+        println("DEBUG: MemoryRepositoryImpl.updateMemory() - updating memory ID: ${memory.id}")
+        
+        try {
+            // Update in local database
+            val updatedEntity = memory.toDatabaseEntity()
+            memoryDao.update(updatedEntity)
+            println("DEBUG: MemoryRepositoryImpl.updateMemory() - updated locally")
+            
+            // If user is authenticated, we should also handle remote update
+            if (userSessionManager.isAuthenticated()) {
+                // TODO: Implement remote update or mark for update sync
+                println("DEBUG: MemoryRepositoryImpl.updateMemory() - memory updated for authenticated user")
+                // For now, we just update locally. Remote sync can be implemented later.
+            } else {
+                println("DEBUG: MemoryRepositoryImpl.updateMemory() - guest user, local update only")
+            }
+        } catch (e: Exception) {
+            println("ERROR: MemoryRepositoryImpl.updateMemory() - update failed: ${e.message}")
+            throw e
+        }
+    }
+
+    /**
+     * Public method to trigger sync of unsynced memories
+     */
+    suspend fun triggerSync() {
+        syncUnsyncedMemories()
+    }
+    
+    /**
+     * Public method to trigger pull from remote
+     */
+    suspend fun triggerPull() {
+        pullFromRemote()
+    }
+    
     /**
      * Sync unsynced memories to remote service
      */
-    suspend fun syncUnsyncedMemories() {
+    private suspend fun syncUnsyncedMemories() {
         if (!networkMonitor.isOnline() || !userSessionManager.isAuthenticated()) {
             if (!userSessionManager.isAuthenticated()) {
                 println("DEBUG: MemoryRepositoryImpl.syncUnsyncedMemories() - user not authenticated, skipping sync")
@@ -200,9 +279,14 @@ class MemoryRepositoryImpl(
                         return
                     }
                     
-                    syncToRemote(memory.toDomainModel())
-                    memoryDao.markAsSynced(memory.id)
-                    println("DEBUG: MemoryRepositoryImpl.syncUnsyncedMemories() - synced memory ID: ${memory.id}")
+                    // Use OnlineDataSource to sync with remote service
+                    val remoteId = onlineDataSource.insertMemory(memory.toDomainModel(), currentUser.userId)
+                    if (remoteId != null) {
+                        memoryDao.markAsSynced(memory.id)
+                        println("DEBUG: MemoryRepositoryImpl.syncUnsyncedMemories() - synced memory ID: ${memory.id} with remote ID: $remoteId")
+                    } else {
+                        println("ERROR: MemoryRepositoryImpl.syncUnsyncedMemories() - failed to get remote ID for memory ${memory.id}")
+                    }
                 } catch (e: Exception) {
                     println("ERROR: MemoryRepositoryImpl.syncUnsyncedMemories() - failed to sync memory ${memory.id}: ${e.message}")
                 }
@@ -230,7 +314,22 @@ class MemoryRepositoryImpl(
         println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - pulling latest data")
         
         try {
-            // TODO: Implement remote fetch and merge with local data
+            val currentUser = userSessionManager.getCurrentUser()
+            if (currentUser == null) {
+                println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - no current user, skipping pull")
+                return
+            }
+            
+            // Fetch all memories from remote service
+            val remoteMemories = onlineDataSource.getAllMemories(currentUser.userId)
+            println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - fetched ${remoteMemories.size} memories from remote")
+            
+            // TODO: Implement merge logic with local data
+            // For now, just log the fetched data
+            remoteMemories.forEach { memory ->
+                println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - remote memory: id=${memory.id}, title='${memory.title}'")
+            }
+            
             println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - pull completed")
         } catch (e: Exception) {
             println("ERROR: MemoryRepositoryImpl.pullFromRemote() - pull failed: ${e.message}")
@@ -263,10 +362,16 @@ class MemoryRepositoryImpl(
         println("DEBUG: MemoryRepositoryImpl.syncToRemote() - syncing memory: ${memory.title}")
         
         try {
-            // TODO: Implement actual remote sync using SupabaseDatabaseService
-            // For now, just simulate sync
-            delay(500) // Simulate network delay
-            println("DEBUG: MemoryRepositoryImpl.syncToRemote() - sync completed for: ${memory.title}")
+            // Use OnlineDataSource to sync with remote service
+            val remoteId = onlineDataSource.insertMemory(memory, currentUser.userId)
+            if (remoteId != null) {
+                println("DEBUG: MemoryRepositoryImpl.syncToRemote() - memory synced successfully with remote ID: $remoteId")
+                // Mark as synced in local database
+                memoryDao.markAsSynced(memory.id.toLong())
+            } else {
+                println("ERROR: MemoryRepositoryImpl.syncToRemote() - failed to get remote ID for memory: ${memory.title}")
+                throw Exception("Failed to sync memory to remote service")
+            }
         } catch (e: Exception) {
             println("ERROR: MemoryRepositoryImpl.syncToRemote() - sync failed for ${memory.title}: ${e.message}")
             throw e
@@ -306,7 +411,7 @@ class MemoryRepositoryImpl(
      * Convert database entity to domain model
      */
     private fun Memories.toDomainModel(): Memory {
-        println("DEBUG: MemoryRepositoryImpl.toDomainModel() - converting: id=${id}, timestamp=${timestamp}")
+        println("DEBUG: MemoryRepositoryImpl.toDomainModel() - converting: id=${id}, timestamp=${timestamp}, photoUri='${photoUri}'")
         return Memory(
             id = id.toInt(),
             title = title,
@@ -321,7 +426,7 @@ class MemoryRepositoryImpl(
             affirmation = affirmation,
             isFavorite = isFavorite
         ).also {
-            println("DEBUG: MemoryRepositoryImpl.toDomainModel() - converted to: id=${it.id}, createdAt=${it.createdAt}")
+            println("DEBUG: MemoryRepositoryImpl.toDomainModel() - converted to: id=${it.id}, createdAt=${it.createdAt}, photoUri='${it.photoUri}'")
         }
     }
 
@@ -342,7 +447,13 @@ class MemoryRepositoryImpl(
             longitude = longitude,
             affirmation = affirmation,
             isFavorite = isFavorite,
-            isSynced = true
+            isSynced = isSynced,
+            remotePhotoPath = remotePhotoPath,
+            remoteAudioPath = remoteAudioPath,
+            remoteId = remoteId,
+            syncState = syncState?.name ?: "PENDING",
+            retryCount = retryCount.toLong(),
+            errorMessage = errorMessage
         )
     }
 }

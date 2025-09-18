@@ -94,6 +94,9 @@ kotlin {
                 implementation(libs.mapbox.core.android)
                 implementation(libs.androidx.datastore)
                 implementation(libs.ktor.client.android)
+                
+                // WorkManager for background sync
+                implementation(libs.androidx.work.runtime)
             }
         }
 

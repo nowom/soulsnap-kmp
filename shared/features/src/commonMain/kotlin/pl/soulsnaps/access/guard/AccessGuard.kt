@@ -9,6 +9,7 @@ import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
 import pl.soulsnaps.access.guard.QuotaInfo
 import pl.soulsnaps.access.guard.FeatureInfo
 import pl.soulsnaps.access.manager.PlanRegistryReader
+import pl.soulsnaps.access.guard.InMemoryQuotaPolicy
 
 /**
  * Interface for UserPlanManager to enable testing
@@ -37,7 +38,6 @@ open class AccessGuard(
     protected val featureToggle: FeatureToggle,
     protected val userPlanManager: UserPlanManagerInterface
 ) {
-    
     
     /**
      * Sprawdź czy użytkownik może wykonać akcję

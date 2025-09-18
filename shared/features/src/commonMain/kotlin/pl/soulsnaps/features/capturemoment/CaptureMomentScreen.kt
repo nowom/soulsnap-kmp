@@ -1,6 +1,8 @@
 package pl.soulsnaps.features.capturemoment
 
 import androidx.compose.foundation.Image
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -107,6 +109,13 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
     val cameraManager = rememberCameraManager { sharedImage ->
         sharedImage?.let { image ->
             imageBitmap = image.toImageBitmap()
+            // Save image data as Base64 string for now (temporary solution)
+            val imageBytes = image.toByteArray()
+            if (imageBytes != null) {
+                @OptIn(ExperimentalEncodingApi::class)
+                val base64Image = "data:image/jpeg;base64," + Base64.encode(imageBytes)
+                viewModel.handleIntent(CaptureMomentIntent.ChangePhoto(base64Image))
+            }
             showPhotoDialog = false
         }
     }
@@ -114,6 +123,13 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
     val galleryManager = rememberGalleryManager { sharedImage ->
         sharedImage?.let { image ->
             imageBitmap = image.toImageBitmap()
+            // Save image data as Base64 string for now (temporary solution)
+            val imageBytes = image.toByteArray()
+            if (imageBytes != null) {
+                @OptIn(ExperimentalEncodingApi::class)
+                val base64Image = "data:image/jpeg;base64," + Base64.encode(imageBytes)
+                viewModel.handleIntent(CaptureMomentIntent.ChangePhoto(base64Image))
+            }
             showPhotoDialog = false
         }
     }
@@ -136,8 +152,11 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
 
     // Handle success navigation
     state.savedMemoryId?.let { memoryId ->
+        println("DEBUG: CaptureMomentScreen - savedMemoryId detected: $memoryId, starting navigation")
         LaunchedEffect(memoryId) {
+            println("DEBUG: CaptureMomentScreen - LaunchedEffect triggered for memoryId: $memoryId")
             delay(1500) // Show success message for 1.5 seconds
+            println("DEBUG: CaptureMomentScreen - navigating to MemoryHubRoute")
             // Navigate to Memory Hub (Timeline)
             navController.navigate(MemoryHubRoute) {
                 popUpTo("captureMoment") { inclusive = true }

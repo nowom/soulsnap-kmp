@@ -22,7 +22,13 @@ class MemoryDaoImpl(private val db: SoulSnapDatabase) : MemoryDao {
             longitude = memory.longitude,
             affirmation = memory.affirmation,
             isFavorite = memory.isFavorite,
-            isSynced = memory.isSynced
+            isSynced = memory.isSynced,
+            remotePhotoPath = memory.remotePhotoPath,
+            remoteAudioPath = memory.remoteAudioPath,
+            remoteId = memory.remoteId,
+            syncState = memory.syncState,
+            retryCount = memory.retryCount,
+            errorMessage = memory.errorMessage
         ).value
     }
 
@@ -50,6 +56,12 @@ class MemoryDaoImpl(private val db: SoulSnapDatabase) : MemoryDao {
             affirmation = memory.affirmation,
             isFavorite = memory.isFavorite,
             isSynced = memory.isSynced,
+            remotePhotoPath = memory.remotePhotoPath,
+            remoteAudioPath = memory.remoteAudioPath,
+            remoteId = memory.remoteId,
+            syncState = memory.syncState,
+            retryCount = memory.retryCount,
+            errorMessage = memory.errorMessage,
             id = memory.id
         )
     }
@@ -72,5 +84,98 @@ class MemoryDaoImpl(private val db: SoulSnapDatabase) : MemoryDao {
     override suspend fun deleteInvalidMemories(): Int {
         queries.deleteInvalidMemories()
         return 1 // Return 1 to indicate cleanup was performed
+    }
+    
+    // New sync methods
+    override suspend fun updateMemory(
+        id: Long,
+        title: String,
+        description: String,
+        timestamp: Long,
+        mood: String?,
+        photoUri: String?,
+        audioUri: String?,
+        locationName: String?,
+        latitude: Double?,
+        longitude: Double?,
+        affirmation: String?,
+        isFavorite: Boolean,
+        isSynced: Boolean,
+        remotePhotoPath: String?,
+        remoteAudioPath: String?,
+        remoteId: String?,
+        syncState: String,
+        retryCount: Int,
+        errorMessage: String?
+    ) {
+        queries.updateMemoryWithSync(
+            id = id,
+            title = title,
+            description = description,
+            timestamp = timestamp,
+            mood = mood,
+            photoUri = photoUri,
+            audioUri = audioUri,
+            locationName = locationName,
+            latitude = latitude,
+            longitude = longitude,
+            affirmation = affirmation,
+            isFavorite = isFavorite,
+            isSynced = isSynced,
+            remotePhotoPath = remotePhotoPath,
+            remoteAudioPath = remoteAudioPath,
+            remoteId = remoteId,
+            syncState = syncState,
+            retryCount = retryCount.toLong(),
+            errorMessage = errorMessage
+        )
+    }
+    
+    override suspend fun getPendingMemories(): List<Memories> =
+        queries.selectPendingMemories().executeAsList()
+    
+    override suspend fun getSyncingMemories(): List<Memories> =
+        queries.selectSyncingMemories().executeAsList()
+    
+    override suspend fun getFailedMemories(): List<Memories> =
+        queries.selectFailedMemories().executeAsList()
+    
+    override suspend fun updateMemorySyncState(
+        id: Long,
+        syncState: String,
+        remoteId: String?,
+        retryCount: Int,
+        errorMessage: String?
+    ) {
+        queries.updateMemorySyncState(
+            id = id,
+            syncState = syncState,
+            remoteId = remoteId,
+            retryCount = retryCount.toLong(),
+            errorMessage = errorMessage
+        )
+    }
+    
+    override suspend fun updateMemoryRemotePaths(
+        id: Long,
+        remotePhotoPath: String?,
+        remoteAudioPath: String?,
+        syncState: String,
+        remoteId: String?
+    ) {
+        queries.updateMemoryRemotePaths(
+            id = id,
+            remotePhotoPath = remotePhotoPath,
+            remoteAudioPath = remoteAudioPath,
+            syncState = syncState,
+            remoteId = remoteId
+        )
+    }
+    
+    override suspend fun incrementMemoryRetryCount(id: Long, errorMessage: String?) {
+        queries.incrementMemoryRetryCount(
+            id = id,
+            errorMessage = errorMessage
+        )
     }
 }

@@ -311,16 +311,14 @@ class PatternDetectionEngine : PatternDetectionEngineInterface {
     }
     
     private fun getTimeOfDay(timestamp: Long): TimeOfDay {
-        // Convert timestamp to hour of day using Kotlin Multiplatform compatible approach
-        val hour = ((timestamp / (1000 * 60 * 60)) % 24).toInt()
-        
-        return when (hour) {
-            in 5..8 -> TimeOfDay.EARLY_MORNING
-            in 9..11 -> TimeOfDay.MORNING
-            in 12..16 -> TimeOfDay.AFTERNOON
-            in 17..19 -> TimeOfDay.EVENING
-            in 20..22 -> TimeOfDay.NIGHT
-            else -> TimeOfDay.LATE_NIGHT
+        val utilsTimeOfDay = pl.soulsnaps.utils.getTimeOfDayEnum(timestamp)
+        return when (utilsTimeOfDay) {
+            pl.soulsnaps.utils.TimeOfDay.EARLY_MORNING -> TimeOfDay.EARLY_MORNING
+            pl.soulsnaps.utils.TimeOfDay.MORNING -> TimeOfDay.MORNING
+            pl.soulsnaps.utils.TimeOfDay.AFTERNOON -> TimeOfDay.AFTERNOON
+            pl.soulsnaps.utils.TimeOfDay.EVENING -> TimeOfDay.EVENING
+            pl.soulsnaps.utils.TimeOfDay.NIGHT -> TimeOfDay.NIGHT
+            pl.soulsnaps.utils.TimeOfDay.LATE_NIGHT -> TimeOfDay.LATE_NIGHT
         }
     }
     

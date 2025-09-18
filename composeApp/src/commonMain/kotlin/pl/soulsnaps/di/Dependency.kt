@@ -15,6 +15,7 @@ fun initKoin(config: KoinAppDeclaration? = null) {
             FeatureModule.get(),
             audioModule,
             platformModule,
+            commonModule
         )
     }
 }

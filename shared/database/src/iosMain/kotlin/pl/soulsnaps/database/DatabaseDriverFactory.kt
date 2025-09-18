@@ -5,6 +5,6 @@ import app.cash.sqldelight.driver.native.NativeSqliteDriver
 
 actual class DatabaseDriverFactory {
     actual fun createDriver(): SqlDriver {
-        return NativeSqliteDriver(SoulSnapDatabase.Schema, "launch.db")
+        return NativeSqliteDriver(SoulSnapDatabase.Schema, "soulsnaps.db")
     }
 }
