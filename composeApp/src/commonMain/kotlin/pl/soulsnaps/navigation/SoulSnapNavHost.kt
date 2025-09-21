@@ -44,6 +44,8 @@ import pl.soulsnaps.features.memoryhub.details.memoryDetailsScreen
 import pl.soulsnaps.features.memoryhub.details.navigateToMemoryDetails
 import pl.soulsnaps.features.memoryhub.edit.editMemoryScreen
 import pl.soulsnaps.features.memoryhub.edit.navigateToEditMemory
+import pl.soulsnaps.features.location.locationPickerScreen
+import pl.soulsnaps.features.location.navigateToLocationPicker
 import pl.soulsnaps.features.upgrade.upgradeScreen
 import pl.soulsnaps.features.upgrade.navigateToUpgrade
 import pl.soulsnaps.features.settings.SettingsRoute
@@ -177,6 +179,26 @@ fun NavGraphBuilder.homeGraph(navController: NavController) {
         editMemoryScreen(
             onBack = { navController.popBackStack() },
             onSaveComplete = { navController.popBackStack() }
+        )
+        locationPickerScreen(
+            onLocationSelected = { location ->
+                println("DEBUG: Location selected: $location")
+                println("DEBUG: Current back stack: ${navController.currentBackStack.value.map { it.destination.route }}")
+                println("DEBUG: Previous back stack entry: ${navController.previousBackStackEntry?.destination?.route}")
+                
+                // Use savedStateHandle to pass result back
+                val previousEntry = navController.previousBackStackEntry
+                if (previousEntry != null) {
+                    println("DEBUG: Setting location in savedStateHandle for: ${previousEntry.destination.route}")
+                    previousEntry.savedStateHandle.set("selected_location", location)
+                } else {
+                    println("ERROR: No previous back stack entry found!")
+                }
+                
+                val success = navController.popBackStack()
+                println("DEBUG: PopBackStack result: $success")
+            },
+            onBack = { navController.popBackStack() }
         )
         exercisesScreen(
             onOpenBreathing = { navController.navigateToBreathingSession() },

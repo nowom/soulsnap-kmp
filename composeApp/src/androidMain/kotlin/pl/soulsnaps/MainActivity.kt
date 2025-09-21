@@ -6,6 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import org.koin.android.ext.android.inject
+import org.koin.core.context.GlobalContext
+import org.koin.dsl.module
 import pl.soulsnaps.access.storage.UserPreferencesStorageFactory
 
 class MainActivity : ComponentActivity() {
@@ -15,6 +18,12 @@ class MainActivity : ComponentActivity() {
         
         // Inicjalizuj UserPreferencesStorageFactory
         UserPreferencesStorageFactory.initialize(this)
+        
+        // Dodaj ComponentActivity do Koin dla permission handling
+        val activityModule = module {
+            single<ComponentActivity> { this@MainActivity }
+        }
+        GlobalContext.get().loadModules(listOf(activityModule))
 
         setContent {
             App()

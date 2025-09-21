@@ -74,7 +74,8 @@ import pl.soulsnaps.components.PrimaryButton
 import pl.soulsnaps.components.showPlatformDatePicker
 import pl.soulsnaps.components.AnimatedErrorMessage
 import pl.soulsnaps.components.AnimatedSuccessMessage
-import pl.soulsnaps.components.LocationPicker
+import pl.soulsnaps.features.location.LocationOptionItem
+import pl.soulsnaps.features.location.rememberLocationManager
 import pl.soulsnaps.components.DatePicker
 import pl.soulsnaps.components.AffirmationToggle
 import pl.soulsnaps.components.AffirmationSnackbar
@@ -95,7 +96,9 @@ import pl.soulsnaps.utils.getCurrentTimeMillis
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
+fun AddMemoryScreen(
+    viewModel: CaptureMomentViewModel = koinViewModel()
+) {
     val moods = MoodType.entries.toTypedArray()
     var showPhotoDialog by remember { mutableStateOf(false) }
     var showCameraPermissionDialog by remember { mutableStateOf(false) }
@@ -132,6 +135,12 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
             }
             showPhotoDialog = false
         }
+    }
+    
+    // Location Manager - launcher pattern like camera/gallery
+    val locationManager = rememberLocationManager { selectedLocation ->
+        println("DEBUG: AddMemoryScreen - location selected via manager: $selectedLocation")
+        viewModel.handleIntent(CaptureMomentIntent.ChangeLocation(selectedLocation ?: ""))
     }
 
 //    val mediaRecorder = mediaRecorderremember { MediaRecorder() }
@@ -240,14 +249,13 @@ fun AddMemoryScreen(viewModel: CaptureMomentViewModel = koinViewModel()) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Lokalizacja - nowy komponent
-            LocationPicker(
-                selectedLocation = state.location,
-                onLocationSelected = { location ->
-                    viewModel.handleIntent(CaptureMomentIntent.ChangeLocation(location))
-                },
-                label = "Location (optional)",
-                placeholder = "Search for a place..."
+            // Lokalizacja - Instagram-style option item
+            LocationOptionItem(
+                currentLocation = state.location,
+                onLocationClick = {
+                    println("DEBUG: Location option clicked - launching location manager")
+                    locationManager.launch(state.location)
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))

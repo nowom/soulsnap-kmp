@@ -29,6 +29,8 @@ import pl.soulsnaps.components.AnimatedErrorMessage
 import pl.soulsnaps.components.AnimatedSuccessMessage
 import pl.soulsnaps.components.FullScreenCircularProgress
 import pl.soulsnaps.components.PrimaryButton
+import pl.soulsnaps.features.location.LocationOptionItem
+import pl.soulsnaps.features.location.rememberLocationManager
 import pl.soulsnaps.domain.model.MoodType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,9 +38,16 @@ import pl.soulsnaps.domain.model.MoodType
 fun EditMemoryScreen(
     state: EditMemoryState,
     onBack: () -> Unit,
-    onIntent: (EditMemoryIntent) -> Unit
+    onIntent: (EditMemoryIntent) -> Unit,
+    onNavigateToLocationPicker: (String?) -> Unit = {}
 ) {
     val moods = MoodType.entries.toTypedArray()
+    
+    // Location Manager - launcher pattern like camera/gallery
+    val locationManager = rememberLocationManager { selectedLocation ->
+        println("DEBUG: EditMemoryScreen - location selected via manager: $selectedLocation")
+        onIntent(EditMemoryIntent.ChangeLocation(selectedLocation ?: ""))
+    }
 
     if (state.isSaving) {
         FullScreenCircularProgress()
@@ -143,12 +152,13 @@ fun EditMemoryScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Location (simple text field for now)
-                    OutlinedTextField(
-                        value = state.location ?: "",
-                        onValueChange = { onIntent(EditMemoryIntent.ChangeLocation(it)) },
-                        label = { Text("Location (optional)") },
-                        modifier = Modifier.fillMaxWidth()
+                    // Location - Instagram-style option item
+                    LocationOptionItem(
+                        currentLocation = state.location,
+                        onLocationClick = {
+                            println("DEBUG: Edit - Location option clicked - launching location manager")
+                            locationManager.launch(state.location)
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))

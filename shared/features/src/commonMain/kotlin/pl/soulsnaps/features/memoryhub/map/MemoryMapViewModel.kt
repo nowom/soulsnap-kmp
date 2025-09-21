@@ -23,17 +23,101 @@ class MemoryMapViewModel (
 
     private fun loadMemoriesWithLocation() {
         viewModelScope.launch {
+            println("DEBUG: MemoryMapViewModel.loadMemoriesWithLocation() - starting to load memories")
             _uiState.update { it.copy(isLoading = true) }
-            getAllMemoriesUseCase().collect {
-                val allMemories = it
-                val withLocation = allMemories.filter { it.latitude != null && it.longitude != null }
+            getAllMemoriesUseCase().collect { memories ->
+                println("DEBUG: MemoryMapViewModel - received ${memories.size} total memories")
+                memories.forEach { memory ->
+                    println("DEBUG: MemoryMapViewModel - memory: id=${memory.id}, title='${memory.title}', lat=${memory.latitude}, lng=${memory.longitude}, locationName='${memory.locationName}'")
+                }
+                
+                var withLocation = memories.filter { it.latitude != null && it.longitude != null }
+                println("DEBUG: MemoryMapViewModel - filtered to ${withLocation.size} memories with coordinates")
+                
+                // ADD MOCK DATA FOR TESTING
+                if (withLocation.isEmpty()) {
+                    println("DEBUG: MemoryMapViewModel - no memories with coordinates, adding mock data for testing")
+                    withLocation = createMockMemoriesWithLocation()
+                }
+                
                 _uiState.update {
                     it.copy(
-                        isLoading = false, memoriesWithLocation = withLocation
+                        isLoading = false, 
+                        memoriesWithLocation = withLocation
                     )
                 }
             }
         }
+    }
+    
+    private fun createMockMemoriesWithLocation(): List<Memory> {
+        return listOf(
+            Memory(
+                id = 9001,
+                title = "Kraków Old Town",
+                description = "Beautiful day in Kraków's main square",
+                createdAt = System.currentTimeMillis() - 86400000, // Yesterday
+                mood = pl.soulsnaps.domain.model.MoodType.HAPPY,
+                photoUri = null,
+                audioUri = null,
+                locationName = "Kraków, Poland",
+                latitude = 50.0647, // Kraków coordinates
+                longitude = 19.9450,
+                affirmation = "Today was amazing in Kraków!"
+            ),
+            Memory(
+                id = 9002,
+                title = "Warsaw Palace",
+                description = "Visiting the Royal Castle in Warsaw",
+                createdAt = System.currentTimeMillis() - 172800000, // 2 days ago
+                mood = pl.soulsnaps.domain.model.MoodType.EXCITED,
+                photoUri = null,
+                audioUri = null,
+                locationName = "Warsaw, Poland",
+                latitude = 52.2297, // Warsaw coordinates
+                longitude = 21.0122,
+                affirmation = "History comes alive here!"
+            ),
+            Memory(
+                id = 9003,
+                title = "Gdańsk Seaside",
+                description = "Peaceful moment by the Baltic Sea",
+                createdAt = System.currentTimeMillis() - 259200000, // 3 days ago
+                mood = pl.soulsnaps.domain.model.MoodType.RELAXED,
+                photoUri = null,
+                audioUri = null,
+                locationName = "Gdańsk, Poland",
+                latitude = 54.3520, // Gdańsk coordinates
+                longitude = 18.6466,
+                affirmation = "The sea brings me peace"
+            ),
+            Memory(
+                id = 9004,
+                title = "Zakopane Mountains",
+                description = "Hiking in the Tatra Mountains",
+                createdAt = System.currentTimeMillis() - 345600000, // 4 days ago
+                mood = pl.soulsnaps.domain.model.MoodType.EXCITED,
+                photoUri = null,
+                audioUri = null,
+                locationName = "Zakopane, Poland",
+                latitude = 49.2992, // Zakopane coordinates
+                longitude = 19.9496,
+                affirmation = "Mountains give me strength!"
+            ),
+            Memory(
+                id = 9005,
+                title = "Wrocław Market Square",
+                description = "Colorful buildings and great atmosphere",
+                createdAt = System.currentTimeMillis() - 432000000, // 5 days ago
+                mood = pl.soulsnaps.domain.model.MoodType.HAPPY,
+                photoUri = null,
+                audioUri = null,
+                locationName = "Wrocław, Poland",
+                latitude = 51.1079, // Wrocław coordinates
+                longitude = 17.0385,
+                affirmation = "Beauty is everywhere!"
+            )
+        )
     }
 }
 

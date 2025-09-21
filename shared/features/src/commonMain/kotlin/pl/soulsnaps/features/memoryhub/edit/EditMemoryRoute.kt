@@ -35,6 +35,8 @@ fun NavGraphBuilder.editMemoryScreen(
         
         val state by vm.state.collectAsStateWithLifecycle()
         
+        // Location selection is now handled by LocationManager (no navigation needed)
+        
         // Handle successful save by navigating back
         LaunchedEffect(state.isSaved) {
             if (state.isSaved) {

@@ -21,6 +21,7 @@ import pl.soulsnaps.domain.interactor.GetMemoryByIdUseCase
 import pl.soulsnaps.domain.interactor.ToggleMemoryFavoriteUseCase
 import pl.soulsnaps.domain.interactor.DeleteMemoryUseCase
 import pl.soulsnaps.domain.interactor.EditMemoryUseCase
+import pl.soulsnaps.domain.interactor.SearchLocationsUseCase
 
 object DomainModule {
     fun get() = module {
@@ -38,6 +39,7 @@ object DomainModule {
         factoryOf(::ToggleMemoryFavoriteUseCase)
         factoryOf(::DeleteMemoryUseCase)
         factoryOf(::EditMemoryUseCase)
+        factoryOf(::SearchLocationsUseCase)
         single<AffirmationGenerator>(qualifier = named("openai")) {
             RuleBasedAffirmationGenerator()
         }

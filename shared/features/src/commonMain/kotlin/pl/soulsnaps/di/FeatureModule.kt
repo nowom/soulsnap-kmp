@@ -25,6 +25,14 @@ import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.memoryhub.details.MemoryDetailsViewModel
 import pl.soulsnaps.features.memoryhub.edit.EditMemoryViewModel
 import pl.soulsnaps.features.settings.SettingsViewModel
+import pl.soulsnaps.features.location.LocationSearchService
+import pl.soulsnaps.features.location.MapboxLocationSearchService
+import pl.soulsnaps.features.location.LocationPickerViewModel
+import pl.soulsnaps.features.location.LocationService
+import pl.soulsnaps.features.location.LocationServiceFactory
+import pl.soulsnaps.features.location.LocationPermissionManager
+import pl.soulsnaps.features.location.LocationPermissionManagerFactory
+import pl.soulsnaps.data.network.SoulSnapApi
 import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.access.manager.AppStartupManager
 import pl.soulsnaps.access.manager.OnboardingManager
@@ -59,6 +67,7 @@ object FeatureModule {
         viewModelOf(::MemoryDetailsViewModel)
         viewModelOf(::EditMemoryViewModel)
         viewModelOf(::SettingsViewModel)
+        viewModelOf(::LocationPickerViewModel)
 
         // UserPreferencesStorage - singleton for user preferences
         single { UserPreferencesStorageFactory.create() }
@@ -80,6 +89,18 @@ object FeatureModule {
         
         // AppStartupManager - singleton for managing app startup (now with auth service)
         single { AppStartupManager(get(), get(), get<SupabaseAuthService>()) }
+        
+        // SoulSnapApi - singleton for centralized API client
+        single { SoulSnapApi() }
+        
+        // LocationPermissionManager - singleton for permission handling
+        single<LocationPermissionManager> { LocationPermissionManagerFactory.create() }
+        
+        // LocationService - singleton for GPS location
+        single<LocationService> { LocationServiceFactory.create(get()) }
+        
+        // LocationSearchService - singleton for location autocomplete
+        single<LocationSearchService> { MapboxLocationSearchService(get()) }
 
         single<ExerciseRepository> { InMemoryExerciseRepository() }
         single { GetCompletedExercisesUseCase(get()) }
