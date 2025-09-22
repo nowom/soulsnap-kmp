@@ -44,6 +44,7 @@ fun ScopeAwareDashboard(
     onNavigateToExercises: () -> Unit = {},
     onNavigateToVirtualMirror: () -> Unit = {},
     onNavigateToAnalytics: () -> Unit = {},
+    onNavigateToDailyQuiz: () -> Unit = {},
     onUpgradePlan: () -> Unit = {},
     onPlayAffirmation: () -> Unit = {},
     onPauseAffirmation: () -> Unit = {},
@@ -128,7 +129,8 @@ fun ScopeAwareDashboard(
         QuickShortcutsRow(
             onSnapsClick = onNavigateToSoulSnaps,
             onAffirmationsClick = onNavigateToAffirmations,
-            onExercisesClick = onNavigateToExercises
+            onExercisesClick = onNavigateToExercises,
+            onDailyQuizClick = onNavigateToDailyQuiz
         )
 
         // Plan-specific information (if needed)

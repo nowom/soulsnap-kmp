@@ -52,6 +52,9 @@ import pl.soulsnaps.features.settings.SettingsRoute
 import pl.soulsnaps.features.settings.SettingsScreen
 import pl.soulsnaps.features.settings.navigateToSettings
 import pl.soulsnaps.features.settings.settingsScreen
+import pl.soulsnaps.features.coach.dailyquiz.dailyQuizScreen
+import pl.soulsnaps.features.coach.dailyquiz.DailyQuizRoute
+import pl.soulsnaps.features.coach.dailyquiz.navigateToDailyQuiz
 import pl.soulsnaps.access.manager.AppStartupManager
 import org.koin.compose.koinInject
 
@@ -159,6 +162,7 @@ fun NavGraphBuilder.homeGraph(navController: NavController) {
             onNavigateToAnalytics = {
                 println("DEBUG: Navigate to analytics")
             },
+            onNavigateToDailyQuiz = { navController.navigateToDailyQuiz() },
             onUpgradePlan = {
                 navController.navigateToUpgrade()
             }
@@ -230,6 +234,10 @@ fun NavGraphBuilder.homeGraph(navController: NavController) {
             onDismiss = { navController.popBackStack() },
             currentPlan = "FREE_USER",
             recommendations = emptyList()
+        )
+        dailyQuizScreen(
+            onBack = { navController.popBackStack() },
+            onCompleted = { navController.popBackStack() }
         )
     }
 }

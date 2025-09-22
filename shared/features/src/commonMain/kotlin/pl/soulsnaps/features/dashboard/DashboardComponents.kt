@@ -490,7 +490,8 @@ fun QuickShortcutsRow(
     modifier: Modifier = Modifier,
     onSnapsClick: () -> Unit = {},
     onAffirmationsClick: () -> Unit = {},
-    onExercisesClick: () -> Unit = {}
+    onExercisesClick: () -> Unit = {},
+    onDailyQuizClick: () -> Unit = {}
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -510,6 +511,11 @@ fun QuickShortcutsRow(
             icon = "🧘",
             text = "Ćwiczenia",
             onClick = onExercisesClick
+        )
+        QuickShortcutButton(
+            icon = "🧠",
+            text = "Quiz",
+            onClick = onDailyQuizClick
         )
     }
 }

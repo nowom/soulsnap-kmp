@@ -19,6 +19,10 @@ import pl.soulsnaps.domain.interactor.SignInAnonymouslyUseCase
 import pl.soulsnaps.domain.interactor.SignOutUseCase
 import pl.soulsnaps.domain.interactor.GetMemoryByIdUseCase
 import pl.soulsnaps.domain.interactor.ToggleMemoryFavoriteUseCase
+import pl.soulsnaps.domain.interactor.GetDailyQuizUseCase
+import pl.soulsnaps.domain.interactor.SubmitQuizAnswersUseCase
+import pl.soulsnaps.domain.interactor.GetQuizSummaryUseCase
+import pl.soulsnaps.domain.interactor.GenerateAIReflectionUseCase
 import pl.soulsnaps.domain.interactor.DeleteMemoryUseCase
 import pl.soulsnaps.domain.interactor.EditMemoryUseCase
 import pl.soulsnaps.domain.interactor.SearchLocationsUseCase
@@ -40,6 +44,12 @@ object DomainModule {
         factoryOf(::DeleteMemoryUseCase)
         factoryOf(::EditMemoryUseCase)
         factoryOf(::SearchLocationsUseCase)
+        
+        // Daily Quiz Use Cases
+        factory { GetDailyQuizUseCase(get()) }
+        factory { SubmitQuizAnswersUseCase(get(), get()) }
+        factory { GetQuizSummaryUseCase(get()) }
+        factory { GenerateAIReflectionUseCase(get()) }
         single<AffirmationGenerator>(qualifier = named("openai")) {
             RuleBasedAffirmationGenerator()
         }

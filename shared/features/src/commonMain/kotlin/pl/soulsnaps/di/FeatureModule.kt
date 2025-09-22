@@ -33,6 +33,11 @@ import pl.soulsnaps.features.location.LocationServiceFactory
 import pl.soulsnaps.features.location.LocationPermissionManager
 import pl.soulsnaps.features.location.LocationPermissionManagerFactory
 import pl.soulsnaps.data.network.SoulSnapApi
+import pl.soulsnaps.features.coach.dailyquiz.DailyQuizViewModel
+import pl.soulsnaps.domain.repository.EmotionQuizRepository
+import pl.soulsnaps.data.EmotionQuizRepositoryImpl
+import pl.soulsnaps.domain.interactor.*
+import pl.soulsnaps.data.MockEmotionAIService
 import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.access.manager.AppStartupManager
 import pl.soulsnaps.access.manager.OnboardingManager
@@ -101,6 +106,13 @@ object FeatureModule {
         
         // LocationSearchService - singleton for location autocomplete
         single<LocationSearchService> { MapboxLocationSearchService(get()) }
+        
+        // Emotion Quiz - Daily quiz functionality
+        single<EmotionQuizRepository> { EmotionQuizRepositoryImpl() }
+        single<EmotionAIService> { MockEmotionAIService() }
+        
+        // Daily Quiz ViewModels
+        viewModelOf(::DailyQuizViewModel)
 
         single<ExerciseRepository> { InMemoryExerciseRepository() }
         single { GetCompletedExercisesUseCase(get()) }
