@@ -2,8 +2,8 @@ package pl.soulsnaps.access.manager
 
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.flow.first
+import pl.soulsnaps.access.storage.UserPreferencesStorage
 import kotlin.test.*
-import pl.soulsnaps.access.storage.UserPreferencesStorageFactory
 
 /**
  * Testy integracyjne dla AppStartupManager
@@ -25,7 +25,7 @@ class AppStartupManagerIntegrationTest {
     
     @BeforeTest
     fun setup() {
-        val storage = UserPreferencesStorageFactory.create()
+        val storage = UserPreferencesStorage(mocck)
         userPlanManager = UserPlanManager(storage)
         onboardingManager = OnboardingManager(userPlanManager)
     }

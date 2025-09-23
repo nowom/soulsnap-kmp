@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -26,7 +25,6 @@ fun PermissionRequiredDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -77,7 +75,7 @@ fun PermissionRequiredDialog(
                     // Open Settings button
                     Button(
                         onClick = {
-                            openAppSettings(context)
+                            openAppSettings()
                             onOpenSettings()
                         },
                         modifier = Modifier.fillMaxWidth(),

@@ -1,48 +1,57 @@
 package pl.soulsnaps.access.storage
 
-/**
- * Expect declaration dla UserPreferencesStorage
- * 
- * Każda platforma musi dostarczyć swoją implementację:
- * - Android: SharedPreferences z Context
- * - iOS: UserDefaults (bez Context)
- */
-expect class UserPreferencesStorage {
-    
-    /**
-     * Konstruktor - platform-specific
-     */
-    constructor()
-    
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
-    
-    /**
-     * Zapisz plan użytkownika
-     */
-    suspend fun saveUserPlan(planName: String)
-    
-    /**
-     * Pobierz plan użytkownika
-     */
-    suspend fun getUserPlan(): String?
-    
-    /**
-     * Zapisz stan ukończenia onboarding
-     */
-    suspend fun saveOnboardingCompleted(completed: Boolean)
-    
-    /**
-     * Sprawdź czy onboarding został ukończony
-     */
-    suspend fun isOnboardingCompleted(): Boolean
-    
-    /**
-     * Wyczyść wszystkie dane (przy wylogowaniu)
-     */
-    suspend fun clearAllData()
-    
-    /**
-     * Sprawdź czy dane istnieją
-     */
-    suspend fun hasStoredData(): Boolean
+class UserPreferencesStorage(
+    private val dataStore: DataStore<Preferences>
+) {
+    private object Keys {
+        val PLAN = stringPreferencesKey("plan_name")
+        val ONBOARDING = booleanPreferencesKey("onboarding_completed")
+        val NOTIF_DECIDED = booleanPreferencesKey("notification_permission_decided")
+        val NOTIF_GRANTED = booleanPreferencesKey("notification_permission_granted")
+
+    }
+
+    suspend fun saveUserPlan(planName: String) {
+        dataStore.edit { it[Keys.PLAN] = planName }
+    }
+
+    suspend fun getUserPlan(): String? =
+        dataStore.data.map { it[Keys.PLAN] }.first()
+
+    suspend fun saveOnboardingCompleted(completed: Boolean) {
+        dataStore.edit { it[Keys.ONBOARDING] = completed }
+    }
+
+    suspend fun isOnboardingCompleted(): Boolean =
+        dataStore.data.map { it[Keys.ONBOARDING] ?: false }.first()
+
+    suspend fun clearAllData() {
+        dataStore.edit { it.clear() }
+    }
+
+    suspend fun saveNotificationPermissionDecided(decided: Boolean) {
+        dataStore.edit { it[Keys.NOTIF_DECIDED] = decided }
+    }
+
+    suspend fun isNotificationPermissionDecided(): Boolean =
+        dataStore.data.map { it[Keys.NOTIF_DECIDED] ?: false }.first()
+
+    suspend fun saveNotificationPermissionGranted(granted: Boolean) {
+        dataStore.edit { it[Keys.NOTIF_GRANTED] = granted }
+    }
+
+    suspend fun isNotificationPermissionGranted(): Boolean =
+        dataStore.data.map { it[Keys.NOTIF_GRANTED] ?: false }.first()
+
+    suspend fun hasStoredData(): Boolean =
+        dataStore.data.first().asMap().isNotEmpty()
 }

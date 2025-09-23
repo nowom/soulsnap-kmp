@@ -61,7 +61,7 @@ actual fun WithGalleryPermission(
             println("🔍 WithGalleryPermission (iOS): Request permission button clicked, requesting gallery access")
             // Request gallery permission
             PHPhotoLibrary.requestAuthorization { status ->
-                val granted = status == PHAuthorizationStatus.PHAuthorizationStatusAuthorized
+                val granted = status.toLong() == 3L // PHAuthorizationStatusAuthorized = 3
                 println("🔍 WithGalleryPermission (iOS): Gallery permission result - status: $status, granted: $granted")
                 hasPermission = granted
             }
@@ -142,40 +142,25 @@ class IOSPermissionManager : PermissionManager {
  * Check camera permission status
  */
 private fun checkCameraPermission(): Boolean {
-    return when (AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo)) {
-        AVAuthorizationStatus.AVAuthorizationStatusAuthorized -> true
-        AVAuthorizationStatus.AVAuthorizationStatusNotDetermined -> false
-        AVAuthorizationStatus.AVAuthorizationStatusDenied -> false
-        AVAuthorizationStatus.AVAuthorizationStatusRestricted -> false
-        else -> false
-    }
+    val status = AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo)
+    return status.toLong() == 3L // AVAuthorizationStatusAuthorized = 3
 }
 
 /**
  * Check gallery permission status
  */
 private fun checkGalleryPermission(): Boolean {
-    return when (PHPhotoLibrary.authorizationStatus()) {
-        PHAuthorizationStatus.PHAuthorizationStatusAuthorized -> true
-        PHAuthorizationStatus.PHAuthorizationStatusNotDetermined -> false
-        PHAuthorizationStatus.PHAuthorizationStatusDenied -> false
-        PHAuthorizationStatus.PHAuthorizationStatusRestricted -> false
-        else -> false
-    }
+    val status = PHPhotoLibrary.authorizationStatus()
+    return status.toLong() == 3L // PHAuthorizationStatusAuthorized = 3
 }
 
 /**
  * Check location permission status
  */
 private fun checkLocationPermission(): Boolean {
-    return when (CLLocationManager.authorizationStatus()) {
-        CLAuthorizationStatus.kCLAuthorizationStatusAuthorizedWhenInUse -> true
-        CLAuthorizationStatus.kCLAuthorizationStatusAuthorizedAlways -> true
-        CLAuthorizationStatus.kCLAuthorizationStatusNotDetermined -> false
-        CLAuthorizationStatus.kCLAuthorizationStatusDenied -> false
-        CLAuthorizationStatus.kCLAuthorizationStatusRestricted -> false
-        else -> false
-    }
+    val status = CLLocationManager.authorizationStatus()
+    return status.toLong() == 3L || // kCLAuthorizationStatusAuthorizedWhenInUse = 3
+           status.toLong() == 4L    // kCLAuthorizationStatusAuthorizedAlways = 4
 }
 
 /**

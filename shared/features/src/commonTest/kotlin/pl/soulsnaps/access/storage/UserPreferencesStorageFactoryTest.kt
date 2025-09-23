@@ -11,7 +11,7 @@ class UserPreferencesStorageFactoryTest {
     @Test
     fun `should create UserPreferencesStorage instance`() = runTest {
         // Given
-        val factory = UserPreferencesStorageFactory
+        val factory = UserPreferencesStorage()
         
         // When
         val storage = factory.create()

@@ -27,3 +27,13 @@ fun localDateTimeToNSDate(dateTime: LocalDateTime): NSDate {
 }
 
 actual fun getCurrentTimeMillis(): Long = (NSDate().timeIntervalSince1970 * 1000).toLong()
+
+actual fun formatTimestamp(timestamp: Long, pattern: String): String {
+    val formatter = NSDateFormatter()
+    formatter.dateFormat = pattern
+    formatter.locale = NSLocale.currentLocale()
+    val nsDate = NSDate.dateWithTimeIntervalSince1970(timestamp / 1000.0)
+    return formatter.stringFromDate(nsDate)
+}
+
+actual fun getDefaultLocale(): String = NSLocale.currentLocale().localeIdentifier

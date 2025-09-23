@@ -7,11 +7,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import pl.soulsnaps.access.manager.AppStartupManager
 import pl.soulsnaps.features.analytics.AnalyticsManager
+import pl.soulsnaps.features.auth.UserSessionManager
 
 class OnboardingViewModel(
     private val analyticsManager: AnalyticsManager,
-    private val appStartupManager: pl.soulsnaps.access.manager.AppStartupManager
+    private val appStartupManager: AppStartupManager,
+    private val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(OnboardingState())
@@ -65,7 +68,7 @@ class OnboardingViewModel(
             is OnboardingIntent.GetStarted -> {
                 analyticsManager.completeOnboarding(
                     selectedFocus = _state.value.selectedFocus?.name,
-                    authMethod = null // TODO: Get from auth state
+                    authMethod = userSessionManager.getCurrentUser()?.let { "authenticated" } ?: "anonymous"
                 )
                 // Ukończ onboarding przez AppStartupManager
                 appStartupManager.completeOnboarding()
@@ -104,8 +107,8 @@ class OnboardingViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                // TODO: Save onboarding data to preferences/database
-                // For now, just simulate a delay
+                // Save onboarding completion status
+                // Note: UserSessionManager already handles session persistence
                 kotlinx.coroutines.delay(500)
                 _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {

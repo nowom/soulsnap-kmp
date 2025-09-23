@@ -35,8 +35,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import pl.soulsnaps.utils.getCurrentTimeMillis
-import java.text.SimpleDateFormat
-import java.util.*
+import pl.soulsnaps.utils.formatTimestamp
+import pl.soulsnaps.utils.getDefaultLocale
+
+/**
+ * Show platform-specific date picker
+ */
+@Composable
+expect fun showPlatformDatePicker(
+    initialDateMillis: Long,
+    onDateSelected: (Long) -> Unit
+)
 
 @Composable
 fun DatePicker(
@@ -50,12 +59,10 @@ fun DatePicker(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     
-    val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
-    val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    
     val displayText = selectedDateMillis?.let { dateMillis ->
-        val date = Date(dateMillis)
-        "${dateFormatter.format(date)} at ${timeFormatter.format(date)}"
+        val dateStr = formatTimestamp(dateMillis, "MMM dd, yyyy")
+        val timeStr = formatTimestamp(dateMillis, "HH:mm")
+        "$dateStr at $timeStr"
     } ?: placeholder
     
     Column(modifier = modifier) {

@@ -1,6 +1,7 @@
 package pl.soulsnaps.data
 
 import kotlinx.coroutines.test.runTest
+import pl.soulsnaps.database.Memories
 import pl.soulsnaps.database.dao.MemoryDao
 import pl.soulsnaps.domain.model.Affirmation
 import pl.soulsnaps.domain.model.ThemeType
@@ -154,5 +155,64 @@ class MockMemoryDao : MemoryDao {
     override suspend fun markAsSynced(id: Long) {}
     
     override suspend fun deleteInvalidMemories(): Int = 0
+    override suspend fun updateMemory(
+        id: Long,
+        title: String,
+        description: String,
+        timestamp: Long,
+        mood: String?,
+        photoUri: String?,
+        audioUri: String?,
+        locationName: String?,
+        latitude: Double?,
+        longitude: Double?,
+        affirmation: String?,
+        isFavorite: Boolean,
+        isSynced: Boolean,
+        remotePhotoPath: String?,
+        remoteAudioPath: String?,
+        remoteId: String?,
+        syncState: String,
+        retryCount: Int,
+        errorMessage: String?
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getPendingMemories(): List<Memories> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getSyncingMemories(): List<Memories> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getFailedMemories(): List<Memories> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun updateMemorySyncState(
+        id: Long,
+        syncState: String,
+        remoteId: String?,
+        retryCount: Int,
+        errorMessage: String?
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun updateMemoryRemotePaths(
+        id: Long,
+        remotePhotoPath: String?,
+        remoteAudioPath: String?,
+        syncState: String,
+        remoteId: String?
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun incrementMemoryRetryCount(id: Long, errorMessage: String?) {
+        TODO("Not yet implemented")
+    }
 }
 

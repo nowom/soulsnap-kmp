@@ -16,7 +16,7 @@ class IOSImagePipeline : ImagePipeline {
             // TODO: Implement actual iOS image processing
             // This should use UIImage, CoreGraphics, or ImageIO framework
             // For now, return mock data
-            val mockJpegBytes = "mock-jpeg-data".toByteArray()
+            val mockJpegBytes = "mock-jpeg-data".encodeToByteArray()
             
             println("DEBUG: IOSImagePipeline.toJpegBytes() - compressed: ${mockJpegBytes.size} bytes")
             mockJpegBytes

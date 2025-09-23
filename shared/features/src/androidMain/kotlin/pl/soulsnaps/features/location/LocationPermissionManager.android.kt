@@ -13,6 +13,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 /**
  * Android implementation of LocationPermissionManager
@@ -46,7 +47,7 @@ actual class LocationPermissionManager(
         return suspendCancellableCoroutine { continuation ->
         
         val permissionLauncher = activity.activityResultRegistry.register(
-            "location_permission_${System.currentTimeMillis()}",
+            "location_permission_${getCurrentTimeMillis()}",
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
             val allGranted = permissions.values.all { it }

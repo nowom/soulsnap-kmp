@@ -11,6 +11,7 @@ import pl.soulsnaps.features.memoryanalysis.analyzer.AnalysisFeature
 import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngineInterface
 import pl.soulsnaps.features.memoryanalysis.model.*
 import pl.soulsnaps.photo.SharedImageInterface
+import pl.soulsnaps.features.auth.manager.UserPlanManager
 
 /**
  * Testy dla MemoryAnalysisService - integracja z AccessGuard
@@ -24,11 +25,13 @@ class MemoryAnalysisServiceTest {
     private lateinit var scopePolicy: InMemoryScopePolicy
     private lateinit var quotaPolicy: InMemoryQuotaPolicy
     private lateinit var featureToggle: InMemoryFeatureToggle
+    private lateinit var userPlanManager: MockUserPlanManager
     
     @BeforeTest
     fun setup() {
         imageAnalyzer = MockImageAnalyzer()
         patternDetectionEngine = MockPatternDetectionEngine()
+        userPlanManager = MockUserPlanManager()
         
         val planRegistry = DefaultPlans
         scopePolicy = InMemoryScopePolicy(planRegistry)
@@ -39,7 +42,8 @@ class MemoryAnalysisServiceTest {
         service = MemoryAnalysisService(
             imageAnalyzer = imageAnalyzer,
             patternDetectionEngine = patternDetectionEngine,
-            guard = guard
+            guard = guard,
+            userPlanManager = userPlanManager
         )
     }
     
@@ -244,10 +248,11 @@ class MemoryAnalysisServiceTest {
     // ===== ANALYSIS CAPABILITIES TESTS =====
     
     @Test
-    fun `getAnalysisCapabilities should return correct capabilities for user`() = runTest {
+    fun `getAnalysisCapabilities should return correct capabilities for premium user`() = runTest {
         // Given
         val userId = "premium_user"
         scopePolicy.setUserPlan(userId, "PREMIUM_USER")
+        userPlanManager.setCurrentPlan("PREMIUM")
         
         // When
         val capabilities = service.getAnalysisCapabilities(userId)
@@ -257,7 +262,7 @@ class MemoryAnalysisServiceTest {
         assertTrue(capabilities.canDetectPatterns)
         assertTrue(capabilities.canAnalyzeVideos) // Premium ma analysis.run.single scope
         assertTrue(capabilities.canGenerateInsights)
-        assertTrue(capabilities.maxAnalysisPerDay > 0)
+        assertEquals(1000, capabilities.maxAnalysisPerDay) // PREMIUM plan
     }
     
     @Test
@@ -265,6 +270,7 @@ class MemoryAnalysisServiceTest {
         // Given
         val userId = "free_user"
         scopePolicy.setUserPlan(userId, "FREE_USER")
+        userPlanManager.setCurrentPlan("FREE_USER")
         
         // When
         val capabilities = service.getAnalysisCapabilities(userId)
@@ -275,7 +281,25 @@ class MemoryAnalysisServiceTest {
         assertTrue(capabilities.canAnalyzeAudio)  // FREE_USER ma analysis.run.single scope
         assertFalse(capabilities.canDetectPatterns) // FREE_USER nie ma analysis.run.patterns scope
         assertFalse(capabilities.canGenerateInsights) // FREE_USER nie ma insights.read scope
-        assertTrue(capabilities.maxAnalysisPerDay > 0)
+        assertEquals(100, capabilities.maxAnalysisPerDay) // FREE_USER plan
+    }
+    
+    @Test
+    fun `getAnalysisCapabilities should return pro plan limits`() = runTest {
+        // Given
+        val userId = "pro_user"
+        scopePolicy.setUserPlan(userId, "PRO_USER")
+        userPlanManager.setCurrentPlan("PRO")
+        
+        // When
+        val capabilities = service.getAnalysisCapabilities(userId)
+        
+        // Then
+        assertTrue(capabilities.canAnalyzePhotos)
+        assertTrue(capabilities.canDetectPatterns)
+        assertTrue(capabilities.canAnalyzeVideos)
+        assertTrue(capabilities.canGenerateInsights)
+        assertEquals(500, capabilities.maxAnalysisPerDay) // PRO plan
     }
     
     // ===== QUOTA STATUS TESTS =====
@@ -566,4 +590,26 @@ class MockPatternDetectionEngine : PatternDetectionEngineInterface {
 class MockSharedImage(private val id: String) : SharedImageInterface {
     override fun toByteArray(): ByteArray? = null
     override fun toImageBitmap(): androidx.compose.ui.graphics.ImageBitmap? = null
+}
+
+class MockUserPlanManager : UserPlanManager {
+    private var currentPlan: String? = "FREE_USER"
+    
+    fun setCurrentPlan(plan: String?) {
+        currentPlan = plan
+    }
+    
+    override fun getCurrentPlan(): String? = currentPlan
+    
+    override suspend fun setUserPlan(planName: String) {
+        currentPlan = planName
+    }
+    
+    override suspend fun isOnboardingCompleted(): Boolean = true
+    
+    override suspend fun saveOnboardingCompleted(completed: Boolean) {}
+    
+    override suspend fun clearUserData() {
+        currentPlan = null
+    }
 }

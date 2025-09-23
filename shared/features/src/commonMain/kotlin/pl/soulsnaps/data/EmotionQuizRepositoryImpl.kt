@@ -4,6 +4,8 @@ package pl.soulsnaps.data
 import pl.soulsnaps.domain.repository.EmotionQuizRepository
 import pl.soulsnaps.features.coach.model.EmotionQuizSession
 import pl.soulsnaps.features.coach.model.QuizSummary
+import pl.soulsnaps.utils.getCurrentTimeMillis
+import pl.soulsnaps.utils.formatTimestamp
 
 /**
  * In-memory implementation of EmotionQuizRepository
@@ -138,9 +140,7 @@ class EmotionQuizRepositoryImpl : EmotionQuizRepository {
     }
     
     private fun getCurrentDateString(): String {
-        val timestamp = System.currentTimeMillis()
-        val date = java.util.Date(timestamp)
-        val formatter = java.text.SimpleDateFormat("yyyy-MM-dd")
-        return formatter.format(date)
+        val timestamp = getCurrentTimeMillis()
+        return formatTimestamp(timestamp, "yyyy-MM-dd")
     }
 }

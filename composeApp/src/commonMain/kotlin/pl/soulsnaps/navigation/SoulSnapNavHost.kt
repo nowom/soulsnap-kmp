@@ -52,6 +52,9 @@ import pl.soulsnaps.features.settings.SettingsRoute
 import pl.soulsnaps.features.settings.SettingsScreen
 import pl.soulsnaps.features.settings.navigateToSettings
 import pl.soulsnaps.features.settings.settingsScreen
+import pl.soulsnaps.features.settings.NotificationSettingsRoute
+import pl.soulsnaps.features.settings.navigateToNotificationSettings
+import pl.soulsnaps.features.settings.notificationSettingsScreen
 import pl.soulsnaps.features.coach.dailyquiz.dailyQuizScreen
 import pl.soulsnaps.features.coach.dailyquiz.DailyQuizRoute
 import pl.soulsnaps.features.coach.dailyquiz.navigateToDailyQuiz
@@ -223,7 +226,13 @@ fun NavGraphBuilder.homeGraph(navController: NavController) {
             },
             onNavigateToAuth = {
                 navController.navigate(AuthenticationGraph)
+            },
+            onNavigateToNotificationSettings = {
+                navController.navigateToNotificationSettings()
             }
+        )
+        notificationSettingsScreen(
+            onBack = { navController.popBackStack() }
         )
         upgradeScreen(
             onBack = { navController.popBackStack() },

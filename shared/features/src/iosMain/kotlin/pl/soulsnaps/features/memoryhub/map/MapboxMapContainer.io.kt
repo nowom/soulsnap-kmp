@@ -62,7 +62,7 @@ actual fun MapboxMapContainer(
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 16.dp, horizontal = 32.dp)
+                modifier = Modifier.padding(top = 8.dp, start = 32.dp, end = 32.dp)
             )
         }
     }

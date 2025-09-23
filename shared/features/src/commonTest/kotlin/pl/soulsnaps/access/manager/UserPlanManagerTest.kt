@@ -8,10 +8,12 @@ import kotlin.test.*
 class UserPlanManagerTest {
     
     private lateinit var userPlanManager: UserPlanManager
+    private lateinit var mockStorage: MockUserPreferencesStorage
     
     @BeforeTest
     fun setup() {
-        userPlanManager = UserPlanManager()
+        mockStorage = MockUserPreferencesStorage()
+        userPlanManager = UserPlanManager(mockStorage)
     }
     
     @Test

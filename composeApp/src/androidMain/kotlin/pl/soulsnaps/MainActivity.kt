@@ -9,15 +9,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import org.koin.android.ext.android.inject
 import org.koin.core.context.GlobalContext
 import org.koin.dsl.module
-import pl.soulsnaps.access.storage.UserPreferencesStorageFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        
-        // Inicjalizuj UserPreferencesStorageFactory
-        UserPreferencesStorageFactory.initialize(this)
         
         // Dodaj ComponentActivity do Koin dla permission handling
         val activityModule = module {

@@ -11,6 +11,9 @@ import pl.soulsnaps.domain.interactor.GetDailyQuizUseCase
 import pl.soulsnaps.domain.interactor.SubmitQuizAnswersUseCase
 import pl.soulsnaps.features.coach.model.*
 import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.features.notifications.ReminderManager
+import pl.soulsnaps.features.notifications.model.NotificationType
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 /**
  * ViewModel for Daily Emotion Quiz
@@ -18,7 +21,8 @@ import pl.soulsnaps.features.auth.UserSessionManager
 class DailyQuizViewModel(
     private val getDailyQuizUseCase: GetDailyQuizUseCase,
     private val submitQuizAnswersUseCase: SubmitQuizAnswersUseCase,
-    private val userSessionManager: UserSessionManager
+    private val userSessionManager: UserSessionManager,
+    private val reminderManager: ReminderManager
 ) : ViewModel() {
     
     private val userId: String
@@ -132,6 +136,10 @@ class DailyQuizViewModel(
                 result.fold(
                     onSuccess = { completedQuiz ->
                         println("DEBUG: DailyQuizViewModel.submitQuiz - success, has reflection: ${completedQuiz.aiReflection != null}")
+                        
+                        // Handle quiz completion reminders
+                        handleQuizCompletion()
+                        
                         _state.update {
                             it.copy(
                                 isSubmitting = false,
@@ -217,6 +225,57 @@ class DailyQuizViewModel(
             QuestionType.MULTIPLE_SELECT -> true // Optional by design
             QuestionType.TEXT_INPUT -> true // Optional or has text
         }
+    }
+    
+    /**
+     * Handle quiz completion - manage reminders and notifications
+     */
+    private fun handleQuizCompletion() {
+        viewModelScope.launch {
+            try {
+                println("DEBUG: DailyQuizViewModel.handleQuizCompletion - managing reminders for user: $userId")
+                
+                // Cancel daily quiz reminder for today since quiz is completed
+                reminderManager.notificationService.cancelNotification("daily_quiz_$userId")
+                
+                // Schedule tomorrow's reminder
+                val tomorrowReminder = pl.soulsnaps.features.notifications.model.AppNotification(
+                    id = "daily_quiz_$userId",
+                    type = NotificationType.DAILY_QUIZ_REMINDER,
+                    title = "Daily Emotion Quiz",
+                    message = "🧠 Time for your daily emotion check-in! How are you feeling today?",
+                    userId = userId,
+                    scheduledTime = getTomorrowScheduledTime()
+                )
+                
+                reminderManager.notificationService.scheduleNotification(tomorrowReminder)
+                
+                println("DEBUG: DailyQuizViewModel.handleQuizCompletion - reminders updated successfully")
+                
+            } catch (e: Exception) {
+                println("ERROR: DailyQuizViewModel.handleQuizCompletion - failed: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * Get scheduled time for tomorrow's reminder (8 PM)
+     */
+    private fun getTomorrowScheduledTime(): Long {
+        // Simple calculation: current time + 24 hours + offset to 8 PM
+        val currentTime = getCurrentTimeMillis()
+        val oneDayInMs = 24 * 60 * 60 * 1000L
+        val tomorrowTime = currentTime + oneDayInMs
+        
+        // Calculate offset to 8 PM (20:00)
+        // This is a simplified approach - in production, you'd want proper date handling
+        val hoursInMs = 20 * 60 * 60 * 1000L
+        val minutesInMs = 0 * 60 * 1000L
+        val secondsInMs = 0 * 1000L
+        
+        // Get the start of tomorrow and add 8 PM offset
+        val startOfDay = (tomorrowTime / oneDayInMs) * oneDayInMs
+        return startOfDay + hoursInMs + minutesInMs + secondsInMs
     }
 }
 

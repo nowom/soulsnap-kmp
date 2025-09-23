@@ -28,6 +28,10 @@ import coil3.compose.AsyncImage
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
 import pl.soulsnaps.components.FullScreenCircularProgress
+import pl.soulsnaps.features.notifications.NotificationPermissionDialog
+import pl.soulsnaps.features.notifications.NotificationPermissionDialogViewModel
+import pl.soulsnaps.features.notifications.AutoDismissSnackbar
+import androidx.compose.runtime.LaunchedEffect
 import pl.soulsnaps.designsystem.AppColorScheme
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.access.manager.UserPlanManager
@@ -62,8 +66,39 @@ fun DashboardScreen(
     audioManager: AudioManager = koinInject()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val notificationDialogViewModel: NotificationPermissionDialogViewModel = koinViewModel()
+    val notificationDialogState by notificationDialogViewModel.state.collectAsStateWithLifecycle()
+    
+    // Check notification permissions when screen loads
+    LaunchedEffect(Unit) {
+        notificationDialogViewModel.checkNotificationPermission()
+    }
     
     println("DEBUG: DashboardScreen composable called")
+
+    // Notification Permission Dialog
+    NotificationPermissionDialog(
+        isVisible = notificationDialogState.isVisible,
+        onDismiss = { notificationDialogViewModel.onDismiss() },
+        onEnableNotifications = { notificationDialogViewModel.onEnableNotifications() },
+        onDisableNotifications = { notificationDialogViewModel.onDisableNotifications() },
+        onOpenSettings = { notificationDialogViewModel.onOpenSettings() }
+    )
+    
+    // Status Messages (Success/Error)
+    AutoDismissSnackbar(
+        isVisible = notificationDialogState.showSuccessMessage,
+        message = notificationDialogState.successMessage ?: "",
+        isSuccess = true,
+        onDismiss = { notificationDialogViewModel.clearSuccessMessage() }
+    )
+    
+    AutoDismissSnackbar(
+        isVisible = notificationDialogState.errorMessage != null,
+        message = notificationDialogState.errorMessage ?: "",
+        isError = true,
+        onDismiss = { notificationDialogViewModel.clearError() }
+    )
 
     if (state.isLoading) {
         FullScreenCircularProgress()

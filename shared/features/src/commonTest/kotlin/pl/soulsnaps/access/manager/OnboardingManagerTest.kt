@@ -3,16 +3,17 @@ package pl.soulsnaps.access.manager
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.coroutineScope
+import pl.soulsnaps.access.storage.UserPreferencesStorage
 import kotlin.test.*
 
 class OnboardingManagerTest {
     
     private lateinit var onboardingManager: OnboardingManager
     private lateinit var userPlanManager: UserPlanManager
-    
+
     @BeforeTest
     fun setup() {
-        userPlanManager = UserPlanManager()
+        userPlanManager = UserPlanManager(mockStorage)
         onboardingManager = OnboardingManager(userPlanManager)
     }
     

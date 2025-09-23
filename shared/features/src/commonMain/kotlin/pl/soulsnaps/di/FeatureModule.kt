@@ -14,7 +14,6 @@ import pl.soulsnaps.features.memoryhub.timeline.TimelineViewModel
 import pl.soulsnaps.features.memoryhub.gallery.MomentsGalleryViewModel
 import pl.soulsnaps.features.memoryhub.map.MemoryMapViewModel
 import pl.soulsnaps.features.onboarding.OnboardingViewModel
-import pl.soulsnaps.features.onboarding.OnboardingDataStore
 import pl.soulsnaps.features.analytics.AnalyticsManager
 import pl.soulsnaps.features.analytics.AnalyticsRepository
 import pl.soulsnaps.features.analytics.FakeAnalyticsRepository
@@ -34,17 +33,25 @@ import pl.soulsnaps.features.location.LocationPermissionManager
 import pl.soulsnaps.features.location.LocationPermissionManagerFactory
 import pl.soulsnaps.data.network.SoulSnapApi
 import pl.soulsnaps.features.coach.dailyquiz.DailyQuizViewModel
+import pl.soulsnaps.features.settings.NotificationSettingsViewModel
+import pl.soulsnaps.features.notifications.NotificationPermissionDialogViewModel
 import pl.soulsnaps.domain.repository.EmotionQuizRepository
 import pl.soulsnaps.data.EmotionQuizRepositoryImpl
 import pl.soulsnaps.domain.interactor.*
 import pl.soulsnaps.data.MockEmotionAIService
+import pl.soulsnaps.features.notifications.NotificationService
+import pl.soulsnaps.features.notifications.NotificationServiceFactory
+import pl.soulsnaps.features.notifications.ReminderManager
+import pl.soulsnaps.features.notifications.NotificationPermissionManager
+import pl.soulsnaps.features.notifications.NotificationPermissionManagerFactory
+import pl.soulsnaps.domain.repository.NotificationRepository
+import pl.soulsnaps.data.NotificationRepositoryImpl
 import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.access.manager.AppStartupManager
 import pl.soulsnaps.access.manager.OnboardingManager
 import pl.soulsnaps.access.manager.PlanRegistryReader
 import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
 import pl.soulsnaps.access.storage.UserPreferencesStorage
-import pl.soulsnaps.access.storage.UserPreferencesStorageFactory
 import pl.soulsnaps.access.guard.GuardFactory
 import pl.soulsnaps.network.SupabaseAuthService
 
@@ -56,15 +63,6 @@ object FeatureModule {
         viewModelOf(::MomentsGalleryViewModel)
         viewModelOf(::TimelineViewModel)
         viewModelOf(::MemoryMapViewModel)
-        single<OnboardingDataStore> { 
-            // For MVP, use in-memory implementation
-            object : OnboardingDataStore {
-                private var isCompleted = false
-                override val onboardingCompleted: kotlinx.coroutines.flow.Flow<Boolean> = kotlinx.coroutines.flow.flowOf(isCompleted)
-                override suspend fun clearOnboardingData() { isCompleted = false }
-                override suspend fun markOnboardingCompleted() { isCompleted = true }
-            }
-        }
         viewModelOf(::OnboardingViewModel)
         viewModelOf(::VirtualMirrorViewModel)
         viewModelOf(::AuthViewModel)
@@ -75,7 +73,7 @@ object FeatureModule {
         viewModelOf(::LocationPickerViewModel)
 
         // UserPreferencesStorage - singleton for user preferences
-        single { UserPreferencesStorageFactory.create() }
+        single { UserPreferencesStorage(get()) }
         
         // UserPlanManager - singleton for managing user plans
         single { UserPlanManager(get()) }
@@ -111,8 +109,20 @@ object FeatureModule {
         single<EmotionQuizRepository> { EmotionQuizRepositoryImpl() }
         single<EmotionAIService> { MockEmotionAIService() }
         
+        // Notifications - Notification and reminder system
+        single<NotificationPermissionManager> { NotificationPermissionManagerFactory.create() }
+        single<NotificationService> { NotificationServiceFactory.create() }
+        single<NotificationRepository> { NotificationRepositoryImpl() }
+        single { ReminderManager(get(), get()) }
+        
         // Daily Quiz ViewModels
         viewModelOf(::DailyQuizViewModel)
+        
+        // Settings ViewModels
+        viewModelOf(::NotificationSettingsViewModel)
+        
+        // Notification Permission Dialog ViewModel
+        viewModelOf(::NotificationPermissionDialogViewModel)
 
         single<ExerciseRepository> { InMemoryExerciseRepository() }
         single { GetCompletedExercisesUseCase(get()) }
@@ -124,6 +134,16 @@ object FeatureModule {
             AnalyticsManager(
                 repository = get(),
                 coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob())
+            )
+        }
+
+        // Memory Analysis Service
+        single { 
+            pl.soulsnaps.features.memoryanalysis.service.MemoryAnalysisService(
+                imageAnalyzer = get(),
+                patternDetectionEngine = get(),
+                guard = get(),
+                userPlanManager = get()
             )
         }
 

@@ -1,8 +1,11 @@
 package pl.soulsnaps.di
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import pl.soulsnaps.access.storage.createPreferencesDataStore
 import pl.soulsnaps.audio.AudioPlayer
 import pl.soulsnaps.audio.AudioPlayerFactory
 import pl.soulsnaps.database.DatabaseDriverFactory
@@ -48,5 +51,9 @@ actual val platformModule: Module = module {
     // Android platform scheduler
     single<PlatformScheduler> {
         AndroidPlatformScheduler(androidContext())
+    }
+
+    single<DataStore<Preferences>> {
+        createPreferencesDataStore(androidContext())
     }
 }

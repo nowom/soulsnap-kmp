@@ -16,14 +16,19 @@ import pl.soulsnaps.features.analytics.CapacityAnalytics
 import pl.soulsnaps.utils.getCurrentTimeMillis
 import pl.soulsnaps.domain.service.AffirmationService
 import pl.soulsnaps.domain.model.AffirmationRequest
+import pl.soulsnaps.features.auth.UserSessionManager
 
 class CaptureMomentViewModel(
     private val saveMemoryUseCase: SaveMemoryUseCase,
     private val accessGuard: AccessGuard,
-    private val affirmationService: AffirmationService
+    private val affirmationService: AffirmationService,
+    private val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CaptureMomentState())
+    
+    private val userId: String
+        get() = userSessionManager.getCurrentUser()?.userId ?: "anonymous_user"
     
     init {
         println("DEBUG: CaptureMomentViewModel.init() - initial state date: ${_state.value.date}")
@@ -275,7 +280,7 @@ class CaptureMomentViewModel(
     private fun showAnalytics() {
         viewModelScope.launch {
             // Update analytics data first
-            capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
+            capacityAnalytics.updateUsageStats(userId)
             _state.update { it.copy(showAnalytics = true) }
         }
     }
@@ -285,7 +290,7 @@ class CaptureMomentViewModel(
      */
     private fun updateAnalytics() {
         viewModelScope.launch {
-            capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
+            capacityAnalytics.updateUsageStats(userId)
         }
     }
     

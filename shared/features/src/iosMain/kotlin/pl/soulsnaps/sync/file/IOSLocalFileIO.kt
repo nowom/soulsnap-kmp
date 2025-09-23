@@ -12,7 +12,7 @@ class IOSLocalFileIO : LocalFileIO {
             // TODO: Implement actual iOS file reading
             // This should use NSFileManager, NSData, or Foundation framework
             // For now, return mock data
-            val mockBytes = "mock-file-data".toByteArray()
+            val mockBytes = "mock-file-data".encodeToByteArray()
             
             println("DEBUG: IOSLocalFileIO.readBytes() - read ${mockBytes.size} bytes")
             mockBytes

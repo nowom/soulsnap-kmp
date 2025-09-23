@@ -12,10 +12,19 @@ import pl.soulsnaps.access.guard.DenyReason
 
 class CapacityGuardTest {
     
+    private val mockUserPlanManager = object : UserPlanManagerInterface {
+        override fun getCurrentPlan(): String? = "FREE_USER"
+        override fun setUserPlan(planName: String) {}
+        override fun getUserPlan(): String? = "FREE_USER"
+        override fun isOnboardingCompleted(): Boolean = true
+        override fun getPlanOrDefault(): String = "FREE_USER"
+        override fun hasPlanSet(): Boolean = true
+    }
+    
     @Test
     fun `canAddSnap should allow when user has remaining snap quota`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         
         // When
@@ -28,7 +37,7 @@ class CapacityGuardTest {
     @Test
     fun `canAddSnapWithSize should check both snap and storage quotas`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         val fileSizeMB = 50 // 50MB file
         
@@ -42,7 +51,7 @@ class CapacityGuardTest {
     @Test
     fun `canAddSnapWithSize should deny when file size exceeds storage limit`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         val fileSizeMB = 2000 // 2GB file - exceeds FREE_USER 1GB limit
         
@@ -58,7 +67,7 @@ class CapacityGuardTest {
     @Test
     fun `canRunAIAnalysis should check AI daily quota`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         
         // When
@@ -71,7 +80,7 @@ class CapacityGuardTest {
     @Test
     fun `canAddMemory should check monthly memory quota`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         
         // When
@@ -84,7 +93,7 @@ class CapacityGuardTest {
     @Test
     fun `canExport should check monthly export quota`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         
         // When - FREE_USER has export.pdf scope, not export.basic
@@ -97,7 +106,7 @@ class CapacityGuardTest {
     @Test
     fun `canCreateBackup should check monthly backup quota`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         
         // When - FREE_USER doesn't have backup.create scope, so this should fail
@@ -111,7 +120,7 @@ class CapacityGuardTest {
     @Test
     fun `getCapacityInfo should return all quota information`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         
         // When
@@ -127,7 +136,7 @@ class CapacityGuardTest {
     @Test
     fun `canPerformActionWithFileSize should check file size for memory actions`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         val action = "memory.create"
         val fileSizeMB = 100
@@ -142,7 +151,7 @@ class CapacityGuardTest {
     @Test
     fun `canPerformActionWithFileSize should deny when file size exceeds storage for memory actions`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         val action = "memory.create"
         val fileSizeMB = 2000 // 2GB - exceeds FREE_USER 1GB limit
@@ -158,7 +167,7 @@ class CapacityGuardTest {
     @Test
     fun `canPerformActionWithFileSize should allow non-file actions regardless of file size`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         val action = "analysis.run.single" // Non-file action
         val fileSizeMB = 10000 // Large file size
@@ -173,7 +182,7 @@ class CapacityGuardTest {
     @Test
     fun `getUpgradeRecommendation should return LOW urgency when quotas are fine`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         
         // When
@@ -187,7 +196,7 @@ class CapacityGuardTest {
     @Test
     fun `getUpgradeRecommendation should return MEDIUM urgency when approaching limits`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         
         // For this test, we'll just verify the basic functionality works
@@ -204,7 +213,7 @@ class CapacityGuardTest {
     @Test
     fun `getUpgradeRecommendation should include recommended plan`() = runTest {
         // Given
-        val capacityGuard = GuardFactory.createCapacityGuard()
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         
         // When

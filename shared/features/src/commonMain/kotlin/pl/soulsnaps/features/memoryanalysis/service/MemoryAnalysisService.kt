@@ -3,6 +3,7 @@ package pl.soulsnaps.features.memoryanalysis.service
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.access.guard.*
 import pl.soulsnaps.features.auth.model.*
+import pl.soulsnaps.features.auth.manager.UserPlanManager
 import pl.soulsnaps.features.memoryanalysis.analyzer.ImageAnalyzerInterface
 import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngineInterface
 import pl.soulsnaps.features.memoryanalysis.model.*
@@ -17,7 +18,8 @@ import pl.soulsnaps.domain.model.MoodType as DomainMoodType
 class MemoryAnalysisService(
     private val imageAnalyzer: ImageAnalyzerInterface,
     private val patternDetectionEngine: PatternDetectionEngineInterface,
-    private val guard: AccessGuard
+    private val guard: AccessGuard,
+    private val userPlanManager: UserPlanManager
 ) {
     
     /**
@@ -293,7 +295,11 @@ class MemoryAnalysisService(
             canAnalyzeAudio = basicAnalysis.allowed,
             canDetectPatterns = patternAnalysis.allowed,
             canGenerateInsights = insightsAccess.allowed,
-            maxAnalysisPerDay = 100, // TODO: Get from user plan
+            maxAnalysisPerDay = when (userPlanManager.getCurrentPlan()) {
+                "PREMIUM" -> 1000
+                "PRO" -> 500
+                else -> 100 // FREE_USER
+            },
             supportedFormats = listOf("jpg", "png", "mp4", "mov", "mp3", "wav")
         )
     }

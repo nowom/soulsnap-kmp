@@ -69,6 +69,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
 import pl.soulsnaps.components.FullScreenCircularProgress
 import pl.soulsnaps.components.PrimaryButton
 import pl.soulsnaps.components.showPlatformDatePicker
@@ -97,7 +98,8 @@ import pl.soulsnaps.utils.getCurrentTimeMillis
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMemoryScreen(
-    viewModel: CaptureMomentViewModel = koinViewModel()
+    viewModel: CaptureMomentViewModel = koinViewModel(),
+    userSessionManager: pl.soulsnaps.features.auth.UserSessionManager = koinInject()
 ) {
     val moods = MoodType.entries.toTypedArray()
     var showPhotoDialog by remember { mutableStateOf(false) }
@@ -355,7 +357,7 @@ fun AddMemoryScreen(
         if (state.showAnalytics) {
             CapacityAnalyticsScreen(
                 analytics = viewModel.getAnalytics(),
-                userId = "current_user", // TODO: Get real user ID
+                userId = userSessionManager.getCurrentUser()?.userId ?: "anonymous_user",
                 onClose = { viewModel.hideAnalytics() }
             )
         }

@@ -3,6 +3,9 @@ package pl.soulsnaps.domain.interactor
 // Removed kotlinx.datetime imports
 import pl.soulsnaps.features.coach.model.*
 import pl.soulsnaps.domain.repository.EmotionQuizRepository
+import pl.soulsnaps.utils.formatDate
+import pl.soulsnaps.utils.getCurrentTimeMillis
+import pl.soulsnaps.utils.toLocalDateTime
 
 /**
  * Use case for managing daily emotion quiz
@@ -12,7 +15,7 @@ class GetDailyQuizUseCase(
 ) {
     suspend operator fun invoke(
         userId: String,
-        date: String = getCurrentDateString()
+        date: String = getCurrentTimeMillis().toLocalDateTime().date.toString()
     ): EmotionQuizSession {
         println("DEBUG: GetDailyQuizUseCase - getting quiz for user: $userId, date: $date")
         
@@ -58,7 +61,7 @@ class SubmitQuizAnswersUseCase(
             val completedQuiz = existingQuiz.copy(
                 answers = answers,
                 isCompleted = true,
-                completedAt = System.currentTimeMillis()
+                completedAt = getCurrentTimeMillis()
             )
             
             // Save updated quiz
@@ -93,7 +96,7 @@ class GetQuizSummaryUseCase(
 ) {
     suspend operator fun invoke(
         userId: String,
-        date: String = getCurrentDateString()
+        date: String = getCurrentTimeMillis().toString()
     ): QuizSummary? {
         println("DEBUG: GetQuizSummaryUseCase - getting summary for user: $userId, date: $date")
         
@@ -200,12 +203,4 @@ interface EmotionAIService {
     suspend fun generateAffirmations(context: QuizContext): List<String>
     suspend fun generateInsights(context: QuizContext): List<String>
     suspend fun generateRecommendedActions(context: QuizContext): List<String>
-}
-
-// Helper function for date string
-private fun getCurrentDateString(): String {
-    val timestamp = System.currentTimeMillis()
-    val date = java.util.Date(timestamp)
-    val formatter = java.text.SimpleDateFormat("yyyy-MM-dd")
-    return formatter.format(date)
 }

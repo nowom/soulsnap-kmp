@@ -14,6 +14,7 @@ import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.access.guard.AccessGuard
 import pl.soulsnaps.access.guard.GuardFactory
 import pl.soulsnaps.features.analytics.CapacityAnalytics
+import pl.soulsnaps.features.auth.UserSessionManager
 
 data class MemoryDetailsState(
     val memory: Memory? = null,
@@ -59,13 +60,17 @@ class MemoryDetailsViewModel(
     private val getMemoryByIdUseCase: GetMemoryByIdUseCase,
     private val toggleMemoryFavoriteUseCase: ToggleMemoryFavoriteUseCase,
     private val deleteMemoryUseCase: DeleteMemoryUseCase,
-    private val accessGuard: pl.soulsnaps.access.guard.AccessGuard
+    private val accessGuard: pl.soulsnaps.access.guard.AccessGuard,
+    private val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MemoryDetailsState())
     val state: StateFlow<MemoryDetailsState> = _state.asStateFlow()
 
     private var currentMemoryId: Int = 0
+    
+    private val userId: String
+        get() = userSessionManager.getCurrentUser()?.userId ?: "anonymous_user"
     
     // CapacityAnalytics for tracking usage
     private val capacityAnalytics = CapacityAnalytics(accessGuard)
@@ -215,7 +220,7 @@ class MemoryDetailsViewModel(
                 _state.update { it.copy(errorMessage = "Share functionality not implemented yet") }
                 
                 // Update analytics after successful operation
-                capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
+                capacityAnalytics.updateUsageStats(userId)
             } catch (e: Exception) {
                 _state.update { 
                     it.copy(errorMessage = "Failed to share memory: ${e.message}")

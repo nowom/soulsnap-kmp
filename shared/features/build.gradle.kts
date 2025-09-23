@@ -77,6 +77,9 @@ kotlin {
                 implementation(libs.supabase.compose.auth)
                 implementation(libs.supabase.compose.auth.ui)
 
+                // DataStore KMP dependencies
+                implementation(libs.datastore.preferences)
+                implementation(libs.datastore)
             }
         }
 
@@ -94,7 +97,6 @@ kotlin {
             dependencies {
                 implementation(libs.mapbox.compose.android)
                 implementation(libs.mapbox.core.android)
-                implementation(libs.androidx.datastore)
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.play.services.location)
                 

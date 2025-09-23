@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 /**
  * Audio Manager - manages audio playback across the app
@@ -46,7 +47,7 @@ class AudioManager(
         println("🎵 AudioManager: playAffirmation called with text: $text")
         
         val audioItem = AudioItem(
-            id = "affirmation_${System.currentTimeMillis()}",
+            id = "affirmation_${getCurrentTimeMillis()}",
             text = text,
             type = AudioType.AFFIRMATION,
             voiceType = voiceType
@@ -78,7 +79,7 @@ class AudioManager(
      */
     suspend fun playExercise(text: String, exerciseType: ExerciseType) {
         val audioItem = AudioItem(
-            id = "exercise_${System.currentTimeMillis()}",
+            id = "exercise_${getCurrentTimeMillis()}",
             text = text,
             type = AudioType.EXERCISE,
             exerciseType = exerciseType

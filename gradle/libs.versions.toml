@@ -27,7 +27,7 @@ dateTimeVersion = "0.7.1"
 ktor = "3.2.2"
 sqlDelight = "2.1.0"
 mapbox = "11.12.0"
-dataStrore = "1.1.7"
+dataStore = "1.1.7"
 playServicesLocation = "21.0.1"
 supabase = "3.2.2"
 kotlinxSerialization = "1.9.0"
@@ -80,7 +80,8 @@ sqldelight-coroutines = { group = "app.cash.sqldelight", name = "coroutines-exte
 
 mapbox-compose-android = { group = "com.mapbox.extension", name = "maps-compose",  version.ref = "mapbox"}
 mapbox-core-android = { group = "com.mapbox.maps", name = "android", version.ref = "mapbox"}
-androidx-datastore = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "dataStrore"}
+datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "dataStore"}
+datastore = { group = "androidx.datastore", name = "datastore", version.ref = "dataStore"}
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation"}
 
 # Supabase dependencies

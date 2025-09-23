@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 /**
  * Android implementation of AudioPlayer using MediaPlayer and TextToSpeech
@@ -109,7 +110,7 @@ class AndroidAudioPlayer(
             println("🎵 AndroidAudioPlayer: Requesting audio focus")
             requestAudioFocus()
             
-            val utteranceId = "affirmation_${System.currentTimeMillis()}"
+            val utteranceId = "affirmation_${getCurrentTimeMillis()}"
             println("🎵 AndroidAudioPlayer: Calling TTS.speak with utteranceId: $utteranceId")
             
             val result = textToSpeech?.speak(

@@ -14,6 +14,7 @@ fun SettingsScreen(
     onNavigateToOnboarding: () -> Unit = {},
     onNavigateToUpgrade: () -> Unit = {},
     onNavigateToAuth: () -> Unit = {},
+    onNavigateToNotificationSettings: () -> Unit = {},
     viewModel: SettingsViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -141,6 +142,14 @@ fun SettingsScreen(
             ) {
                 Text("Zaloguj się")
             }
+        }
+        
+        // Notification Settings Button
+        OutlinedButton(
+            onClick = onNavigateToNotificationSettings,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Ustawienia powiadomień")
         }
         
         // Logout Button

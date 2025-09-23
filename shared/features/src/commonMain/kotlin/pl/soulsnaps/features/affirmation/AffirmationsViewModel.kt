@@ -15,15 +15,20 @@ import pl.soulsnaps.access.guard.GuardFactory
 import pl.soulsnaps.features.analytics.CapacityAnalytics
 import pl.soulsnaps.audio.AudioManager
 import pl.soulsnaps.audio.VoiceType
+import pl.soulsnaps.features.auth.UserSessionManager
 
 class AffirmationsViewModel(
     private val affirmationRepository: AffirmationRepository,
     private val accessGuard: AccessGuard,
-    private val audioManager: AudioManager
+    private val audioManager: AudioManager,
+    private val userSessionManager: UserSessionManager
 ): ViewModel() {
 
     private val _uiState = MutableStateFlow(AffirmationsUiState())
     val uiState: StateFlow<AffirmationsUiState> = _uiState
+    
+    private val userId: String
+        get() = userSessionManager.getCurrentUser()?.userId ?: "anonymous_user"
     
     // CapacityAnalytics for tracking usage
     private val capacityAnalytics = CapacityAnalytics(accessGuard)
@@ -222,7 +227,7 @@ class AffirmationsViewModel(
     private fun showAnalytics() {
         viewModelScope.launch {
             // Update analytics data first
-            capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
+            capacityAnalytics.updateUsageStats(userId)
             _uiState.value = _uiState.value.copy(showAnalytics = true)
         }
     }
@@ -232,7 +237,7 @@ class AffirmationsViewModel(
      */
     private fun updateAnalytics() {
         viewModelScope.launch {
-            capacityAnalytics.updateUsageStats("current_user") // TODO: get real user ID
+            capacityAnalytics.updateUsageStats(userId)
         }
     }
     

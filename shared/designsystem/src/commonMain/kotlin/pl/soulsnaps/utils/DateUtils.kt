@@ -16,6 +16,16 @@ fun Long.toLocalDateTime(timeZone: TimeZone = TimeZone.currentSystemDefault()): 
 expect fun getCurrentTimeMillis(): Long
 
 /**
+ * Format timestamp to date string with pattern
+ */
+expect fun formatTimestamp(timestamp: Long, pattern: String): String
+
+/**
+ * Get default locale for date formatting
+ */
+expect fun getDefaultLocale(): String
+
+/**
  * Gets time of day period from timestamp
  */
 fun getTimeOfDay(timestamp: Long): String {

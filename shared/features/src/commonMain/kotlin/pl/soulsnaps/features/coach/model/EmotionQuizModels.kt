@@ -1,6 +1,8 @@
 package pl.soulsnaps.features.coach.model
 
 import kotlinx.serialization.Serializable
+import pl.soulsnaps.utils.getCurrentTimeMillis
+import pl.soulsnaps.utils.formatTimestamp
 
 /**
  * Daily emotion quiz data models
@@ -80,7 +82,7 @@ data class AIReflection(
     val suggestedAffirmations: List<String> = emptyList(),
     val emotionalInsights: List<String> = emptyList(),
     val recommendedActions: List<String> = emptyList(),
-    val generatedAt: Long = System.currentTimeMillis()
+    val generatedAt: Long = getCurrentTimeMillis()
 )
 
 /**
@@ -228,13 +230,11 @@ object DailyQuizTemplates {
 }
 
 // Helper functions
-private fun generateQuizId(): String = "quiz_${System.currentTimeMillis()}"
-private fun generateReflectionId(): String = "reflection_${System.currentTimeMillis()}"
+private fun generateQuizId(): String = "quiz_${getCurrentTimeMillis()}"
+private fun generateReflectionId(): String = "reflection_${getCurrentTimeMillis()}"
 
 private fun getCurrentDateString(): String {
     // Simple date format: YYYY-MM-DD
-    val timestamp = System.currentTimeMillis()
-    val date = java.util.Date(timestamp)
-    val formatter = java.text.SimpleDateFormat("yyyy-MM-dd")
-    return formatter.format(date)
+    val timestamp = getCurrentTimeMillis()
+    return formatTimestamp(timestamp, "yyyy-MM-dd")
 }

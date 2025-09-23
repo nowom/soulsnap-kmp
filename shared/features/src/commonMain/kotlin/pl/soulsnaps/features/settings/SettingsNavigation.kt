@@ -12,13 +12,15 @@ fun NavController.navigateToSettings(navOptions: NavOptions? = null) =
 fun NavGraphBuilder.settingsScreen(
     onNavigateToOnboarding: () -> Unit,
     onNavigateToUpgrade: () -> Unit,
-    onNavigateToAuth: () -> Unit
+    onNavigateToAuth: () -> Unit,
+    onNavigateToNotificationSettings: () -> Unit = {}
 ) {
     composable<SettingsRoute> {
         SettingsScreen(
             onNavigateToOnboarding = onNavigateToOnboarding,
             onNavigateToUpgrade = onNavigateToUpgrade,
-            onNavigateToAuth = onNavigateToAuth
+            onNavigateToAuth = onNavigateToAuth,
+            onNavigateToNotificationSettings = onNavigateToNotificationSettings
         )
     }
 }

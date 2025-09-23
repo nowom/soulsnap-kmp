@@ -13,6 +13,7 @@ import pl.soulsnaps.sync.model.PullAll
 import pl.soulsnaps.utils.getCurrentTimeMillis
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.random.Random
 
 /**
  * SyncQueue implementation using SQLDelight
@@ -164,7 +165,7 @@ class SyncQueue(
         val delay = min(exponentialDelay, maxDelay)
         
         // Add jitter (±25% of delay)
-        val jitter = (delay * 0.25 * (Math.random() - 0.5)).toLong()
+        val jitter = (delay * 0.25 * (Random.nextDouble() - 0.5)).toLong()
         
         return currentTime + delay + jitter
     }

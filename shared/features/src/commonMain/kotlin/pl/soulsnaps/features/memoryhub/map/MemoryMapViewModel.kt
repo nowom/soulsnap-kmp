@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.interactor.GetAllMemoriesUseCase
 import pl.soulsnaps.domain.model.Memory
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 class MemoryMapViewModel (
     private val getAllMemoriesUseCase: GetAllMemoriesUseCase
@@ -56,7 +57,7 @@ class MemoryMapViewModel (
                 id = 9001,
                 title = "Kraków Old Town",
                 description = "Beautiful day in Kraków's main square",
-                createdAt = System.currentTimeMillis() - 86400000, // Yesterday
+                createdAt = getCurrentTimeMillis() - 86400000, // Yesterday
                 mood = pl.soulsnaps.domain.model.MoodType.HAPPY,
                 photoUri = null,
                 audioUri = null,
@@ -69,7 +70,7 @@ class MemoryMapViewModel (
                 id = 9002,
                 title = "Warsaw Palace",
                 description = "Visiting the Royal Castle in Warsaw",
-                createdAt = System.currentTimeMillis() - 172800000, // 2 days ago
+                createdAt = getCurrentTimeMillis() - 172800000, // 2 days ago
                 mood = pl.soulsnaps.domain.model.MoodType.EXCITED,
                 photoUri = null,
                 audioUri = null,
@@ -82,7 +83,7 @@ class MemoryMapViewModel (
                 id = 9003,
                 title = "Gdańsk Seaside",
                 description = "Peaceful moment by the Baltic Sea",
-                createdAt = System.currentTimeMillis() - 259200000, // 3 days ago
+                createdAt = getCurrentTimeMillis() - 259200000, // 3 days ago
                 mood = pl.soulsnaps.domain.model.MoodType.RELAXED,
                 photoUri = null,
                 audioUri = null,
@@ -95,7 +96,7 @@ class MemoryMapViewModel (
                 id = 9004,
                 title = "Zakopane Mountains",
                 description = "Hiking in the Tatra Mountains",
-                createdAt = System.currentTimeMillis() - 345600000, // 4 days ago
+                createdAt = getCurrentTimeMillis() - 345600000, // 4 days ago
                 mood = pl.soulsnaps.domain.model.MoodType.EXCITED,
                 photoUri = null,
                 audioUri = null,
@@ -108,7 +109,7 @@ class MemoryMapViewModel (
                 id = 9005,
                 title = "Wrocław Market Square",
                 description = "Colorful buildings and great atmosphere",
-                createdAt = System.currentTimeMillis() - 432000000, // 5 days ago
+                createdAt = getCurrentTimeMillis() - 432000000, // 5 days ago
                 mood = pl.soulsnaps.domain.model.MoodType.HAPPY,
                 photoUri = null,
                 audioUri = null,
