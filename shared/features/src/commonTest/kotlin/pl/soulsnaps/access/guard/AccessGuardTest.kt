@@ -47,7 +47,7 @@ class AccessGuardTest {
         val result = guard.allowAction(
             userId = "user123",
             action = "memory.create",
-            quotaKey = "memory.create",
+            quotaKey = "snaps.capacity",
             flagKey = "feature.memories"
         )
         
@@ -102,16 +102,16 @@ class AccessGuardTest {
     fun `guard should deny action when quota is exceeded`() = runTest {
         // Given
         scopePolicy.setUserPlan("user123", "FREE_USER")
-        // Zużyj cały quota
+        // Zużyj cały quota dla snaps.capacity (który istnieje w FREE_USER plan)
         repeat(50) {
-            quotaPolicy.checkAndConsume("user123", "memory.create")
+            quotaPolicy.checkAndConsume("user123", "snaps.capacity")
         }
         
         // When
         val result = guard.allowAction(
             userId = "user123",
             action = "memory.create",
-            quotaKey = "memory.create",
+            quotaKey = "snaps.capacity",
             flagKey = "feature.memories"
         )
         
@@ -128,18 +128,18 @@ class AccessGuardTest {
     fun `guard should consume quota when action is allowed`() = runTest {
         // Given
         scopePolicy.setUserPlan("user123", "FREE_USER")
-        val initialQuota = quotaPolicy.getRemaining("user123", "memory.create")
+        val initialQuota = quotaPolicy.getRemaining("user123", "snaps.capacity")
         
         // When
         val result = guard.allowAction(
             userId = "user123",
             action = "memory.create",
-            quotaKey = "memory.create"
+            quotaKey = "snaps.capacity"
         )
         
         // Then
         assertTrue(result.allowed)
-        val remainingQuota = quotaPolicy.getRemaining("user123", "memory.create")
+        val remainingQuota = quotaPolicy.getRemaining("user123", "snaps.capacity")
         assertEquals(initialQuota - 1, remainingQuota)
     }
     
@@ -147,18 +147,18 @@ class AccessGuardTest {
     fun `guard should not consume quota when action is denied`() = runTest {
         // Given
         scopePolicy.setUserPlan("user123", "FREE_USER")
-        val initialQuota = quotaPolicy.getRemaining("user123", "memory.create")
+        val initialQuota = quotaPolicy.getRemaining("user123", "snaps.capacity")
         
         // When - próba akcji bez scope
         val result = guard.allowAction(
             userId = "user123",
             action = "ai.analysis", // brak scope w FREE_USER
-            quotaKey = "memory.create"
+            quotaKey = "snaps.capacity"
         )
         
         // Then
         assertFalse(result.allowed)
-        val remainingQuota = quotaPolicy.getRemaining("user123", "memory.create")
+        val remainingQuota = quotaPolicy.getRemaining("user123", "snaps.capacity")
         assertEquals(initialQuota, remainingQuota) // quota nie zostało skonsumowane
     }
     
@@ -168,18 +168,18 @@ class AccessGuardTest {
     fun `canPerformAction should check without consuming quota`() = runTest {
         // Given
         scopePolicy.setUserPlan("user123", "FREE_USER")
-        val initialQuota = quotaPolicy.getRemaining("user123", "memory.create")
+        val initialQuota = quotaPolicy.getRemaining("user123", "snaps.capacity")
         
         // When
         val result = guard.canPerformAction(
             userId = "user123",
             action = "memory.create",
-            quotaKey = "memory.create"
+            quotaKey = "snaps.capacity"
         )
         
         // Then
         assertTrue(result.allowed)
-        val remainingQuota = quotaPolicy.getRemaining("user123", "memory.create")
+        val remainingQuota = quotaPolicy.getRemaining("user123", "snaps.capacity")
         assertEquals(initialQuota, remainingQuota) // quota nie zostało skonsumowane
     }
     
@@ -189,14 +189,14 @@ class AccessGuardTest {
         scopePolicy.setUserPlan("user123", "FREE_USER")
         // Zużyj cały quota
         repeat(50) {
-            quotaPolicy.checkAndConsume("user123", "memory.create")
+            quotaPolicy.checkAndConsume("user123", "snaps.capacity")
         }
         
         // When
         val result = guard.canPerformAction(
             userId = "user123",
             action = "memory.create",
-            quotaKey = "memory.create"
+            quotaKey = "snaps.capacity"
         )
         
         // Then
@@ -229,10 +229,10 @@ class AccessGuardTest {
     fun `getQuotaStatus should return correct remaining quota`() = runTest {
         // Given
         scopePolicy.setUserPlan("user123", "FREE_USER")
-        quotaPolicy.checkAndConsume("user123", "memory.create", 2)
+        quotaPolicy.checkAndConsume("user123", "snaps.capacity", 2)
         
         // When
-        val remaining = guard.getQuotaStatus("user123", "memory.create")
+        val remaining = guard.getQuotaStatus("user123", "snaps.capacity")
         
         // Then
         assertEquals(48, remaining) // 50 - 2 = 48
@@ -242,14 +242,14 @@ class AccessGuardTest {
     fun `getQuotaInfo should return correct quota information`() = runTest {
         // Given
         scopePolicy.setUserPlan("user123", "FREE_USER")
-        quotaPolicy.checkAndConsume("user123", "memory.create", 2)
+        quotaPolicy.checkAndConsume("user123", "snaps.capacity", 2)
         
         // When
-        val quotaInfo = guard.getQuotaInfo("user123", "memory.create")
+        val quotaInfo = guard.getQuotaInfo("user123", "snaps.capacity")
         
         // Then
         assertNotNull(quotaInfo)
-        assertEquals("memory.create", quotaInfo.key)
+        assertEquals("snaps.capacity", quotaInfo.key)
         assertEquals(2, quotaInfo.current)
         assertEquals(50, quotaInfo.limit)
         assertEquals(ResetType.DAILY, quotaInfo.resetType)
@@ -336,7 +336,7 @@ class AccessGuardTest {
         val memoryResult = guard.allowAction(
             userId = "user123",
             action = "memory.create",
-            quotaKey = "memory.create"
+            quotaKey = "snaps.capacity"
         )
         
         val exportResult = guard.allowAction(
@@ -350,7 +350,7 @@ class AccessGuardTest {
         assertTrue(exportResult.allowed)
         
         // Sprawdź czy quota zostały skonsumowane niezależnie
-        assertEquals(Int.MAX_VALUE, quotaPolicy.getRemaining("user123", "memory.create")) // unlimited
+        assertEquals(Int.MAX_VALUE, quotaPolicy.getRemaining("user123", "snaps.capacity")) // unlimited
         assertEquals(Int.MAX_VALUE, quotaPolicy.getRemaining("user123", "export.data")) // unlimited
     }
     
@@ -455,7 +455,7 @@ class AccessGuardTest {
         val result = guard.allowAction(
             userId = "user123",
             action = "memory.create",
-            quotaKey = "memory.create" // bez flag key
+            quotaKey = "snaps.capacity" // bez flag key
         )
         
         // Then

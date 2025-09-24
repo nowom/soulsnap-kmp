@@ -1,9 +1,9 @@
 package pl.soulsnaps.access.manager
 
+import dev.mokkery.mock
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.coroutineScope
-import pl.soulsnaps.access.storage.UserPreferencesStorage
 import kotlin.test.*
 
 class OnboardingManagerTest {
@@ -13,10 +13,10 @@ class OnboardingManagerTest {
 
     @BeforeTest
     fun setup() {
-        userPlanManager = UserPlanManager(mockStorage)
+        userPlanManager = UserPlanManager(mock())
         onboardingManager = OnboardingManager(userPlanManager)
     }
-    
+
     @Test
     fun `should start with welcome step and onboarding not active`() {
         assertEquals(OnboardingStep.WELCOME, onboardingManager.getCurrentStep())

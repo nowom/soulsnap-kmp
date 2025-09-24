@@ -1,45 +1,43 @@
 package pl.soulsnaps.access.manager
 
+import dev.mokkery.mock
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 /**
- * Test for OnboardingManagerSimple using DataStore
+ * Test for OnboardingManager using DataStore
  * Based on official KMP DataStore patterns
  */
 class OnboardingManagerSimpleTest {
     
-    private lateinit var onboardingManager: OnboardingManagerSimple
-    private lateinit var userPlanManager: UserPlanManagerSimple
-    private lateinit var mockPreferencesStore: MockSimplePreferencesStore
-    
+    private lateinit var onboardingManager: OnboardingManager
+    private lateinit var userPlanManager: UserPlanManager
+
     @BeforeTest
     fun setup() {
-        mockPreferencesStore = MockSimplePreferencesStore()
-        userPlanManager = UserPlanManagerSimple(mockPreferencesStore)
-        onboardingManager = OnboardingManagerSimple(userPlanManager)
+        userPlanManager = UserPlanManager(mock())
+        onboardingManager = OnboardingManager(userPlanManager)
     }
-    
+
     @Test
-    fun `should start with welcome step and onboarding not active`() {
+    fun `should start with welcome step and onboarding not active`() = runTest {
         assertEquals(OnboardingStep.WELCOME, onboardingManager.getCurrentStep())
         assertFalse(onboardingManager.isActive())
     }
     
     @Test
-    fun `should show onboarding when not completed`() {
+    fun `should show onboarding when not completed`() = runTest {
         assertTrue(onboardingManager.shouldShowOnboarding())
     }
     
     @Test
-    fun `should not show onboarding when completed`() {
+    fun `should not show onboarding when completed`() = runTest {
         userPlanManager.setUserPlan("FREE_USER")
-        userPlanManager.setOnboardingCompleted(true)
         assertFalse(onboardingManager.shouldShowOnboarding())
     }
     
     @Test
-    fun `should start onboarding`() {
+    fun `should start onboarding`() = runTest {
         onboardingManager.startOnboarding()
         
         assertEquals(OnboardingStep.WELCOME, onboardingManager.getCurrentStep())
@@ -47,7 +45,7 @@ class OnboardingManagerSimpleTest {
     }
     
     @Test
-    fun `should navigate through onboarding steps`() {
+    fun `should navigate through onboarding steps`() = runTest {
         onboardingManager.startOnboarding()
         
         // WELCOME -> PLAN_SELECTION
@@ -68,7 +66,7 @@ class OnboardingManagerSimpleTest {
     }
     
     @Test
-    fun `should navigate back through onboarding steps`() {
+    fun `should navigate back through onboarding steps`() = runTest {
         onboardingManager.startOnboarding()
         onboardingManager.nextStep() // WELCOME -> PLAN_SELECTION
         onboardingManager.nextStep() // PLAN_SELECTION -> FEATURES_OVERVIEW
@@ -87,7 +85,7 @@ class OnboardingManagerSimpleTest {
     }
     
     @Test
-    fun `should select plan and advance to next step`() {
+    fun `should select plan and advance to next step`() = runTest {
         onboardingManager.startOnboarding()
         onboardingManager.nextStep() // Move to PLAN_SELECTION
         
@@ -99,7 +97,7 @@ class OnboardingManagerSimpleTest {
     }
     
     @Test
-    fun `should complete onboarding`() {
+    fun `should complete onboarding`() = runTest {
         onboardingManager.startOnboarding()
         onboardingManager.completeOnboarding()
         
@@ -108,7 +106,7 @@ class OnboardingManagerSimpleTest {
     }
     
     @Test
-    fun `should skip onboarding`() {
+    fun `should skip onboarding`() = runTest {
         onboardingManager.startOnboarding()
         onboardingManager.skipOnboarding()
         
@@ -118,7 +116,7 @@ class OnboardingManagerSimpleTest {
     }
     
     @Test
-    fun `should reset onboarding`() {
+    fun `should reset onboarding`() = runTest {
         onboardingManager.startOnboarding()
         onboardingManager.nextStep()
         userPlanManager.setUserPlan("PREMIUM_USER")
@@ -129,68 +127,5 @@ class OnboardingManagerSimpleTest {
         assertFalse(onboardingManager.isActive())
         assertNull(userPlanManager.getUserPlan())
         assertFalse(userPlanManager.isOnboardingCompleted())
-    }
-}
-
-/**
- * Simple mock SimplePreferencesStore for tests
- */
-class MockSimplePreferencesStore : pl.soulsnaps.access.storage.SimplePreferencesStore {
-    private val storage = mutableMapOf<String, Any>()
-    
-    override suspend fun saveUserPlan(planName: String) {
-        storage["user_plan"] = planName
-    }
-    
-    override suspend fun getUserPlan(): String? {
-        return storage["user_plan"] as? String
-    }
-    
-    override fun getUserPlanFlow(): kotlinx.coroutines.flow.Flow<String?> {
-        return kotlinx.coroutines.flow.MutableStateFlow(storage["user_plan"] as? String)
-    }
-    
-    override suspend fun saveOnboardingCompleted(completed: Boolean) {
-        storage["onboarding_completed"] = completed
-    }
-    
-    override suspend fun isOnboardingCompleted(): Boolean {
-        return storage["onboarding_completed"] as? Boolean ?: false
-    }
-    
-    override fun isOnboardingCompletedFlow(): kotlinx.coroutines.flow.Flow<Boolean> {
-        return kotlinx.coroutines.flow.MutableStateFlow(storage["onboarding_completed"] as? Boolean ?: false)
-    }
-    
-    override suspend fun putString(key: String, value: String) {
-        storage[key] = value
-    }
-    
-    override suspend fun getString(key: String, defaultValue: String?): String? {
-        return storage[key] as? String ?: defaultValue
-    }
-    
-    override fun getStringFlow(key: String, defaultValue: String?): kotlinx.coroutines.flow.Flow<String?> {
-        return kotlinx.coroutines.flow.MutableStateFlow(storage[key] as? String ?: defaultValue)
-    }
-    
-    override suspend fun putBoolean(key: String, value: Boolean) {
-        storage[key] = value
-    }
-    
-    override suspend fun getBoolean(key: String, defaultValue: Boolean): Boolean {
-        return storage[key] as? Boolean ?: defaultValue
-    }
-    
-    override fun getBooleanFlow(key: String, defaultValue: Boolean): kotlinx.coroutines.flow.Flow<Boolean> {
-        return kotlinx.coroutines.flow.MutableStateFlow(storage[key] as? Boolean ?: defaultValue)
-    }
-    
-    override suspend fun clearAllData() {
-        storage.clear()
-    }
-    
-    override suspend fun hasStoredData(): Boolean {
-        return storage.isNotEmpty()
     }
 }

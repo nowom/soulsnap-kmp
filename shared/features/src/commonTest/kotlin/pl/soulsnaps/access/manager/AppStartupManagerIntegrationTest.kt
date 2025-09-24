@@ -1,8 +1,13 @@
 package pl.soulsnaps.access.manager
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import dev.mokkery.mock
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.flow.first
 import pl.soulsnaps.access.storage.UserPreferencesStorage
+import pl.soulsnaps.access.storage.UserPreferencesStorageImpl
+import pl.soulsnaps.access.storage.createDataStore
 import kotlin.test.*
 
 /**
@@ -22,11 +27,12 @@ class AppStartupManagerIntegrationTest {
     
     private lateinit var userPlanManager: UserPlanManager
     private lateinit var onboardingManager: OnboardingManager
+    private lateinit var dataStore: DataStore<Preferences>
     
     @BeforeTest
     fun setup() {
-        val storage = UserPreferencesStorage(mocck)
-        userPlanManager = UserPlanManager(storage)
+        dataStore = createDataStore { "test_app_startup.pb" }
+        userPlanManager = UserPlanManager(mock())
         onboardingManager = OnboardingManager(userPlanManager)
     }
     
@@ -279,7 +285,8 @@ class AppStartupManagerIntegrationTest {
         assertTrue(userPlanManager.hasPlanSet())
         
         // When - create new instance (simulating app restart)
-        val newStorage = UserPreferencesStorageFactory.create()
+        val newDataStore = createDataStore { "test_app_startup_new.pb" }
+        val newStorage = UserPreferencesStorageImpl(newDataStore)
         val newUserPlanManager = UserPlanManager(newStorage)
         
         // Then - should load persisted data

@@ -29,7 +29,7 @@ object DefaultPlans {
         type = PlanType.FREE_USER,
         name = "Free User",
         description = "Darmowy plan z podstawowymi funkcjami",
-        scopes = setOf("memory.basic", "view.basic", "export.basic"),
+        scopes = setOf("memory.basic", "view.basic", "export.basic", "analysis.run.single"),
         quotas = mapOf(
             "snaps.capacity" to 50,
             "storage.gb" to 10,

@@ -1,20 +1,26 @@
 package pl.soulsnaps.access.storage
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 /**
- * Testy dla UserPreferencesStorageFactory
+ * Testy jednostkowe dla UserPreferencesStorage
  */
-class UserPreferencesStorageFactoryTest {
+class UserPreferencesStorageUnitTest {
+    
+    private fun createTestDataStore(): DataStore<Preferences> {
+        return createDataStore { "test_preferences_unit.pb" }
+    }
     
     @Test
     fun `should create UserPreferencesStorage instance`() = runTest {
         // Given
-        val factory = UserPreferencesStorage()
+        val dataStore = createTestDataStore()
         
         // When
-        val storage = factory.create()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // Then
         assertNotNull(storage)
@@ -24,7 +30,8 @@ class UserPreferencesStorageFactoryTest {
     @Test
     fun `should have all required methods`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // When & Then
         // Sprawdź czy wszystkie metody są dostępne
@@ -34,12 +41,17 @@ class UserPreferencesStorageFactoryTest {
         assertNotNull(storage::isOnboardingCompleted)
         assertNotNull(storage::clearAllData)
         assertNotNull(storage::hasStoredData)
+        assertNotNull(storage::saveNotificationPermissionDecided)
+        assertNotNull(storage::isNotificationPermissionDecided)
+        assertNotNull(storage::saveNotificationPermissionGranted)
+        assertNotNull(storage::isNotificationPermissionGranted)
     }
     
     @Test
     fun `should handle basic storage operations`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // When
         storage.saveUserPlan("TEST_PLAN")
@@ -57,7 +69,8 @@ class UserPreferencesStorageFactoryTest {
     @Test
     fun `should clear all data`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         storage.saveUserPlan("TEST_PLAN")
         storage.saveOnboardingCompleted(true)
         
@@ -73,7 +86,8 @@ class UserPreferencesStorageFactoryTest {
     @Test
     fun `should handle empty storage`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // When & Then
         assertNull(storage.getUserPlan())
@@ -84,7 +98,8 @@ class UserPreferencesStorageFactoryTest {
     @Test
     fun `should handle multiple operations`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // When
         storage.saveUserPlan("PLAN_1")
@@ -95,6 +110,22 @@ class UserPreferencesStorageFactoryTest {
         // Then
         assertEquals("PLAN_2", storage.getUserPlan())
         assertTrue(storage.isOnboardingCompleted())
+        assertTrue(storage.hasStoredData())
+    }
+    
+    @Test
+    fun `should handle notification permission methods`() = runTest {
+        // Given
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
+        
+        // When
+        storage.saveNotificationPermissionDecided(true)
+        storage.saveNotificationPermissionGranted(false)
+        
+        // Then
+        assertTrue(storage.isNotificationPermissionDecided())
+        assertFalse(storage.isNotificationPermissionGranted())
         assertTrue(storage.hasStoredData())
     }
 }

@@ -1,67 +1,81 @@
 package pl.soulsnaps.access.manager
 
+import dev.mokkery.mock
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.coroutineScope
 import kotlin.test.*
 
 class UserPlanManagerTest {
     
     private lateinit var userPlanManager: UserPlanManager
-    private lateinit var mockStorage: MockUserPreferencesStorage
-    
+
     @BeforeTest
     fun setup() {
-        mockStorage = MockUserPreferencesStorage()
-        userPlanManager = UserPlanManager(mockStorage)
+        userPlanManager = UserPlanManager(mock())
     }
-    
+
     @Test
-    fun `should start with no plan and onboarding not completed`() {
+    fun `should start with no plan and onboarding not completed`() = runTest {
         assertNull(userPlanManager.getUserPlan())
         assertFalse(userPlanManager.isOnboardingCompleted())
         assertFalse(userPlanManager.hasPlanSet())
     }
     
     @Test
-    fun `should set user plan and mark onboarding as completed`() {
+    fun `should set user plan and mark onboarding as completed`() = runTest {
+        // When
         userPlanManager.setUserPlan("FREE_USER")
         
+        // Then
         assertEquals("FREE_USER", userPlanManager.getUserPlan())
         assertTrue(userPlanManager.isOnboardingCompleted())
         assertTrue(userPlanManager.hasPlanSet())
     }
     
     @Test
-    fun `should return default plan when no plan is set`() {
+    fun `should return default plan when no plan is set`() = runTest {
         assertEquals("GUEST", userPlanManager.getPlanOrDefault())
     }
     
     @Test
-    fun `should return actual plan when plan is set`() {
+    fun `should return actual plan when plan is set`() = runTest {
+        // Given
         userPlanManager.setUserPlan("PREMIUM_USER")
+        
+        // When & Then
         assertEquals("PREMIUM_USER", userPlanManager.getPlanOrDefault())
     }
     
     @Test
-    fun `should set default plan if needed`() {
+    fun `should set default plan if needed`() = runTest {
+        // When
         userPlanManager.setDefaultPlanIfNeeded()
+        
+        // Then
         assertEquals("GUEST", userPlanManager.getUserPlan())
-        assertFalse(userPlanManager.isOnboardingCompleted()) // Onboarding not completed by default
+        assertFalse(userPlanManager.isOnboardingCompleted())
     }
     
     @Test
-    fun `should not override existing plan when setting default`() {
+    fun `should not override existing plan when setting default`() = runTest {
+        // Given
         userPlanManager.setUserPlan("PREMIUM_USER")
+        
+        // When
         userPlanManager.setDefaultPlanIfNeeded()
+        
+        // Then
         assertEquals("PREMIUM_USER", userPlanManager.getUserPlan())
     }
     
     @Test
-    fun `should reset user plan`() {
+    fun `should reset user plan`() = runTest {
+        // Given
         userPlanManager.setUserPlan("FREE_USER")
+        
+        // When
         userPlanManager.resetUserPlan()
         
+        // Then
         assertNull(userPlanManager.getUserPlan())
         assertFalse(userPlanManager.isOnboardingCompleted())
         assertFalse(userPlanManager.hasPlanSet())

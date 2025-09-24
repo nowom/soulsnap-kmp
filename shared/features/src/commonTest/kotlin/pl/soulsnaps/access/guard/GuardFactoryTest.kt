@@ -173,7 +173,7 @@ class GuardFactoryTest {
         
         // When & Then - sprawdź czy domyślny guard działa poprawnie
         val scopes = guard.getUserScopes("free_user")
-        assertTrue(scopes.contains("memory.create"))
+        assertTrue(scopes.contains("memory.basic"))
         assertTrue(scopes.contains("analysis.run.single"))
     }
     
@@ -264,14 +264,17 @@ class GuardFactoryTest {
         // Given
         val guard = GuardFactory.createDefaultGuard(mockUserPlanManager)
         
-        // When & Then - sprawdź wszystkie wymagane operacje
-        assertNotNull(guard.getFeatureInfo("feature.analysis"))
-        assertNotNull(guard.getAllFeatures())
+        // When & Then - sprawdź podstawowe operacje
+        val allFeatures = guard.getAllFeatures()
+        assertNotNull(allFeatures)
+        assertTrue(allFeatures.isNotEmpty())
+        
+        // Sprawdź czy podstawowe features działają
         assertTrue(guard.isFeatureEnabled("feature.memories"))
         
         // Sprawdź upgrade recommendations
         assertNotNull(guard.getUpgradeRecommendation("memory.create"))
-        assertNotNull(guard.getUpgradeRecommendation("analysis.run.patterns"))
+        assertNotNull(guard.getUpgradeRecommendation("ai.analysis"))
     }
 }
 

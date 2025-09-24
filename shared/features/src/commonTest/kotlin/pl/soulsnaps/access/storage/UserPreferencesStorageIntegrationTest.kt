@@ -1,5 +1,7 @@
 package pl.soulsnaps.access.storage
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
@@ -9,10 +11,15 @@ import kotlin.test.*
  */
 class UserPreferencesStorageIntegrationTest {
     
+    private fun createTestDataStore(): DataStore<Preferences> {
+        return createDataStore { "test_preferences.pb" }
+    }
+    
     @Test
     fun `should persist data across multiple operations`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // Clean up first
         storage.clearAllData()
@@ -34,7 +41,8 @@ class UserPreferencesStorageIntegrationTest {
     @Test
     fun `should handle plan changes`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // Clean up first
         storage.clearAllData()
@@ -51,7 +59,8 @@ class UserPreferencesStorageIntegrationTest {
     @Test
     fun `should handle onboarding status changes`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // Clean up first
         storage.clearAllData()
@@ -68,7 +77,8 @@ class UserPreferencesStorageIntegrationTest {
     @Test
     fun `should clear all data`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // Clean up first
         storage.clearAllData()
@@ -88,7 +98,8 @@ class UserPreferencesStorageIntegrationTest {
     @Test
     fun `should handle empty storage correctly`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // Clean up first
         storage.clearAllData()
@@ -102,7 +113,8 @@ class UserPreferencesStorageIntegrationTest {
     @Test
     fun `should handle partial data`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // Clean up first
         storage.clearAllData()
@@ -119,7 +131,8 @@ class UserPreferencesStorageIntegrationTest {
     @Test
     fun `should handle only onboarding status`() = runTest {
         // Given
-        val storage = UserPreferencesStorageFactory.create()
+        val dataStore = createTestDataStore()
+        val storage = UserPreferencesStorageImpl(dataStore)
         
         // Clean up first
         storage.clearAllData()

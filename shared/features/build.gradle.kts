@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     kotlin("plugin.serialization") version "2.1.21" // dopasuj do wersji Kotlin
+    id("dev.mokkery") version "2.10.0"   // ← Plugin MUSI być tu (ten sam moduł co testy)
 }
 
 kotlin {
@@ -87,6 +88,7 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.test)
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+                implementation("dev.mokkery:mokkery-runtime:2.10.0")
             }
         }
 
@@ -141,3 +143,4 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
 }
+

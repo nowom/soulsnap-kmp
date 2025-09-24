@@ -9,9 +9,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
-class UserPreferencesStorage(
+class UserPreferencesStorageImpl(
     private val dataStore: DataStore<Preferences>
-) {
+) : UserPreferencesStorage {
     private object Keys {
         val PLAN = stringPreferencesKey("plan_name")
         val ONBOARDING = booleanPreferencesKey("onboarding_completed")
@@ -20,38 +20,51 @@ class UserPreferencesStorage(
 
     }
 
-    suspend fun saveUserPlan(planName: String) {
+    override suspend fun saveUserPlan(planName: String) {
         dataStore.edit { it[Keys.PLAN] = planName }
     }
 
-    suspend fun getUserPlan(): String? =
+    override suspend fun getUserPlan(): String? =
         dataStore.data.map { it[Keys.PLAN] }.first()
 
-    suspend fun saveOnboardingCompleted(completed: Boolean) {
+    override suspend fun saveOnboardingCompleted(completed: Boolean) {
         dataStore.edit { it[Keys.ONBOARDING] = completed }
     }
 
-    suspend fun isOnboardingCompleted(): Boolean =
+    override suspend fun isOnboardingCompleted(): Boolean =
         dataStore.data.map { it[Keys.ONBOARDING] ?: false }.first()
 
-    suspend fun clearAllData() {
+    override suspend fun clearAllData() {
         dataStore.edit { it.clear() }
     }
 
-    suspend fun saveNotificationPermissionDecided(decided: Boolean) {
+    override suspend fun saveNotificationPermissionDecided(decided: Boolean) {
         dataStore.edit { it[Keys.NOTIF_DECIDED] = decided }
     }
 
-    suspend fun isNotificationPermissionDecided(): Boolean =
+    override suspend fun isNotificationPermissionDecided(): Boolean =
         dataStore.data.map { it[Keys.NOTIF_DECIDED] ?: false }.first()
 
-    suspend fun saveNotificationPermissionGranted(granted: Boolean) {
+    override suspend fun saveNotificationPermissionGranted(granted: Boolean) {
         dataStore.edit { it[Keys.NOTIF_GRANTED] = granted }
     }
 
-    suspend fun isNotificationPermissionGranted(): Boolean =
+    override suspend fun isNotificationPermissionGranted(): Boolean =
         dataStore.data.map { it[Keys.NOTIF_GRANTED] ?: false }.first()
 
-    suspend fun hasStoredData(): Boolean =
+    override suspend fun hasStoredData(): Boolean =
         dataStore.data.first().asMap().isNotEmpty()
+}
+
+interface UserPreferencesStorage{
+    suspend fun saveUserPlan(planName: String)
+    suspend fun getUserPlan(): String?
+    suspend fun saveOnboardingCompleted(completed: Boolean)
+    suspend fun isOnboardingCompleted(): Boolean
+    suspend fun clearAllData()
+    suspend fun saveNotificationPermissionDecided(decided: Boolean)
+    suspend fun isNotificationPermissionDecided(): Boolean
+    suspend fun saveNotificationPermissionGranted(granted: Boolean)
+    suspend fun isNotificationPermissionGranted(): Boolean
+    suspend fun hasStoredData(): Boolean
 }

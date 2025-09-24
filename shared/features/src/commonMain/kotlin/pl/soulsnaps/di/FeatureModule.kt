@@ -53,6 +53,7 @@ import pl.soulsnaps.access.manager.PlanRegistryReader
 import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
 import pl.soulsnaps.access.storage.UserPreferencesStorage
 import pl.soulsnaps.access.guard.GuardFactory
+import pl.soulsnaps.access.storage.UserPreferencesStorageImpl
 import pl.soulsnaps.network.SupabaseAuthService
 
 object FeatureModule {
@@ -73,7 +74,7 @@ object FeatureModule {
         viewModelOf(::LocationPickerViewModel)
 
         // UserPreferencesStorage - singleton for user preferences
-        single { UserPreferencesStorage(get()) }
+        single<UserPreferencesStorage> { UserPreferencesStorageImpl(get()) }
         
         // UserPlanManager - singleton for managing user plans
         single { UserPlanManager(get()) }

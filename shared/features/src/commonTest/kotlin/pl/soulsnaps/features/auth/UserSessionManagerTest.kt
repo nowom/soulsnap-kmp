@@ -1,25 +1,31 @@
 package pl.soulsnaps.features.auth
 
-import kotlin.test.*
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.flow.first
+import dev.mokkery.mock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
 import pl.soulsnaps.domain.model.UserSession
 import pl.soulsnaps.utils.getCurrentTimeMillis
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Testy dla UserSessionManager
  */
 class UserSessionManagerTest {
     
-    private lateinit var sessionDataStore: MockSessionDataStore
     private lateinit var userSessionManager: UserSessionManager
     private lateinit var coroutineScope: CoroutineScope
+    private lateinit var sessionDataStore: SessionDataStore
     
     @BeforeTest
     fun setup() {
-        sessionDataStore = MockSessionDataStore()
+        sessionDataStore = mock<SessionDataStore>()
         coroutineScope = CoroutineScope(SupervisorJob())
         userSessionManager = UserSessionManager(sessionDataStore, coroutineScope)
     }
@@ -117,7 +123,7 @@ class UserSessionManagerTest {
     fun `should load existing session on startup`() = runTest {
         // Given
         val storedSession = createTestUserSession("user123", "test@example.com")
-        sessionDataStore.setStoredSession(storedSession)
+        sessionDataStore.saveSession(storedSession)
         
         // When
         val userSessionManager = UserSessionManager(sessionDataStore, coroutineScope)
@@ -188,31 +194,5 @@ class UserSessionManagerTest {
             accessToken = "test_token_$userId",
             refreshToken = "test_refresh_$userId"
         )
-    }
-}
-
-/**
- * Mock implementation of SessionDataStore for testing
- */
-class MockSessionDataStore : SessionDataStore {
-    private var storedSession: UserSession? = null
-    private val _currentSession = kotlinx.coroutines.flow.MutableStateFlow<UserSession?>(null)
-    
-    fun setStoredSession(session: UserSession?) {
-        storedSession = session
-    }
-    
-    override val currentSession: kotlinx.coroutines.flow.StateFlow<UserSession?> = _currentSession
-    
-    override suspend fun getStoredSession(): UserSession? = storedSession
-    
-    override suspend fun saveSession(session: UserSession) {
-        storedSession = session
-        _currentSession.value = session
-    }
-    
-    override suspend fun clearSession() {
-        storedSession = null
-        _currentSession.value = null
     }
 }

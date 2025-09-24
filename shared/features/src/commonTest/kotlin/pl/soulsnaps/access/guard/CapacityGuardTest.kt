@@ -53,7 +53,7 @@ class CapacityGuardTest {
         // Given
         val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
-        val fileSizeMB = 2000 // 2GB file - exceeds FREE_USER 1GB limit
+        val fileSizeMB = 11000 // 11GB file - exceeds FREE_USER 10GB limit
         
         // When
         val result = capacityGuard.canAddSnapWithSize(userId, fileSizeMB)
@@ -154,7 +154,7 @@ class CapacityGuardTest {
         val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
         val userId = "test_user"
         val action = "memory.create"
-        val fileSizeMB = 2000 // 2GB - exceeds FREE_USER 1GB limit
+        val fileSizeMB = 11000 // 11GB - exceeds FREE_USER 10GB limit
         
         // When
         val result = capacityGuard.canPerformActionWithFileSize(userId, action, fileSizeMB)
