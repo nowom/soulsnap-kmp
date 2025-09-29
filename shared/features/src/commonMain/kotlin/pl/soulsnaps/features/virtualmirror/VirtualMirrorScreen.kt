@@ -58,7 +58,9 @@ fun VirtualMirrorScreen(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Aby korzystać z Wirtualnego Lustra, musisz udzielić dostępu do kamery.")
                 Spacer(Modifier.height(16.dp))
-                Button(onClick = { /* Open app settings */ }) {
+                Button(onClick = {
+
+                }) {
                     Text("Otwórz ustawienia")
                 }
             }

@@ -8,6 +8,8 @@ import org.koin.dsl.module
 import pl.soulsnaps.access.storage.createPreferencesDataStore
 import pl.soulsnaps.audio.AudioPlayer
 import pl.soulsnaps.audio.AudioPlayerFactory
+import pl.soulsnaps.components.AndroidSettingsNavigator
+import pl.soulsnaps.components.SettingsNavigator
 import pl.soulsnaps.database.DatabaseDriverFactory
 import pl.soulsnaps.sync.connectivity.AndroidConnectivityMonitor
 import pl.soulsnaps.sync.connectivity.ConnectivityMonitor
@@ -45,11 +47,11 @@ actual val platformModule: Module = module {
     single<ImagePipeline> {
         AndroidImagePipeline(androidContext())
     }
-    
+
     single<LocalFileIO> {
         AndroidLocalFileIO(androidContext())
     }
-    
+
     // Android platform scheduler
     single<PlatformScheduler> {
         AndroidPlatformScheduler(androidContext())
@@ -58,14 +60,16 @@ actual val platformModule: Module = module {
     single<DataStore<Preferences>> {
         createPreferencesDataStore(androidContext())
     }
-    
-        // Crashlytics
-        single<CrashlyticsManager> {
-            CrashlyticsManagerFactory.create()
-        }
-        
-        // Firebase Analytics
-        single<pl.soulsnaps.analytics.FirebaseAnalyticsManager> {
-            pl.soulsnaps.analytics.FirebaseAnalyticsManagerFactory.create()
-        }
+
+    // Crashlytics
+    single<CrashlyticsManager> {
+        CrashlyticsManagerFactory.create()
+    }
+
+    // Firebase Analytics
+    single<pl.soulsnaps.analytics.FirebaseAnalyticsManager> {
+        pl.soulsnaps.analytics.FirebaseAnalyticsManagerFactory.create()
+    }
+
+    single<SettingsNavigator> { AndroidSettingsNavigator(androidContext()) }
 }

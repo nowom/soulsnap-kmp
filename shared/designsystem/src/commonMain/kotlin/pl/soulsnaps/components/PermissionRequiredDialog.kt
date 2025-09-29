@@ -21,11 +21,11 @@ import pl.soulsnaps.designsystem.SoulSnapTypography
 @Composable
 fun PermissionRequiredDialog(
     permissionType: PermissionType,
+    settingsNavigator: SettingsNavigator,
     onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
@@ -75,7 +75,7 @@ fun PermissionRequiredDialog(
                     // Open Settings button
                     Button(
                         onClick = {
-                            openAppSettings()
+                            settingsNavigator.openAppSettings()
                             onOpenSettings()
                         },
                         modifier = Modifier.fillMaxWidth(),

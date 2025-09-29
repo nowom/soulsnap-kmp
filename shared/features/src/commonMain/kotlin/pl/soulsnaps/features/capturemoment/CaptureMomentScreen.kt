@@ -83,6 +83,7 @@ import pl.soulsnaps.components.AffirmationSnackbar
 import pl.soulsnaps.components.AffirmationErrorSnackbar
 import pl.soulsnaps.components.PermissionRequiredDialog
 import pl.soulsnaps.components.PermissionType
+import pl.soulsnaps.components.SettingsNavigator
 import pl.soulsnaps.domain.model.MoodType
 import pl.soulsnaps.navigation.LocalNavController
 import pl.soulsnaps.photo.rememberCameraManager
@@ -109,7 +110,7 @@ fun AddMemoryScreen(
     val coroutineScope = rememberCoroutineScope()
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     val navController = LocalNavController.current
-    
+    val settingsNavigator: SettingsNavigator = koinInject()
     // Camera and Gallery managers
     val cameraManager = rememberCameraManager { sharedImage ->
         sharedImage?.let { image ->
@@ -389,6 +390,7 @@ fun AddMemoryScreen(
         // Camera permission dialog
         if (showCameraPermissionDialog) {
             PermissionRequiredDialog(
+                settingsNavigator = settingsNavigator,
                 permissionType = PermissionType.CAMERA,
                 onOpenSettings = {
                     showCameraPermissionDialog = false
@@ -402,6 +404,7 @@ fun AddMemoryScreen(
         // Gallery permission dialog
         if (showGalleryPermissionDialog) {
             PermissionRequiredDialog(
+                settingsNavigator = settingsNavigator,
                 permissionType = PermissionType.GALLERY,
                 onOpenSettings = {
                     showGalleryPermissionDialog = false

@@ -7,6 +7,8 @@ import org.koin.dsl.module
 import pl.soulsnaps.access.storage.createPreferencesDataStore
 import pl.soulsnaps.audio.AudioPlayer
 import pl.soulsnaps.audio.AudioPlayerFactory
+import pl.soulsnaps.components.IOSSettingsNavigator
+import pl.soulsnaps.components.SettingsNavigator
 import pl.soulsnaps.database.DatabaseDriverFactory
 import pl.soulsnaps.sync.connectivity.ConnectivityMonitor
 import pl.soulsnaps.sync.connectivity.IOSConnectivityMonitor
@@ -37,16 +39,16 @@ actual val platformModule: Module = module {
     single<ImagePipeline> {
         IOSImagePipeline()
     }
-    
+
     single<LocalFileIO> {
         IOSLocalFileIO()
     }
-    
+
     // iOS connectivity monitor
     single<ConnectivityMonitor> {
         IOSConnectivityMonitor()
     }
-    
+
     // iOS platform scheduler
     single<PlatformScheduler> {
         IOSPlatformScheduler()
@@ -55,14 +57,16 @@ actual val platformModule: Module = module {
     single<DataStore<Preferences>> {
         createPreferencesDataStore()
     }
-    
-        // Crashlytics
-        single<CrashlyticsManager> {
-            CrashlyticsManagerFactory.create()
-        }
-        
-        // Firebase Analytics
-        single<pl.soulsnaps.analytics.FirebaseAnalyticsManager> {
-            pl.soulsnaps.analytics.FirebaseAnalyticsManagerFactory.create()
-        }
+
+    // Crashlytics
+    single<CrashlyticsManager> {
+        CrashlyticsManagerFactory.create()
+    }
+
+    // Firebase Analytics
+    single<pl.soulsnaps.analytics.FirebaseAnalyticsManager> {
+        pl.soulsnaps.analytics.FirebaseAnalyticsManagerFactory.create()
+    }
+
+    single<SettingsNavigator> { IOSSettingsNavigator() }
 }
