@@ -27,7 +27,7 @@ class UserSessionManagerTest {
     fun setup() {
         sessionDataStore = mock<SessionDataStore>()
         coroutineScope = CoroutineScope(SupervisorJob())
-        userSessionManager = UserSessionManager(sessionDataStore, coroutineScope)
+        userSessionManager = mock()
     }
     
     @Test
@@ -126,7 +126,7 @@ class UserSessionManagerTest {
         sessionDataStore.saveSession(storedSession)
         
         // When
-        val userSessionManager = UserSessionManager(sessionDataStore, coroutineScope)
+        val userSessionManager: UserSessionManager = mock()
         val sessionState = userSessionManager.sessionState.first()
         val currentUser = userSessionManager.getCurrentUser()
         

@@ -26,6 +26,10 @@ import pl.soulsnaps.domain.interactor.GenerateAIReflectionUseCase
 import pl.soulsnaps.domain.interactor.DeleteMemoryUseCase
 import pl.soulsnaps.domain.interactor.EditMemoryUseCase
 import pl.soulsnaps.domain.interactor.SearchLocationsUseCase
+import pl.soulsnaps.domain.interactor.ClearUserDataUseCase
+import pl.soulsnaps.domain.interactor.ClearDataOnSessionExpiredUseCase
+import pl.soulsnaps.domain.interactor.SessionExpirationHandler
+import pl.soulsnaps.domain.interactor.UserPlanUseCase
 
 object DomainModule {
     fun get() = module {
@@ -38,12 +42,16 @@ object DomainModule {
         factoryOf(::SignInUseCase)
         factoryOf(::RegisterUseCase)
         factoryOf(::SignInAnonymouslyUseCase)
-        factory { SignOutUseCase(get(), get(), get(), get(), get()) }
+        factory { SignOutUseCase(get(), get(), get()) }
         factoryOf(::GetMemoryByIdUseCase)
         factoryOf(::ToggleMemoryFavoriteUseCase)
         factoryOf(::DeleteMemoryUseCase)
         factoryOf(::EditMemoryUseCase)
         factoryOf(::SearchLocationsUseCase)
+        factoryOf(::ClearUserDataUseCase)
+        factoryOf(::ClearDataOnSessionExpiredUseCase)
+        factoryOf(::SessionExpirationHandler)
+        factoryOf(::UserPlanUseCase)
         
         // Daily Quiz Use Cases
         factory { GetDailyQuizUseCase(get()) }

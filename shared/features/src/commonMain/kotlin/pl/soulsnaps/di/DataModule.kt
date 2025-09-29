@@ -12,23 +12,26 @@ import pl.soulsnaps.data.MemoryRepositoryImpl
 import pl.soulsnaps.data.OnlineDataSource
 import pl.soulsnaps.data.SupabaseAuthRepository
 import pl.soulsnaps.data.SupabaseMemoryDataSource
+import pl.soulsnaps.data.UserPlanRepositoryImpl
 import pl.soulsnaps.domain.AffirmationRepository
 import pl.soulsnaps.domain.AuthRepository
 import pl.soulsnaps.domain.MemoryRepository
 import pl.soulsnaps.domain.QuoteRepository
+import pl.soulsnaps.domain.UserPlanRepository
 import pl.soulsnaps.domain.service.AffirmationService
 import pl.soulsnaps.domain.service.AffirmationServiceImpl
 import pl.soulsnaps.features.auth.InMemorySessionDataStore
 import pl.soulsnaps.features.auth.SessionDataStore
 import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.features.auth.UserSessionManagerImpl
 import pl.soulsnaps.network.SupabaseAuthService
 import pl.soulsnaps.network.SupabaseClientProvider
 
 object DataModule {
     fun get(): Module = module {
-        single { SupabaseClientProvider.getClient() }
+        single<SupabaseClient> { SupabaseClientProvider.getClient() }
         single { SupabaseAuthService(get()) }
-        single<OnlineDataSource> { SupabaseMemoryDataSource(get<SupabaseClient>()) }
+        single<OnlineDataSource> { SupabaseMemoryDataSource(get<SupabaseClient>(), get(), get(), get()) }
 
 
         // Analytics Repository
@@ -39,7 +42,7 @@ object DataModule {
         }
         
         // CapacityGuard - singleton for capacity management
-        single { GuardFactory.createCapacityGuard(get()) }
+        single { GuardFactory.createCapacityGuard(get(), get()) }
 
         single<MemoryRepository> {
             MemoryRepositoryImpl(
@@ -60,6 +63,10 @@ object DataModule {
         
         // Session management
         single<SessionDataStore> { InMemorySessionDataStore() }
-        single { UserSessionManager(get()) }
+
+        // User Plan Repository
+        single<UserPlanRepository> {
+            UserPlanRepositoryImpl(get())
+        }
     }
 }

@@ -7,14 +7,14 @@ import pl.soulsnaps.utils.getCurrentTimeMillis
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.domain.model.MoodType as DomainMoodType
 import pl.soulsnaps.access.guard.*
+import pl.soulsnaps.access.manager.PlanRegistryReader
 import pl.soulsnaps.features.memoryanalysis.analyzer.ImageAnalyzerInterface
 import pl.soulsnaps.features.memoryanalysis.analyzer.AnalysisFeature
 import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngineInterface
 import pl.soulsnaps.features.memoryanalysis.model.*
 import pl.soulsnaps.photo.SharedImageInterface
-import pl.soulsnaps.features.auth.manager.UserPlanManager
 import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
-import pl.soulsnaps.access.guard.UserPlanManagerInterface
+import pl.soulsnaps.access.manager.UserPlanManager
 
 /**
  * Testy dla MemoryAnalysisService - integracja z AccessGuard
@@ -29,20 +29,18 @@ class MemoryAnalysisServiceTest {
     private lateinit var quotaPolicy: InMemoryQuotaPolicy
     private lateinit var featureToggle: InMemoryFeatureToggle
     private lateinit var userPlanManager: UserPlanManager
-    private lateinit var userPlanManagerInterface: UserPlanManagerInterface
-    
+
     @BeforeTest
     fun setup() {
         imageAnalyzer = mock<ImageAnalyzerInterface>()
         patternDetectionEngine = mock<PatternDetectionEngineInterface>()
         userPlanManager = mock<UserPlanManager>()
-        userPlanManagerInterface = mock<UserPlanManagerInterface>()
-        
-        val planRegistry = PlanRegistryReaderImpl()
+
+        val planRegistry: PlanRegistryReader = mock()
         scopePolicy = InMemoryScopePolicy(planRegistry)
         quotaPolicy = InMemoryQuotaPolicy(planRegistry, scopePolicy)
         featureToggle = InMemoryFeatureToggle()
-        guard = AccessGuard(scopePolicy, quotaPolicy, featureToggle, userPlanManagerInterface)
+        guard = AccessGuard(scopePolicy, quotaPolicy, featureToggle, userPlanManager)
         
         service = MemoryAnalysisService(
             imageAnalyzer = imageAnalyzer,

@@ -10,6 +10,7 @@ import pl.soulsnaps.domain.interactor.DeleteMemoryUseCase
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.domain.model.MoodType
 import pl.soulsnaps.access.guard.AccessGuard
+import pl.soulsnaps.accessGuard
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.auth.SessionState
 import pl.soulsnaps.domain.model.UserSession
@@ -23,16 +24,14 @@ class MemoryDetailsViewModelTest {
     private lateinit var getMemoryByIdUseCase: GetMemoryByIdUseCase
     private lateinit var toggleMemoryFavoriteUseCase: ToggleMemoryFavoriteUseCase
     private lateinit var deleteMemoryUseCase: DeleteMemoryUseCase
-    private lateinit var accessGuard: AccessGuard
     private lateinit var userSessionManager: UserSessionManager
     private lateinit var viewModel: MemoryDetailsViewModel
     
     @BeforeTest
     fun setup() {
-        getMemoryByIdUseCase = mock<GetMemoryByIdUseCase>()
-        toggleMemoryFavoriteUseCase = mock<ToggleMemoryFavoriteUseCase>()
-        deleteMemoryUseCase = mock<DeleteMemoryUseCase>()
-        accessGuard = mock<AccessGuard>()
+        getMemoryByIdUseCase = GetMemoryByIdUseCase(mock())
+        toggleMemoryFavoriteUseCase = ToggleMemoryFavoriteUseCase(mock())
+        deleteMemoryUseCase = DeleteMemoryUseCase(mock())
         userSessionManager = mock<UserSessionManager>()
         
         viewModel = MemoryDetailsViewModel(

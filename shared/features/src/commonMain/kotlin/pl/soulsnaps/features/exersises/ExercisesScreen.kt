@@ -26,16 +26,18 @@ import pl.soulsnaps.features.exersises.SimplePlutchikWheel
 internal fun ExercisesRoute(
     onOpenBreathing: () -> Unit,
     onOpenGratitude: () -> Unit,
-    onOpenEmotionWheel: () -> Unit
+    onOpenEmotionWheel: () -> Unit,
+    onOpenDailyQuiz: () -> Unit = {}
 ) {
-    ExercisesScreen(onOpenBreathing, onOpenGratitude, onOpenEmotionWheel)
+    ExercisesScreen(onOpenBreathing, onOpenGratitude, onOpenEmotionWheel, onOpenDailyQuiz)
 }
 
 @Composable
 fun ExercisesScreen(
     onOpenBreathing: () -> Unit = {},
     onOpenGratitude: () -> Unit = {},
-    onOpenEmotionWheel: () -> Unit = {}
+    onOpenEmotionWheel: () -> Unit = {},
+    onOpenDailyQuiz: () -> Unit = {}
 ) {
     // Dependency initialization (can use DI framework in a larger app)
     val exerciseRepository = InMemoryExerciseRepository()
@@ -84,6 +86,7 @@ fun ExercisesScreen(
                 emotions = state.emotions,
                 selectedQuizEmotion = state.selectedQuizEmotion,
                 onQuizEmotionSelected = { viewModel.onQuizEmotionSelected(it) },
+                onOpenDailyQuiz = onOpenDailyQuiz,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 

@@ -6,7 +6,6 @@ import pl.soulsnaps.access.model.PlanRestriction
 import pl.soulsnaps.access.model.PlanType
 import pl.soulsnaps.access.model.UserAction
 import pl.soulsnaps.access.manager.PlanRegistryReader
-import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
 
 /**
  * PaywallTrigger handles plan restrictions and paywall UX
@@ -14,7 +13,7 @@ import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
  */
 class PaywallTrigger(
     private val accessGuard: AccessGuard,
-    private val planRegistry: PlanRegistryReader = PlanRegistryReaderImpl()
+    private val planRegistry: PlanRegistryReader
 ) {
     
     /**

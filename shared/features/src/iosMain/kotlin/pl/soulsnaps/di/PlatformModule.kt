@@ -18,6 +18,8 @@ import pl.soulsnaps.sync.manager.PlatformScheduler
 import pl.soulsnaps.sync.scheduler.IOSPlatformScheduler
 import pl.soulsnaps.sync.storage.StorageClient
 import pl.soulsnaps.sync.storage.SupabaseStorageClient
+import pl.soulsnaps.crashlytics.CrashlyticsManager
+import pl.soulsnaps.crashlytics.CrashlyticsManagerFactory
 
 /**
  * iOS-specific platform module
@@ -53,4 +55,14 @@ actual val platformModule: Module = module {
     single<DataStore<Preferences>> {
         createPreferencesDataStore()
     }
+    
+        // Crashlytics
+        single<CrashlyticsManager> {
+            CrashlyticsManagerFactory.create()
+        }
+        
+        // Firebase Analytics
+        single<pl.soulsnaps.analytics.FirebaseAnalyticsManager> {
+            pl.soulsnaps.analytics.FirebaseAnalyticsManagerFactory.create()
+        }
 }

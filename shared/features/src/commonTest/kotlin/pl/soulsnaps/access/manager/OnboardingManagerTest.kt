@@ -1,9 +1,17 @@
 package pl.soulsnaps.access.manager
 
+import dev.mokkery.MockMode
+import dev.mokkery.answering.calls
+import dev.mokkery.answering.returns
+import dev.mokkery.every
+import dev.mokkery.everySuspend
+import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.flowOf
+import pl.soulsnaps.createMockUserPlanManager
 import kotlin.test.*
 
 class OnboardingManagerTest {
@@ -13,7 +21,26 @@ class OnboardingManagerTest {
 
     @BeforeTest
     fun setup() {
-        userPlanManager = UserPlanManager(mock())
+        userPlanManager = mock(mode = MockMode.autoUnit) {
+            // property
+            every { currentPlan } returns flowOf<String?>(null)
+
+            // metody zwracające wartości
+            every { getUserPlan() } returns null
+            every { isOnboardingCompleted() } returns false
+            every { getPlanOrDefault() } returns "GUEST"
+            every { hasPlanSet() } returns false
+            every { getCurrentPlan() } returns null
+
+            // metody Unit (opcjonalnie – relaxed i tak zrobi no-op)
+            every { setUserPlan(any()) } calls { /* no-op */ }
+            every { resetUserPlan() } calls { /* no-op */ }
+            every { setDefaultPlanIfNeeded() } calls { /* no-op */ }
+
+            // suspend Unit (relaxed = true → no-op, ale możesz jawnie)
+            everySuspend { setUserPlanAndWait(any()) } calls { /* no-op */ }
+            everySuspend { waitForInitialization() } calls { /* no-op */ }
+        }
         onboardingManager = OnboardingManager(userPlanManager)
     }
 
@@ -95,7 +122,7 @@ class OnboardingManagerTest {
     }
     
     @Test
-    fun `should complete onboarding`() {
+    fun `should complete onboarding`() = runTest {
         onboardingManager.startOnboarding()
         onboardingManager.completeOnboarding()
         

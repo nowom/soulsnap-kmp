@@ -16,8 +16,9 @@ fun NavGraphBuilder.exercisesScreen(
     onOpenBreathing: () -> Unit,
     onOpenGratitude: () -> Unit,
     onOpenEmotionWheel: () -> Unit,
+    onOpenDailyQuiz: () -> Unit = {}
 ) {
     composable<ExerciseRoute> {
-        ExercisesRoute(onOpenBreathing, onOpenGratitude, onOpenEmotionWheel)
+        ExercisesRoute(onOpenBreathing, onOpenGratitude, onOpenEmotionWheel, onOpenDailyQuiz)
     }
 }

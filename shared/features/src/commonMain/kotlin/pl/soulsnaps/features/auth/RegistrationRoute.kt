@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import pl.soulsnaps.domain.interactor.RegisterUseCase
 import org.koin.compose.getKoin
+import pl.soulsnaps.access.manager.AppStartupManager
 
 @Serializable
 data object RegistrationRoute
@@ -26,6 +27,7 @@ fun NavGraphBuilder.registrationScreen(
 ) {
     composable<RegistrationRoute> {
         val register: RegisterUseCase = getKoin().get()
+        val appStartupManager: AppStartupManager = getKoin().get()
         var email by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var confirmPassword by remember { mutableStateOf("") }
@@ -62,6 +64,8 @@ fun NavGraphBuilder.registrationScreen(
                         scope.launch {
                             try {
                                 register(email, password)
+                                // Complete onboarding after successful registration
+                                appStartupManager.completeOnboarding()
                                 onRegistrationSuccess()
                             } catch (e: Throwable) {
                                 errorMessage = e.message ?: "Registration failed"
@@ -74,7 +78,17 @@ fun NavGraphBuilder.registrationScreen(
             },
             onBack = onBack,
             onNavigateToLogin = onNavigateToLogin,
-            onContinueAsGuest = onContinueAsGuest,
+            onContinueAsGuest = {
+                // Handle guest continuation with onboarding completion
+                scope.launch {
+                    try {
+                        appStartupManager.skipOnboarding()
+                        onContinueAsGuest()
+                    } catch (e: Throwable) {
+                        errorMessage = e.message ?: "Guest login failed"
+                    }
+                }
+            },
         )
     }
 }

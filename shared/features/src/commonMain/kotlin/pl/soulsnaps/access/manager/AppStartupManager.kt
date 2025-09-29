@@ -24,29 +24,29 @@ class AppStartupManager(
     private val _startupState = MutableStateFlow(StartupState.CHECKING)
     private val _shouldShowOnboarding = MutableStateFlow(false)
     private val _userPlan = MutableStateFlow<String?>(null)
-    
+
     val startupState: Flow<StartupState> = _startupState.asStateFlow()
     val shouldShowOnboarding: Flow<Boolean> = _shouldShowOnboarding.asStateFlow()
     val userPlan: Flow<String?> = _userPlan.asStateFlow()
-    
+
     /**
      * Sprawdź stan aplikacji przy starcie
      */
     suspend fun checkAppState() {
         println("DEBUG: AppStartupManager.checkAppState() called")
-        
+
         // Czekaj na zakończenie inicjalizacji UserPlanManager
         userPlanManager.waitForInitialization()
-        
+
         val hasCompletedOnboarding = userPlanManager.isOnboardingCompleted()
         val currentPlan = userPlanManager.getUserPlan()
         val isAuthenticated = authService.isAuthenticated()
-        
+
         println("DEBUG: AppStartupManager.checkAppState() - userPlan: $currentPlan, hasCompletedOnboarding: $hasCompletedOnboarding, isAuthenticated: $isAuthenticated")
-        
+
         _userPlan.value = currentPlan
         _shouldShowOnboarding.value = !hasCompletedOnboarding
-        
+
         // Logika uwzględniająca stan uwierzytelnienia i plan użytkownika
         when {
             isAuthenticated -> {
@@ -70,7 +70,7 @@ class AppStartupManager(
             }
         }
     }
-    
+
     /**
      * Rozpocznij onboarding
      */
@@ -79,17 +79,17 @@ class AppStartupManager(
         onboardingManager.startOnboarding()
         _startupState.value = StartupState.ONBOARDING_ACTIVE
     }
-    
+
     /**
      * Ukończ onboarding i przejdź do dashboard
      */
-    fun completeOnboarding() {
+    suspend fun completeOnboarding() {
         println("DEBUG: AppStartupManager.completeOnboarding() called")
         onboardingManager.completeOnboarding()
         _startupState.value = StartupState.READY_FOR_DASHBOARD
         _shouldShowOnboarding.value = false
     }
-    
+
     /**
      * Pomiń onboarding i przejdź do dashboard
      */
@@ -100,7 +100,7 @@ class AppStartupManager(
         _shouldShowOnboarding.value = false
         _userPlan.value = "GUEST"
     }
-    
+
     /**
      * Przejdź do dashboard (po udanym zalogowaniu)
      */
@@ -108,7 +108,7 @@ class AppStartupManager(
         println("DEBUG: AppStartupManager.goToDashboard() called - changing state to READY_FOR_DASHBOARD")
         _startupState.value = StartupState.READY_FOR_DASHBOARD
     }
-    
+
     /**
      * Przejdź do ekranu logowania
      */
@@ -116,28 +116,28 @@ class AppStartupManager(
         println("DEBUG: AppStartupManager.goToAuth() called - changing state to READY_FOR_AUTH")
         _startupState.value = StartupState.READY_FOR_AUTH
     }
-    
+
     /**
      * Pobierz aktualny plan użytkownika
      */
     fun getCurrentUserPlan(): String {
         return userPlanManager.getPlanOrDefault()
     }
-    
+
     /**
      * Sprawdź czy użytkownik ukończył onboarding
      */
     fun hasCompletedOnboarding(): Boolean {
         return userPlanManager.isOnboardingCompleted()
     }
-    
+
     /**
      * Sprawdź czy użytkownik jest uwierzytelniony
      */
     suspend fun isAuthenticated(): Boolean {
         return authService.isAuthenticated()
     }
-    
+
     /**
      * Inicjalizuj aplikację
      */
@@ -145,7 +145,7 @@ class AppStartupManager(
         println("DEBUG: AppStartupManager.initializeApp() called")
         checkAppState()
     }
-    
+
     /**
      * Resetuj stan startup (dla testów)
      */
@@ -157,7 +157,7 @@ class AppStartupManager(
         // Sprawdź stan aplikacji po resecie
         checkAppState()
     }
-    
+
     /**
      * Resetuj stan aplikacji (dla testów)
      */
@@ -168,14 +168,14 @@ class AppStartupManager(
         _shouldShowOnboarding.value = false
         _userPlan.value = null
     }
-    
+
     /**
      * Pobierz aktualny stan startup
      */
     fun getStartupState(): StartupState {
         return _startupState.value
     }
-    
+
     /**
      * Sprawdź czy powinien pokazać onboarding
      */

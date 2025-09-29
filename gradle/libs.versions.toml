@@ -32,6 +32,11 @@ playServicesLocation = "21.0.1"
 supabase = "3.2.2"
 kotlinxSerialization = "1.9.0"
 workManager = "2.9.0"
+firebaseBom = "33.7.0"
+firebaseCrashlytics = "3.0.2"
+googleServices = "4.4.2"
+firebaseCrashlyticsVersion = "19.0.2"
+firebaseAnalyticsVersion = "22.0.2"
 
 [libraries]
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCore" }
@@ -96,6 +101,11 @@ supabase-compose-auth-ui = { module = "io.github.jan-tennert.supabase:compose-au
 # WorkManager
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "workManager" }
 
+# Firebase
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics-ktx", version.ref = "firebaseCrashlyticsVersion" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebaseAnalyticsVersion" }
+
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
@@ -106,3 +116,5 @@ androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.lib
 composeResources = { id = "org.jetbrains.compose.resources"}
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqlDelight" }
+firebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlytics" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "googleServices" }

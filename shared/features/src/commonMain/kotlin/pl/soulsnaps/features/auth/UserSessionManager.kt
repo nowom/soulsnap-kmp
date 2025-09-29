@@ -9,16 +9,30 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.model.UserSession
+import pl.soulsnaps.crashlytics.CrashlyticsManager
 
-class UserSessionManager(
+interface UserSessionManager {
+    val currentUser: StateFlow<UserSession?>
+    val sessionState: StateFlow<SessionState>
+    suspend fun onUserAuthenticated(userSession: UserSession)
+    suspend fun onUserSignedOut()
+    fun onSessionExpired()
+    fun onAuthError(error: String)
+    fun clearError()
+    fun isAuthenticated(): Boolean
+    fun getCurrentUser(): UserSession?
+}
+
+class UserSessionManagerImpl(
     private val sessionDataStore: SessionDataStore,
+    private val crashlyticsManager: CrashlyticsManager,
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob())
-) {
+): UserSessionManager {
     private val _sessionState = MutableStateFlow<SessionState>(SessionState.Loading)
-    val sessionState: StateFlow<SessionState> = _sessionState.asStateFlow()
+    override val sessionState: StateFlow<SessionState> = _sessionState.asStateFlow()
 
     private val _currentUser = MutableStateFlow<UserSession?>(null)
-    val currentUser: StateFlow<UserSession?> = _currentUser.asStateFlow()
+    override val currentUser: StateFlow<UserSession?> = _currentUser.asStateFlow()
 
     init {
         // Check for existing session on startup
@@ -42,37 +56,54 @@ class UserSessionManager(
         coroutineScope.launch {
             sessionDataStore.currentSession.collectLatest { session ->
                 _currentUser.update { session }
-                _sessionState.update { 
+                _sessionState.update {
                     if (session != null) SessionState.Authenticated(session) else SessionState.Unauthenticated
                 }
             }
         }
     }
 
-    suspend fun onUserAuthenticated(userSession: UserSession) {
+    override suspend fun onUserAuthenticated(userSession: UserSession) {
+        // Log to Crashlytics
+        crashlyticsManager.setUserId(userSession.userId)
+        crashlyticsManager.log("User authenticated: ${userSession.userId}")
+        crashlyticsManager.setCustomKey("user_email", userSession.email)
+        crashlyticsManager.setCustomKey("session_state", "authenticated")
+
         sessionDataStore.saveSession(userSession)
         _currentUser.update { userSession }
         _sessionState.update { SessionState.Authenticated(userSession) }
     }
 
-    suspend fun onUserSignedOut() {
+    override suspend fun onUserSignedOut() {
+        // Log to Crashlytics
+        crashlyticsManager.log("User signed out")
+        crashlyticsManager.setCustomKey("session_state", "unauthenticated")
+
         sessionDataStore.clearSession()
         _currentUser.update { null }
         _sessionState.update { SessionState.Unauthenticated }
     }
 
-    fun onSessionExpired() {
+    override fun onSessionExpired() {
         _currentUser.update { null }
         _sessionState.update { SessionState.SessionExpired }
-        // TODO: Clear local storage
+        
+        // Log session expiration
+        crashlyticsManager.log("Session expired")
     }
 
-    fun onAuthError(error: String) {
+    override fun onAuthError(error: String) {
+        // Log to Crashlytics
+        crashlyticsManager.log("Authentication error: $error")
+        crashlyticsManager.setCustomKey("auth_error", error)
+        crashlyticsManager.setCustomKey("session_state", "error")
+
         _sessionState.update { SessionState.Error(error) }
     }
 
-    fun clearError() {
-        _sessionState.update { 
+    override fun clearError() {
+        _sessionState.update {
             when (val current = it) {
                 is SessionState.Error -> SessionState.Unauthenticated
                 else -> current
@@ -80,11 +111,11 @@ class UserSessionManager(
         }
     }
 
-    fun isAuthenticated(): Boolean {
+    override fun isAuthenticated(): Boolean {
         return _sessionState.value is SessionState.Authenticated
     }
 
-    fun getCurrentUser(): UserSession? {
+    override fun getCurrentUser(): UserSession? {
         return _currentUser.value
     }
 }

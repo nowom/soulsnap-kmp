@@ -2,8 +2,8 @@ package pl.soulsnaps.features.memoryanalysis.service
 
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.access.guard.*
+import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.features.auth.model.*
-import pl.soulsnaps.features.auth.manager.UserPlanManager
 import pl.soulsnaps.features.memoryanalysis.analyzer.ImageAnalyzerInterface
 import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngineInterface
 import pl.soulsnaps.features.memoryanalysis.model.*

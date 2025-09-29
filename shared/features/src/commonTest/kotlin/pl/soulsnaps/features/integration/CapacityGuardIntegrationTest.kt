@@ -1,16 +1,16 @@
 package pl.soulsnaps.features.integration
 
+import dev.mokkery.mock
 import kotlinx.coroutines.test.runTest
+import pl.soulsnaps.access.guard.DenyReason
+import pl.soulsnaps.access.guard.GuardFactory
+import pl.soulsnaps.access.manager.PlanRegistryReader
+import pl.soulsnaps.access.manager.UserPlanManager
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import pl.soulsnaps.access.guard.CapacityGuard
-import pl.soulsnaps.access.guard.GuardFactory
-import pl.soulsnaps.access.guard.AccessResult
-import pl.soulsnaps.access.guard.DenyReason
-import pl.soulsnaps.access.guard.UserPlanManagerInterface
 
 /**
  * Integration tests for CapacityGuard
@@ -18,21 +18,15 @@ import pl.soulsnaps.access.guard.UserPlanManagerInterface
  */
 class CapacityGuardIntegrationTest {
     
-    private val mockUserPlanManager = object : UserPlanManagerInterface {
-        override fun getCurrentPlan(): String? = "FREE_USER"
-        override fun setUserPlan(planName: String) {}
-        override fun getUserPlan(): String? = "FREE_USER"
-        override fun isOnboardingCompleted(): Boolean = true
-        override fun getPlanOrDefault(): String = "FREE_USER"
-        override fun hasPlanSet(): Boolean = true
-    }
-    
+    private val mockUserPlanManager: UserPlanManager = mock()
+    private val planRegistryReader: PlanRegistryReader = mock()
+
     @Test
     fun `capacity guard should allow when user has capacity`() = runTest {
         // Given
         val testUserId = "test_user_with_capacity"
-        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
-        
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager, planRegistryReader)
+
         // When - Check if user can add snap
         val result = capacityGuard.canAddSnap(testUserId)
         
@@ -44,7 +38,7 @@ class CapacityGuardIntegrationTest {
     fun `capacity guard should deny when capacity exceeded`() = runTest {
         // Given
         val testUserId = "test_user_no_capacity"
-        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager, planRegistryReader)
         
         // When - Check if user can add snap (this will fail because we can't easily simulate quota exhaustion)
         val result = capacityGuard.canAddSnap(testUserId)
@@ -57,7 +51,7 @@ class CapacityGuardIntegrationTest {
     fun `capacity guard should check AI analysis quota`() = runTest {
         // Given
         val testUserId = "test_user"
-        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager, planRegistryReader)
         
         // When - Check if user can run AI analysis
         val result = capacityGuard.canRunAIAnalysis(testUserId)
@@ -70,7 +64,7 @@ class CapacityGuardIntegrationTest {
     fun `capacity guard should check file size limits`() = runTest {
         // Given
         val testUserId = "test_user"
-        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager, planRegistryReader)
         val fileSizeMB = 50 // 50MB file
         
         // When - Check if user can add snap with file size
@@ -84,7 +78,7 @@ class CapacityGuardIntegrationTest {
     fun `capacity guard should deny oversized files`() = runTest {
         // Given
         val testUserId = "test_user"
-        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager, mock())
         val fileSizeMB = 11000 // 11GB file - exceeds FREE_USER 10GB limit
         
         // When - Check if user can add snap with oversized file
@@ -99,7 +93,7 @@ class CapacityGuardIntegrationTest {
     fun `capacity guard should provide capacity info`() = runTest {
         // Given
         val testUserId = "test_user"
-        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager)
+        val capacityGuard = GuardFactory.createCapacityGuard(mockUserPlanManager, planRegistryReader)
         
         // When - Get capacity info
         val capacityInfo = capacityGuard.getCapacityInfo(testUserId)

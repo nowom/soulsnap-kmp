@@ -16,6 +16,7 @@ import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.data.MemoryRepositoryImpl
 import pl.soulsnaps.domain.MemoryRepository
 import pl.soulsnaps.domain.interactor.SignOutUseCase
+import pl.soulsnaps.domain.interactor.ClearUserDataUseCase
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.domain.model.UserSession
 import kotlin.getValue
@@ -32,6 +33,7 @@ class SettingsViewModel(
     val userPlanManager: UserPlanManager,
     val memoryRepository: MemoryRepository,
     val signOutUseCase: SignOutUseCase,
+    val clearUserDataUseCase: ClearUserDataUseCase,
     val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
@@ -82,4 +84,76 @@ class SettingsViewModel(
             }
         }
     }
+
+    /**
+     * Clear all user data (full GDPR compliance)
+     */
+    fun clearAllUserData() {
+        viewModelScope.launch {
+            try {
+                _state.value = _state.value.copy(isLoading = true)
+                clearUserDataUseCase()
+                println("DEBUG: SettingsViewModel.clearAllUserData() - all user data cleared")
+                
+                // Reload user data after clearing
+                loadUserData()
+                _state.value = _state.value.copy(isLoading = false)
+            } catch (e: Exception) {
+                println("ERROR: SettingsViewModel.clearAllUserData() - failed: ${e.message}")
+                _state.value = _state.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    /**
+     * Clear only user-specific data (memories, preferences)
+     * Keeps app settings and analytics
+     */
+    fun clearUserDataOnly() {
+        viewModelScope.launch {
+            try {
+                _state.value = _state.value.copy(isLoading = true)
+                clearUserDataUseCase.clearUserDataOnly()
+                println("DEBUG: SettingsViewModel.clearUserDataOnly() - user data cleared")
+                
+                // Reload user data after clearing
+                loadUserData()
+                _state.value = _state.value.copy(isLoading = false)
+            } catch (e: Exception) {
+                println("ERROR: SettingsViewModel.clearUserDataOnly() - failed: ${e.message}")
+                _state.value = _state.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    /**
+     * Clear only sensitive data (memories, session)
+     * Keeps preferences and analytics
+     */
+    fun clearSensitiveDataOnly() {
+        viewModelScope.launch {
+            try {
+                _state.value = _state.value.copy(isLoading = true)
+                clearUserDataUseCase.clearSensitiveDataOnly()
+                println("DEBUG: SettingsViewModel.clearSensitiveDataOnly() - sensitive data cleared")
+                
+                // Reload user data after clearing
+                loadUserData()
+                _state.value = _state.value.copy(isLoading = false)
+            } catch (e: Exception) {
+                println("ERROR: SettingsViewModel.clearSensitiveDataOnly() - failed: ${e.message}")
+                _state.value = _state.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    /**
+     * Get storage statistics
+     */
+    suspend fun getStorageStats() = clearUserDataUseCase.getStorageStats()
+
+    /**
+     * Check if cleanup is needed
+     */
+    suspend fun isCleanupNeeded() = clearUserDataUseCase.isCleanupNeeded()
 }

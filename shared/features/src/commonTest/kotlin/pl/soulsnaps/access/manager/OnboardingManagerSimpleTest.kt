@@ -15,7 +15,7 @@ class OnboardingManagerSimpleTest {
 
     @BeforeTest
     fun setup() {
-        userPlanManager = UserPlanManager(mock())
+        userPlanManager = mock()
         onboardingManager = OnboardingManager(userPlanManager)
     }
 

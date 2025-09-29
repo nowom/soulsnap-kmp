@@ -152,6 +152,87 @@ fun SettingsScreen(
             Text("Ustawienia powiadomień")
         }
         
+        // Data Management Section
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Zarządzanie danymi",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Text(
+                    text = "Wybierz poziom czyszczenia danych zgodnie z RODO",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Clear sensitive data only
+                OutlinedButton(
+                    onClick = { viewModel.clearSensitiveDataOnly() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isLoading
+                ) {
+                    Text("Wyczyść tylko dane wrażliwe")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Clear user data only
+                OutlinedButton(
+                    onClick = { viewModel.clearUserDataOnly() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isLoading
+                ) {
+                    Text("Wyczyść dane użytkownika")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Clear all data
+                OutlinedButton(
+                    onClick = { viewModel.clearAllUserData() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    enabled = !state.isLoading
+                ) {
+                    Text("Wyczyść wszystkie dane")
+                }
+            }
+        }
+        
+        // Loading indicator
+        if (state.isLoading) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(2.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Czyszczenie danych...",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+        
         // Logout Button
         Button(
             onClick = {

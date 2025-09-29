@@ -1,27 +1,7 @@
 package pl.soulsnaps.access.guard
 
-import pl.soulsnaps.access.guard.ScopePolicy
-import pl.soulsnaps.access.guard.QuotaPolicy
-import pl.soulsnaps.access.guard.FeatureToggle
 import pl.soulsnaps.access.manager.UserPlanManager
-import pl.soulsnaps.access.manager.DefaultPlans
-import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
-import pl.soulsnaps.access.guard.QuotaInfo
-import pl.soulsnaps.access.guard.FeatureInfo
 import pl.soulsnaps.access.manager.PlanRegistryReader
-import pl.soulsnaps.access.guard.InMemoryQuotaPolicy
-
-/**
- * Interface for UserPlanManager to enable testing
- */
-interface UserPlanManagerInterface {
-    fun setUserPlan(planName: String)
-    fun getUserPlan(): String?
-    fun isOnboardingCompleted(): Boolean
-    fun getPlanOrDefault(): String
-    fun hasPlanSet(): Boolean
-    fun getCurrentPlan(): String?
-}
 
 /**
  * Zasada Dependency Inversion
@@ -32,11 +12,11 @@ interface UserPlanManagerInterface {
  * Main Guard - Zasada Dependency Inversion
  * Zależy od interfejsów, nie od konkretnych klas
  */
-open class AccessGuard(
-    protected val scopePolicy: ScopePolicy,
-    protected val quotaPolicy: QuotaPolicy,
-    protected val featureToggle: FeatureToggle,
-    protected val userPlanManager: UserPlanManagerInterface
+class AccessGuard(
+    private val scopePolicy: ScopePolicy,
+    private val quotaPolicy: QuotaPolicy,
+    private val featureToggle: FeatureToggle,
+    private val userPlanManager: UserPlanManager
 ) {
     
     /**
@@ -295,8 +275,10 @@ object GuardFactory {
     /**
      * Twórz domyślny guard z in-memory implementacjami
      */
-    fun createDefaultGuard(userPlanManager: UserPlanManagerInterface): AccessGuard {
-        val planRegistry = PlanRegistryReaderImpl()
+    fun createDefaultGuard(
+        userPlanManager: UserPlanManager,
+        planRegistry: PlanRegistryReader
+    ): AccessGuard {
         val scopePolicy = InMemoryScopePolicy(planRegistry)
         val quotaPolicy = InMemoryQuotaPolicy(planRegistry, scopePolicy)
         val featureToggle = InMemoryFeatureToggle()
@@ -307,9 +289,12 @@ object GuardFactory {
     /**
      * Twórz CapacityGuard z domyślnym AccessGuard
      */
-    fun createCapacityGuard(userPlanManager: UserPlanManagerInterface): CapacityGuard {
-        val accessGuard = createDefaultGuard(userPlanManager)
-        return CapacityGuard(accessGuard, PlanRegistryReaderImpl())
+    fun createCapacityGuard(
+        userPlanManager: UserPlanManager,
+        planRegistry: PlanRegistryReader
+    ): CapacityGuard {
+        val accessGuard = createDefaultGuard(userPlanManager, planRegistry)
+        return CapacityGuard(accessGuard, planRegistry)
     }
     
     /**
@@ -319,7 +304,7 @@ object GuardFactory {
         scopePolicy: ScopePolicy,
         quotaPolicy: QuotaPolicy,
         featureToggle: FeatureToggle,
-        userPlanManager: UserPlanManagerInterface
+        userPlanManager: UserPlanManager
     ): AccessGuard {
         return AccessGuard(scopePolicy, quotaPolicy, featureToggle, userPlanManager)
     }
@@ -327,9 +312,12 @@ object GuardFactory {
     /**
      * Twórz guard dla testów
      */
-    fun createTestGuard(userPlanManager: UserPlanManagerInterface): AccessGuard {
+    fun createTestGuard(
+        userPlanManager: UserPlanManager,
+        planRegistry: PlanRegistryReader
+    ): AccessGuard {
         // Można tu dodać mock implementacje dla testów
-        return createDefaultGuard(userPlanManager)
+        return createDefaultGuard(userPlanManager, planRegistry)
     }
 }
 

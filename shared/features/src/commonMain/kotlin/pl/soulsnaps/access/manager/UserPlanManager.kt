@@ -6,9 +6,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import pl.soulsnaps.access.model.PlanType
 import pl.soulsnaps.access.storage.UserPreferencesStorage
-
-import pl.soulsnaps.access.guard.UserPlanManagerInterface
+import pl.soulsnaps.domain.UserPlanRepository
+import pl.soulsnaps.domain.interactor.UserPlanUseCase
+import pl.soulsnaps.crashlytics.CrashlyticsManager
+import pl.soulsnaps.features.auth.UserSessionManager
 
 /**
  * UserPlanManager - zarządza zapamiętywaniem planu użytkownika
@@ -20,16 +23,35 @@ import pl.soulsnaps.access.guard.UserPlanManagerInterface
  * - Obsługa zmian planu
  * - Persistent storage na dysku
  */
-class UserPlanManager(
+
+interface UserPlanManager {
+    val currentPlan: Flow<String?>
+    fun setUserPlan(planName: String)
+    suspend fun setUserPlanAndWait(planName: String)
+    fun getUserPlan(): String?
+    fun isOnboardingCompleted(): Boolean
+    fun getPlanOrDefault(): String
+    fun hasPlanSet(): Boolean
+    fun getCurrentPlan(): String?
+    suspend fun waitForInitialization()
+    fun resetUserPlan()
+    fun setDefaultPlanIfNeeded()
+}
+
+class UserPlanManagerImpl(
     private val storage: UserPreferencesStorage,
+    private val userPlanRepository: UserPlanRepository,
+    private val userPlanUseCase: UserPlanUseCase,
+    private val crashlyticsManager: CrashlyticsManager,
+    private val userSessionManager: UserSessionManager,
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
-) : UserPlanManagerInterface {
-    
+) : UserPlanManager {
+
     private val _currentPlan = MutableStateFlow<String?>(null)
     private val _hasCompletedOnboarding = MutableStateFlow(false)
     private val _isLoading = MutableStateFlow(true)
     
-    val currentPlan: Flow<String?> = _currentPlan.asStateFlow()
+    override val currentPlan: Flow<String?> = _currentPlan.asStateFlow()
     val hasCompletedOnboarding: Flow<Boolean> = _hasCompletedOnboarding.asStateFlow()
     val isLoading: Flow<Boolean> = _isLoading.asStateFlow()
     
@@ -47,10 +69,66 @@ class UserPlanManager(
         _currentPlan.value = planName
         _hasCompletedOnboarding.value = true
         
-        // Zapisz na dysk
+        // Zapisz na dysk i w bazie danych
         coroutineScope.launch {
+            try {
+                // Save to local storage
+                storage.saveUserPlan(planName)
+                storage.saveOnboardingCompleted(true)
+
+                // Save to database if user is authenticated
+                val currentUserId = getCurrentUserId()
+                if (currentUserId != null) {
+                    val planType = getPlanTypeFromName(planName)
+                    val userPlan = pl.soulsnaps.domain.UserPlan(
+                        userId = currentUserId,
+                        planType = planType,
+                        planName = planName,
+                        isActive = true
+                    )
+                    userPlanUseCase.saveUserPlan(userPlan)
+                    crashlyticsManager.log("User plan saved to database: $planName")
+                }
+            } catch (e: Exception) {
+                crashlyticsManager.recordException(e)
+                crashlyticsManager.log("Error saving user plan: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * Ustaw plan użytkownika i poczekaj na zapisanie danych
+     */
+    override suspend fun setUserPlanAndWait(planName: String) {
+        println("DEBUG: UserPlanManager.setUserPlanAndWait($planName)")
+        
+        try {
+            // Save to local storage FIRST
             storage.saveUserPlan(planName)
             storage.saveOnboardingCompleted(true)
+            
+            // Save to database if user is authenticated
+            val currentUserId = getCurrentUserId()
+            if (currentUserId != null) {
+                val planType = getPlanTypeFromName(planName)
+                val userPlan = pl.soulsnaps.domain.UserPlan(
+                    userId = currentUserId,
+                    planType = planType,
+                    planName = planName,
+                    isActive = true
+                )
+                userPlanUseCase.saveUserPlan(userPlan)
+                crashlyticsManager.log("User plan saved to database: $planName")
+            }
+            
+            // Only set StateFlow values AFTER successful save
+            _currentPlan.value = planName
+            _hasCompletedOnboarding.value = true
+            
+        } catch (e: Exception) {
+            crashlyticsManager.recordException(e)
+            crashlyticsManager.log("Error saving user plan: ${e.message}")
+            // Don't set StateFlow values if save failed
         }
     }
     
@@ -71,7 +149,7 @@ class UserPlanManager(
     /**
      * Ustaw domyślny plan (GUEST) jeśli żaden nie jest ustawiony
      */
-    fun setDefaultPlanIfNeeded() {
+    override fun setDefaultPlanIfNeeded() {
         if (_currentPlan.value == null) {
             _currentPlan.value = "GUEST"
         }
@@ -86,9 +164,9 @@ class UserPlanManager(
                 println("DEBUG: UserPlanManager.loadDataFromStorage() - loading data...")
                 val storedPlan = storage.getUserPlan()
                 val storedOnboardingCompleted = storage.isOnboardingCompleted()
-                
+
                 println("DEBUG: UserPlanManager.loadDataFromStorage() - loaded plan: $storedPlan, onboarding: $storedOnboardingCompleted")
-                
+
                 _currentPlan.value = storedPlan
                 _hasCompletedOnboarding.value = storedOnboardingCompleted
             } catch (e: Exception) {
@@ -106,7 +184,7 @@ class UserPlanManager(
     /**
      * Resetuj plan użytkownika (dla testów lub wylogowania)
      */
-    fun resetUserPlan() {
+    override fun resetUserPlan() {
         _currentPlan.value = null
         _hasCompletedOnboarding.value = false
         
@@ -147,7 +225,7 @@ class UserPlanManager(
     /**
      * Czekaj na zakończenie inicjalizacji
      */
-    suspend fun waitForInitialization() {
+    override suspend fun waitForInitialization() {
         while (_isLoading.value) {
             kotlinx.coroutines.delay(10) // Krótkie opóźnienie
         }
@@ -158,5 +236,25 @@ class UserPlanManager(
      */
     override fun getCurrentPlan(): String? {
         return _currentPlan.value
+    }
+    
+    /**
+     * Helper method to get current user ID from UserSessionManager
+     */
+    private fun getCurrentUserId(): String? {
+        return userSessionManager.currentUser.value?.userId
+    }
+    
+    /**
+     * Helper method to convert plan name to PlanType
+     */
+    private fun getPlanTypeFromName(planName: String): PlanType {
+        return when (planName.uppercase()) {
+            "GUEST" -> PlanType.GUEST
+            "FREE_USER" -> PlanType.FREE_USER
+            "PREMIUM_USER" -> PlanType.PREMIUM_USER
+            "ENTERPRISE_USER" -> PlanType.ENTERPRISE_USER
+            else -> PlanType.GUEST
+        }
     }
 }

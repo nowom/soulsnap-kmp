@@ -9,7 +9,9 @@ import pl.soulsnaps.domain.AffirmationRepository
 import pl.soulsnaps.domain.model.Affirmation
 import pl.soulsnaps.domain.model.ThemeType
 import pl.soulsnaps.access.guard.AccessGuard
+import pl.soulsnaps.accessGuard
 import pl.soulsnaps.audio.AudioManager
+import pl.soulsnaps.audioManager
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.domain.model.UserSession
 import pl.soulsnaps.utils.getCurrentTimeMillis
@@ -20,16 +22,12 @@ import pl.soulsnaps.utils.getCurrentTimeMillis
 class AffirmationsViewModelTest {
     
     private lateinit var affirmationRepository: AffirmationRepository
-    private lateinit var accessGuard: AccessGuard
-    private lateinit var audioManager: AudioManager
     private lateinit var userSessionManager: UserSessionManager
     private lateinit var viewModel: AffirmationsViewModel
     
     @BeforeTest
     fun setup() {
         affirmationRepository = mock<AffirmationRepository>()
-        accessGuard = mock<AccessGuard>()
-        audioManager = mock<AudioManager>()
         userSessionManager = mock<UserSessionManager>()
         
         viewModel = AffirmationsViewModel(

@@ -1,5 +1,6 @@
 package pl.soulsnaps.access.guard
 
+import dev.mokkery.mock
 import kotlin.test.*
 import kotlinx.coroutines.test.runTest
 import pl.soulsnaps.access.guard.AccessGuard
@@ -24,15 +25,15 @@ class AccessGuardTest {
     private lateinit var featureToggle: InMemoryFeatureToggle
     private lateinit var guard: AccessGuard
     private lateinit var planRegistry: PlanRegistryReader
-    private lateinit var userPlanManager: MockUserPlanManager
-    
+    private lateinit var userPlanManager: UserPlanManager
+
     @BeforeTest
     fun setup() {
         planRegistry = MockPlanRegistryReader()
         scopePolicy = InMemoryScopePolicy(planRegistry)
         quotaPolicy = InMemoryQuotaPolicy(planRegistry, scopePolicy)
         featureToggle = InMemoryFeatureToggle()
-        userPlanManager = MockUserPlanManager()
+        userPlanManager = mock()
         guard = AccessGuard(scopePolicy, quotaPolicy, featureToggle, userPlanManager)
     }
     
@@ -532,37 +533,6 @@ class MockPlanRegistryReader : PlanRegistryReader {
     
     override fun getAllPlans(): List<PlanDefinition> {
         return DefaultPlans.getAllPlans()
-    }
-}
-
-// Mock UserPlanManager for testing
-class MockUserPlanManager : UserPlanManagerInterface {
-    private var currentPlan: String = "GUEST"
-    private var onboardingCompleted: Boolean = false
-    
-    override fun setUserPlan(planName: String) {
-        currentPlan = planName
-        onboardingCompleted = true
-    }
-    
-    override fun getUserPlan(): String? {
-        return currentPlan
-    }
-    
-    override fun isOnboardingCompleted(): Boolean {
-        return onboardingCompleted
-    }
-    
-    override fun getPlanOrDefault(): String {
-        return currentPlan
-    }
-    
-    override fun hasPlanSet(): Boolean {
-        return currentPlan != "GUEST"
-    }
-    
-    override fun getCurrentPlan(): String? {
-        return currentPlan
     }
 }
 

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "1045809117384",
+    "project_id": "soul-snap",
+    "storage_bucket": "soul-snap.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1045809117384:android:df9a0e1fa7c5ff423d4dfd",
+        "android_client_info": {
+          "package_name": "pl.soulsnaps"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-eLVamg08NcYAz9yxUcUf5V7GvIWMKnw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+

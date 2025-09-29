@@ -34,6 +34,7 @@ import pl.soulsnaps.navigation.LocalNavController
 import pl.soulsnaps.navigation.MainBottomMenu
 import pl.soulsnaps.navigation.SoulSnapNavHost
 import pl.soulsnaps.navigation.rememberAppState
+import pl.soulsnaps.access.manager.PlanRegistryReader
 import pl.soulsnaps.navigation.OnboardingGraph
 import pl.soulsnaps.navigation.AuthenticationGraph
 import pl.soulsnaps.navigation.HomeGraph
@@ -42,56 +43,56 @@ import pl.soulsnaps.navigation.HomeGraph
 fun SoulSnapsApp() {
     SoulSnapsTheme {
         println("DEBUG: SoulSnapsApp - initializing app")
-        
+
         val startupManager: AppStartupManager = koinInject()
         val startupState by startupManager.startupState.collectAsStateWithLifecycle(initialValue = StartupState.CHECKING)
         val appState = rememberAppState()
         val navController = appState.navController
         // Provide LocalNavController for all child composables
         CompositionLocalProvider(LocalNavController provides navController) {
-        
-        // Inicjalizuj AppStartupManager przy starcie
-        LaunchedEffect(Unit) {
-            println("DEBUG: SoulSnapsApp - initializing AppStartupManager")
-            startupManager.initializeApp()
-        }
-        
-        // Main app content based on startup state
-        println("DEBUG: SoulSnapsApp - current startupState: $startupState")
-        when (startupState) {
-            StartupState.CHECKING -> {
-                // Loading state - pokaż loading
-                println("DEBUG: SoulSnapsApp - showing loading state")
-                LoadingScreen()
+
+            // Inicjalizuj AppStartupManager przy starcie
+            LaunchedEffect(Unit) {
+                println("DEBUG: SoulSnapsApp - initializing AppStartupManager")
+                startupManager.initializeApp()
             }
-            
-            StartupState.READY_FOR_ONBOARDING, StartupState.ONBOARDING_ACTIVE -> {
-                // Pokaż onboarding przez nawigację
-                println("DEBUG: SoulSnapsApp - showing onboarding via navigation, state: $startupState")
-                SoulSnapNavHost(
-                    appState = appState,
-                    startDestination = OnboardingGraph
-                )
+
+            // Main app content based on startup state
+            println("DEBUG: SoulSnapsApp - current startupState: $startupState")
+            when (startupState) {
+                StartupState.CHECKING -> {
+                    // Loading state - pokaż loading
+                    println("DEBUG: SoulSnapsApp - showing loading state")
+                    LoadingScreen()
+                }
+
+                StartupState.READY_FOR_ONBOARDING, StartupState.ONBOARDING_ACTIVE -> {
+                    // Pokaż onboarding przez nawigację
+                    println("DEBUG: SoulSnapsApp - showing onboarding via navigation, state: $startupState")
+                    SoulSnapNavHost(
+                        appState = appState,
+                        startDestination = OnboardingGraph,
+                    )
+                }
+
+                StartupState.READY_FOR_AUTH -> {
+                    // Pokaż ekran logowania
+                    println("DEBUG: SoulSnapsApp - showing authentication via navigation, state: $startupState")
+                    SoulSnapNavHost(
+                        appState = appState,
+                        startDestination = AuthenticationGraph,
+                    )
+                }
+
+                StartupState.READY_FOR_DASHBOARD -> {
+                    // Pokaż główną aplikację
+                    println("DEBUG: SoulSnapsApp - showing main app with dashboard, state: $startupState")
+                    MainAppContent(
+                        appState = appState,
+                        startDestination = HomeGraph
+                    )
+                }
             }
-            
-            StartupState.READY_FOR_AUTH -> {
-                // Pokaż ekran logowania
-                println("DEBUG: SoulSnapsApp - showing authentication via navigation, state: $startupState")
-                SoulSnapNavHost(
-                    appState = appState,
-                    startDestination = AuthenticationGraph
-                )
-            }
-            
-            StartupState.READY_FOR_DASHBOARD -> {
-                // Pokaż główną aplikację
-                println("DEBUG: SoulSnapsApp - showing main app with dashboard, state: $startupState")
-                MainAppContent(
-                    appState = appState,
-                    startDestination = HomeGraph
-                )
-            }
-        }
         }
     }
 }
@@ -111,9 +112,9 @@ private fun LoadingScreen() {
                 text = "Ładowanie aplikacji...",
                 color = AppColorScheme.onBackground
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             BodyText(
                 text = "Sprawdzanie stanu użytkownika...",
                 color = AppColorScheme.onSurfaceVariant
@@ -132,33 +133,33 @@ private fun MainAppContent(
     CompositionLocalProvider(LocalNavController provides appState.navController) {
         // Main app layout with bottom navigation
         Scaffold(
-        floatingActionButton = {
-            if (appState.shouldShowFab) {
-                FloatingActionButton(
-                    onClick = appState::navigateToAddSnap,
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Dodaj Snap")
+            floatingActionButton = {
+                if (appState.shouldShowFab) {
+                    FloatingActionButton(
+                        onClick = appState::navigateToAddSnap,
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = "Dodaj Snap")
+                    }
+                }
+            },
+            bottomBar = {
+                if (appState.shouldShowBottomBar) {
+                    MainBottomMenu(
+                        destinations = appState.topLevelDestinations,
+                        currentDestination = appState.currentDestination,
+                        onNavigateToDestination = { destination ->
+                            appState.navigateToTopLevelDestination(destination)
+                        }
+                    )
                 }
             }
-        },
-        bottomBar = {
-            if (appState.shouldShowBottomBar) {
-                MainBottomMenu(
-                    destinations = appState.topLevelDestinations,
-                    currentDestination = appState.currentDestination,
-                    onNavigateToDestination = { destination ->
-                        appState.navigateToTopLevelDestination(destination)
-                    }
-                )
-            }
+        ) { paddingValues ->
+            SoulSnapNavHost(
+                appState = appState,
+                modifier = Modifier.padding(paddingValues),
+                startDestination = startDestination,
+            )
         }
-    ) { paddingValues ->
-        SoulSnapNavHost(
-            appState = appState,
-            modifier = Modifier.padding(paddingValues),
-            startDestination = startDestination
-        )
-    }
     }
 }

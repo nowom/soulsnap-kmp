@@ -1,75 +1,55 @@
 package pl.soulsnaps.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import pl.soulsnaps.features.affirmation.affirmationsScreen
 import pl.soulsnaps.features.affirmation.navigateToAffirmations
+import pl.soulsnaps.features.auth.LoginRoute
+import pl.soulsnaps.features.auth.loginScreen
+import pl.soulsnaps.features.auth.navigateToRegistration
+import pl.soulsnaps.features.auth.registrationScreen
 import pl.soulsnaps.features.capturemoment.captureMomentScreen
 import pl.soulsnaps.features.capturemoment.navigateToCaptureMoment
 import pl.soulsnaps.features.coach.breathingSessionScreen
+import pl.soulsnaps.features.coach.dailyquiz.dailyQuizScreen
+import pl.soulsnaps.features.coach.dailyquiz.navigateToDailyQuiz
 import pl.soulsnaps.features.coach.gratitudeScreen
 import pl.soulsnaps.features.coach.navigateToBreathingSession
 import pl.soulsnaps.features.coach.navigateToGratitude
-import pl.soulsnaps.features.dashboard.dashboardScreen
-import pl.soulsnaps.features.dashboard.navigateToDashboard
 import pl.soulsnaps.features.dashboard.DashboardRoute
+import pl.soulsnaps.features.dashboard.dashboardScreen
 import pl.soulsnaps.features.exersises.exercisesScreen
 import pl.soulsnaps.features.exersises.navigateToExercises
 import pl.soulsnaps.features.exersises.plutchikwheel.modernEmotionWheelScreen
 import pl.soulsnaps.features.exersises.plutchikwheel.navigateToModernEmotionWheel
-import pl.soulsnaps.features.exersises.plutchikwheel.ModernEmotionWheelRoute
-import pl.soulsnaps.features.memoryhub.memoryHubTab
-import pl.soulsnaps.features.memoryhub.navigateToMemoryHub
-import pl.soulsnaps.features.memoryhub.MemoryHubRoute
-import pl.soulsnaps.features.onboarding.OnboardingRoute
-import pl.soulsnaps.features.onboarding.onboardingScreen
-import pl.soulsnaps.features.virtualmirror.navigateToVirtualMirror
-import pl.soulsnaps.features.virtualmirror.virtualMirrorScreen
-import pl.soulsnaps.features.auth.LoginRoute
-import pl.soulsnaps.features.auth.loginScreen
-import pl.soulsnaps.features.auth.RegistrationRoute
-import pl.soulsnaps.features.auth.navigateToLogin
-import pl.soulsnaps.features.auth.navigateToRegistration
-import pl.soulsnaps.features.auth.registrationScreen
+import pl.soulsnaps.features.location.locationPickerScreen
 import pl.soulsnaps.features.memoryhub.details.memoryDetailsScreen
 import pl.soulsnaps.features.memoryhub.details.navigateToMemoryDetails
 import pl.soulsnaps.features.memoryhub.edit.editMemoryScreen
 import pl.soulsnaps.features.memoryhub.edit.navigateToEditMemory
-import pl.soulsnaps.features.location.locationPickerScreen
-import pl.soulsnaps.features.location.navigateToLocationPicker
-import pl.soulsnaps.features.upgrade.upgradeScreen
-import pl.soulsnaps.features.upgrade.navigateToUpgrade
-import pl.soulsnaps.features.settings.SettingsRoute
-import pl.soulsnaps.features.settings.SettingsScreen
-import pl.soulsnaps.features.settings.navigateToSettings
-import pl.soulsnaps.features.settings.settingsScreen
-import pl.soulsnaps.features.settings.NotificationSettingsRoute
+import pl.soulsnaps.features.memoryhub.memoryHubTab
+import pl.soulsnaps.features.memoryhub.navigateToMemoryHub
+import pl.soulsnaps.features.onboarding.OnboardingRoute
+import pl.soulsnaps.features.onboarding.onboardingScreen
 import pl.soulsnaps.features.settings.navigateToNotificationSettings
 import pl.soulsnaps.features.settings.notificationSettingsScreen
-import pl.soulsnaps.features.coach.dailyquiz.dailyQuizScreen
-import pl.soulsnaps.features.coach.dailyquiz.DailyQuizRoute
-import pl.soulsnaps.features.coach.dailyquiz.navigateToDailyQuiz
-import pl.soulsnaps.access.manager.AppStartupManager
-import org.koin.compose.koinInject
+import pl.soulsnaps.features.settings.settingsScreen
+import pl.soulsnaps.features.upgrade.navigateToUpgrade
+import pl.soulsnaps.features.upgrade.upgradeScreen
+import pl.soulsnaps.features.virtualmirror.navigateToVirtualMirror
+import pl.soulsnaps.features.virtualmirror.virtualMirrorScreen
 
 @Composable
 internal fun SoulSnapNavHost(
     appState: SoulSnapAppState,
     modifier: Modifier = Modifier,
-    startDestination: Any = OnboardingGraph
+    startDestination: Any = OnboardingGraph,
 ) {
     val navController = appState.navController
-    val startupManager: AppStartupManager = koinInject()
-
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -79,7 +59,7 @@ internal fun SoulSnapNavHost(
         onboardingGraph(navController)
         
         // Authentication Graph
-        authenticationGraph(navController, startupManager)
+        authenticationGraph(navController)
         
         // Home Graph (Main App)
         homeGraph(navController)
@@ -109,14 +89,11 @@ fun NavGraphBuilder.onboardingGraph(navController: NavController) {
     }
 }
 
-fun NavGraphBuilder.authenticationGraph(navController: NavController, startupManager: AppStartupManager) {
+fun NavGraphBuilder.authenticationGraph(navController: NavController) {
     navigation<AuthenticationGraph>(startDestination = LoginRoute) {
         loginScreen(
             onLoginSuccess = {
-                println("DEBUG: SoulSnapNavHost - login success, updating startup manager")
-                // Mark onboarding as completed and go to dashboard
-                startupManager.completeOnboarding()
-                println("DEBUG: SoulSnapNavHost - after completeOnboarding, navigating to HomeGraph")
+                println("DEBUG: SoulSnapNavHost - login success, navigating to HomeGraph")
                 navController.navigate(HomeGraph) {
                     popUpTo(AuthenticationGraph) { inclusive = true }
                 }
@@ -125,9 +102,7 @@ fun NavGraphBuilder.authenticationGraph(navController: NavController, startupMan
             onBack = { navController.popBackStack() },
             onNavigateToRegister = { navController.navigateToRegistration() },
             onContinueAsGuest = {
-                println("DEBUG: SoulSnapNavHost - continue as guest, updating startup manager")
-                // Mark onboarding as completed and go to dashboard for guest
-                startupManager.completeOnboarding()
+                println("DEBUG: SoulSnapNavHost - continue as guest, navigating to HomeGraph")
                 navController.navigate(HomeGraph) {
                     popUpTo(AuthenticationGraph) { inclusive = true }
                 }
@@ -135,17 +110,13 @@ fun NavGraphBuilder.authenticationGraph(navController: NavController, startupMan
         )
         registrationScreen(
             onRegistrationSuccess = {
-                println("DEBUG: SoulSnapNavHost - registration success, updating startup manager")
-                // Mark onboarding as completed and go to dashboard
-                startupManager.completeOnboarding()
+                println("DEBUG: SoulSnapNavHost - registration success, navigating to HomeGraph")
                 navController.navigate(HomeGraph) {
                     popUpTo(AuthenticationGraph) { inclusive = true }
                 }
             },
             onContinueAsGuest = {
-                println("DEBUG: SoulSnapNavHost - continue as guest from registration, updating startup manager")
-                // Mark onboarding as completed and go to dashboard for guest
-                startupManager.completeOnboarding()
+                println("DEBUG: SoulSnapNavHost - continue as guest from registration, navigating to HomeGraph")
                 navController.navigate(HomeGraph) {
                     popUpTo(AuthenticationGraph) { inclusive = true }
                 }
@@ -210,7 +181,8 @@ fun NavGraphBuilder.homeGraph(navController: NavController) {
         exercisesScreen(
             onOpenBreathing = { navController.navigateToBreathingSession() },
             onOpenGratitude = { navController.navigateToGratitude() },
-            onOpenEmotionWheel = { navController.navigateToModernEmotionWheel() }
+            onOpenEmotionWheel = { navController.navigateToModernEmotionWheel() },
+            onOpenDailyQuiz = { navController.navigateToDailyQuiz() }
         )
         breathingSessionScreen(onDone = { navController.popBackStack() })
         gratitudeScreen(onDone = { navController.popBackStack() })
@@ -240,9 +212,7 @@ fun NavGraphBuilder.homeGraph(navController: NavController) {
                 println("DEBUG: Upgrade to plan: $planName")
                 navController.popBackStack()
             },
-            onDismiss = { navController.popBackStack() },
-            currentPlan = "FREE_USER",
-            recommendations = emptyList()
+            onDismiss = { navController.popBackStack() }
         )
         dailyQuizScreen(
             onBack = { navController.popBackStack() },

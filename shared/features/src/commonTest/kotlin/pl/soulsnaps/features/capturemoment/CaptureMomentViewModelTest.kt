@@ -8,9 +8,11 @@ import pl.soulsnaps.domain.interactor.SaveMemoryUseCase
 import pl.soulsnaps.domain.model.Memory
 import pl.soulsnaps.domain.model.MoodType
 import pl.soulsnaps.access.guard.AccessGuard
+import pl.soulsnaps.accessGuard
 import pl.soulsnaps.domain.service.AffirmationService
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.domain.model.UserSession
+import pl.soulsnaps.saveMemoryUseCase
 import pl.soulsnaps.utils.getCurrentTimeMillis
 
 /**
@@ -18,16 +20,12 @@ import pl.soulsnaps.utils.getCurrentTimeMillis
  */
 class CaptureMomentViewModelTest {
 
-    private lateinit var saveMemoryUseCase: SaveMemoryUseCase
-    private lateinit var accessGuard: AccessGuard
     private lateinit var affirmationService: AffirmationService
     private lateinit var userSessionManager: UserSessionManager
     private lateinit var viewModel: CaptureMomentViewModel
 
     @BeforeTest
     fun setup() {
-        saveMemoryUseCase = mock<SaveMemoryUseCase>()
-        accessGuard = mock<AccessGuard>()
         affirmationService = mock<AffirmationService>()
         userSessionManager = mock<UserSessionManager>()
 
@@ -35,7 +33,8 @@ class CaptureMomentViewModelTest {
             saveMemoryUseCase = saveMemoryUseCase,
             accessGuard = accessGuard,
             affirmationService = affirmationService,
-            userSessionManager = userSessionManager
+            userSessionManager = userSessionManager,
+            crashlyticsManager = mock()
         )
     }
 

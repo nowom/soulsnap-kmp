@@ -167,8 +167,18 @@ class MemoryRepositoryImpl(
             if (networkMonitor.isOnline() && userSessionManager.isAuthenticated()) {
                 syncScope.launch {
                     try {
-                        // TODO: Implement remote favorite update
-                        println("DEBUG: MemoryRepositoryImpl.markAsFavorite() - remote sync completed for authenticated user")
+                        val currentUser = userSessionManager.getCurrentUser()
+                        if (currentUser != null) {
+                            // Use OnlineDataSource to update favorite status remotely
+                            val success = onlineDataSource.markAsFavorite(id.toLong(), isFavorite, currentUser.userId)
+                            if (success) {
+                                println("DEBUG: MemoryRepositoryImpl.markAsFavorite() - remote favorite update completed for memory ID: $id")
+                            } else {
+                                println("ERROR: MemoryRepositoryImpl.markAsFavorite() - remote favorite update failed for memory ID: $id")
+                            }
+                        } else {
+                            println("DEBUG: MemoryRepositoryImpl.markAsFavorite() - no current user, skipping remote sync")
+                        }
                     } catch (e: Exception) {
                         println("ERROR: MemoryRepositoryImpl.markAsFavorite() - remote sync failed: ${e.message}")
                     }
@@ -190,15 +200,28 @@ class MemoryRepositoryImpl(
         println("DEBUG: MemoryRepositoryImpl.deleteMemory() - deleting memory ID: $id")
         
         try {
+            // Get memory details before deletion for sync
+            val memory = memoryDao.getById(id.toLong())
+            
             // Delete from local database
             memoryDao.delete(id.toLong())
             println("DEBUG: MemoryRepositoryImpl.deleteMemory() - deleted locally")
             
             // If user is authenticated, we should also handle remote deletion
             if (userSessionManager.isAuthenticated()) {
-                // TODO: Implement remote deletion or mark for deletion sync
-                println("DEBUG: MemoryRepositoryImpl.deleteMemory() - memory deleted for authenticated user")
-                // For now, we just delete locally. Remote sync can be implemented later.
+                val currentUser = userSessionManager.getCurrentUser()
+                if (currentUser != null && memory != null) {
+                    // Enqueue deletion sync task
+                    val deleteTask = pl.soulsnaps.sync.model.DeleteMemory(
+                        localId = id.toLong(),
+                        remotePhotoPath = memory.remotePhotoPath,
+                        remoteAudioPath = memory.remoteAudioPath
+                    )
+                    syncManager.enqueue(deleteTask)
+                    println("DEBUG: MemoryRepositoryImpl.deleteMemory() - enqueued deletion sync task for memory ID: $id")
+                } else {
+                    println("DEBUG: MemoryRepositoryImpl.deleteMemory() - no current user or memory not found, local deletion only")
+                }
             } else {
                 println("DEBUG: MemoryRepositoryImpl.deleteMemory() - guest user, local deletion only")
             }
@@ -219,9 +242,19 @@ class MemoryRepositoryImpl(
             
             // If user is authenticated, we should also handle remote update
             if (userSessionManager.isAuthenticated()) {
-                // TODO: Implement remote update or mark for update sync
-                println("DEBUG: MemoryRepositoryImpl.updateMemory() - memory updated for authenticated user")
-                // For now, we just update locally. Remote sync can be implemented later.
+                val currentUser = userSessionManager.getCurrentUser()
+                if (currentUser != null) {
+                    // Enqueue update sync task
+                    val updateTask = pl.soulsnaps.sync.model.UpdateMemory(
+                        localId = memory.id.toLong(),
+                        reuploadPhoto = false, // Don't reupload photo unless it changed
+                        reuploadAudio = false  // Don't reupload audio unless it changed
+                    )
+                    syncManager.enqueue(updateTask)
+                    println("DEBUG: MemoryRepositoryImpl.updateMemory() - enqueued update sync task for memory ID: ${memory.id}")
+                } else {
+                    println("DEBUG: MemoryRepositoryImpl.updateMemory() - no current user, local update only")
+                }
             } else {
                 println("DEBUG: MemoryRepositoryImpl.updateMemory() - guest user, local update only")
             }
@@ -282,7 +315,14 @@ class MemoryRepositoryImpl(
                     // Use OnlineDataSource to sync with remote service
                     val remoteId = onlineDataSource.insertMemory(memory.toDomainModel(), currentUser.userId)
                     if (remoteId != null) {
-                        memoryDao.markAsSynced(memory.id)
+                        // Save remoteId to local database for future reference
+                        memoryDao.updateMemorySyncState(
+                            id = memory.id,
+                            syncState = "SYNCED",
+                            remoteId = remoteId.toString(),
+                            retryCount = 0,
+                            errorMessage = null
+                        )
                         println("DEBUG: MemoryRepositoryImpl.syncUnsyncedMemories() - synced memory ID: ${memory.id} with remote ID: $remoteId")
                     } else {
                         println("ERROR: MemoryRepositoryImpl.syncUnsyncedMemories() - failed to get remote ID for memory ${memory.id}")
@@ -324,13 +364,50 @@ class MemoryRepositoryImpl(
             val remoteMemories = onlineDataSource.getAllMemories(currentUser.userId)
             println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - fetched ${remoteMemories.size} memories from remote")
             
-            // TODO: Implement merge logic with local data
-            // For now, just log the fetched data
-            remoteMemories.forEach { memory ->
-                println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - remote memory: id=${memory.id}, title='${memory.title}'")
+            // Get all local memories for comparison
+            // We'll use a different approach - collect from Flow
+            val localMemoriesEntities = mutableListOf<Memories>()
+            memoryDao.getAll().collect { memories ->
+                localMemoriesEntities.addAll(memories)
+            }
+            val localMemories = localMemoriesEntities.map { it.toDomainModel() }
+            println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - found ${localMemories.size} local memories")
+            
+            // Merge logic: handle conflicts and new memories
+            var mergedCount = 0
+            var newCount = 0
+            var conflictCount = 0
+            
+            remoteMemories.forEach { remoteMemory ->
+                val localMemory = localMemories.find { it.id == remoteMemory.id }
+                
+                if (localMemory == null) {
+                    // New memory from remote - add to local database
+                    val newEntity = remoteMemory.copy(isSynced = true).toDatabaseEntity()
+                    memoryDao.insert(newEntity)
+                    newCount++
+                    println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - added new memory from remote: ${remoteMemory.title}")
+                } else {
+                    // Memory exists locally - check for conflicts
+                    val localTimestamp = localMemory.createdAt
+                    val remoteTimestamp = remoteMemory.createdAt
+                    
+                    if (localTimestamp != remoteTimestamp) {
+                        // Conflict detected - use remote version (server wins)
+                        val updatedEntity = remoteMemory.copy(isSynced = true).toDatabaseEntity()
+                        memoryDao.update(updatedEntity)
+                        conflictCount++
+                        println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - resolved conflict for memory: ${remoteMemory.title} (remote wins)")
+                    } else {
+                        // No conflict - just ensure sync status is correct
+                        memoryDao.markAsSynced(remoteMemory.id.toLong())
+                        mergedCount++
+                        println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - memory already in sync: ${remoteMemory.title}")
+                    }
+                }
             }
             
-            println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - pull completed")
+            println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - merge completed: $newCount new, $mergedCount merged, $conflictCount conflicts resolved")
         } catch (e: Exception) {
             println("ERROR: MemoryRepositoryImpl.pullFromRemote() - pull failed: ${e.message}")
         }

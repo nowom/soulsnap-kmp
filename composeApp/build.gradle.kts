@@ -8,6 +8,8 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinxSerialization)
+    alias(libs.plugins.firebaseCrashlytics)
+    alias(libs.plugins.googleServices)
 }
 
 kotlin {
@@ -36,6 +38,10 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.koin.android)
+            
+            // Firebase
+            implementation(libs.firebase.crashlytics)
+            implementation(libs.firebase.analytics)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -92,6 +98,11 @@ android {
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            // Enable Crashlytics for release builds
+            isDebuggable = false
+        }
+        getByName("debug") {
+            isDebuggable = true
         }
     }
     compileOptions {

@@ -1,30 +1,50 @@
 package pl.soulsnaps.features.onboarding
 
+import dev.mokkery.MockMode
+import dev.mokkery.answering.calls
+import dev.mokkery.answering.returns
+import dev.mokkery.every
+import dev.mokkery.matcher.any
+import dev.mokkery.matcher.eq
 import dev.mokkery.mock
-import kotlin.test.*
+import dev.mokkery.verify
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.flow.first
-import pl.soulsnaps.features.analytics.AnalyticsManager
 import pl.soulsnaps.access.manager.AppStartupManager
-import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.access.manager.OnboardingManager
+import pl.soulsnaps.analytics.FirebaseAnalyticsManager
+import pl.soulsnaps.analyticsManager
+import pl.soulsnaps.appStartupManager
 import pl.soulsnaps.domain.model.UserSession
+import pl.soulsnaps.features.analytics.AnalyticsManager
+import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.network.SupabaseAuthService
+import pl.soulsnaps.onboardingManager
 import pl.soulsnaps.utils.getCurrentTimeMillis
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 /**
  * Testy dla OnboardingViewModel z UserSessionManager
  */
 class OnboardingViewModelTest {
 
-    private lateinit var analyticsManager: AnalyticsManager
-    private lateinit var appStartupManager: AppStartupManager
     private lateinit var userSessionManager: UserSessionManager
     private lateinit var viewModel: OnboardingViewModel
 
     @BeforeTest
     fun setup() {
-        analyticsManager = mock<AnalyticsManager>()
-        appStartupManager = mock<AppStartupManager>()
         userSessionManager = mock<UserSessionManager>()
+        val firebaseAnalyticsManager = mock<FirebaseAnalyticsManager> {
+            every { logEvent(any()) } calls { /* no-op */ }
+            every { logEvent(eq("onboarding_started"), any()) } calls { /* no-op */ }
+            every { logScreenView(eq("WELCOME")) } calls { /* no-op */ }
+
+        }
+        val analyticsManager = AnalyticsManager(mock(), mock(), firebaseAnalyticsManager)
+        val onboardingManager = OnboardingManager(mock())
+        val appStartupManager = AppStartupManager(mock(), onboardingManager, SupabaseAuthService(mock()))
 
         viewModel = OnboardingViewModel(
             analyticsManager = analyticsManager,
@@ -38,25 +58,67 @@ class OnboardingViewModelTest {
         // Given
         val userId = "authenticated_user"
         val userSession = createTestUserSession(userId, "test@example.com")
-        // Note: Mock configuration would be needed here with Mokkery
+        val firebaseAnalyticsManager =  mock<FirebaseAnalyticsManager>(MockMode.autoUnit) {
+            // Najprostsze: akceptuj dowolne parametry dla tego eventu
+            every { logEvent(eq("onboarding_started"), any()) } calls { /* no-op */ }
+
+            // (opcjonalnie) wszystkie eventy
+            every { logEvent(any(), any()) } calls { /* no-op */ }
+        }
+        val analyticsManager = AnalyticsManager(mock(), mock(), firebaseAnalyticsManager)
+        
+        // Mock userSessionManager to return authenticated user
+        every { userSessionManager.getCurrentUser() } returns userSession
+        
+        // Create new viewModel with mocked analyticsManager
+        val onboardingManager = OnboardingManager(mock())
+        val appStartupManager = AppStartupManager(mock(), onboardingManager, SupabaseAuthService(mock()))
+        val testViewModel = OnboardingViewModel(
+            analyticsManager = analyticsManager,
+            appStartupManager = appStartupManager,
+            userSessionManager = userSessionManager
+        )
 
         // When
-        viewModel.handleIntent(OnboardingIntent.GetStarted)
+        testViewModel.handleIntent(OnboardingIntent.GetStarted)
 
         // Then
-        // Note: Verification would be needed here with Mokkery
+        verify { 
+            analyticsManager.completeOnboarding(
+                selectedFocus = null, // No focus selected initially
+                authMethod = "authenticated"
+            ) 
+        }
     }
 
     @Test
     fun `should use anonymous user for analytics when user is not logged in`() = runTest {
         // Given
-        // Note: Mock configuration would be needed here with Mokkery
+        val firebaseAnalyticsManager = mock<FirebaseAnalyticsManager>()
+        val analyticsManager = AnalyticsManager(mock(), mock(), mock())
+        
+        // Mock userSessionManager to return null (no authenticated user)
+        every { userSessionManager.getCurrentUser() } returns null
+        
+        // Create new viewModel with mocked analyticsManager
+        val onboardingManager = OnboardingManager(mock())
+        val appStartupManager = AppStartupManager(mock(), onboardingManager, SupabaseAuthService(mock()))
+        val testViewModel = OnboardingViewModel(
+            analyticsManager = analyticsManager,
+            appStartupManager = appStartupManager,
+            userSessionManager = userSessionManager
+        )
 
         // When
-        viewModel.handleIntent(OnboardingIntent.GetStarted)
+        testViewModel.handleIntent(OnboardingIntent.GetStarted)
 
         // Then
-        // Note: Verification would be needed here with Mokkery
+        verify { 
+            analyticsManager.completeOnboarding(
+                selectedFocus = null, // No focus selected initially
+                authMethod = "anonymous"
+            ) 
+        }
     }
 
     @Test
@@ -160,13 +222,31 @@ class OnboardingViewModelTest {
         // Given
         val userId = "test_user"
         val userSession = createTestUserSession(userId, "test@example.com")
-        // Note: Mock configuration would be needed here with Mokkery
+        val firebaseAnalyticsManager = mock<FirebaseAnalyticsManager>()
+        val analyticsManager = AnalyticsManager(mock(), mock(), mock())
+        
+        // Mock userSessionManager to return authenticated user
+        every { userSessionManager.getCurrentUser() } returns userSession
+        
+        // Create new viewModel with mocked analyticsManager
+        val onboardingManager = OnboardingManager(mock())
+        val appStartupManager = AppStartupManager(mock(), onboardingManager, SupabaseAuthService(mock()))
+        val testViewModel = OnboardingViewModel(
+            analyticsManager = analyticsManager,
+            appStartupManager = appStartupManager,
+            userSessionManager = userSessionManager
+        )
 
         // When
-        viewModel.handleIntent(OnboardingIntent.GetStarted)
+        testViewModel.handleIntent(OnboardingIntent.GetStarted)
 
         // Then
-        // Note: Verification would be needed here with Mokkery
+        verify { 
+            analyticsManager.completeOnboarding(
+                selectedFocus = null, // No focus selected initially
+                authMethod = "authenticated"
+            ) 
+        }
     }
 
     // Helper functions

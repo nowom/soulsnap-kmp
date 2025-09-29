@@ -112,6 +112,51 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- Create user_plans table for subscription management
+CREATE TABLE IF NOT EXISTS user_plans (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+    plan_type TEXT NOT NULL CHECK (plan_type IN ('GUEST', 'FREE_USER', 'PREMIUM_USER', 'ENTERPRISE_USER')),
+    plan_name TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    subscription_id TEXT, -- External subscription ID (Stripe, etc.)
+    subscription_status TEXT CHECK (subscription_status IN ('active', 'canceled', 'past_due', 'unpaid', 'trialing')),
+    trial_ends_at TIMESTAMP WITH TIME ZONE,
+    current_period_start TIMESTAMP WITH TIME ZONE,
+    current_period_end TIMESTAMP WITH TIME ZONE,
+    cancel_at_period_end BOOLEAN DEFAULT FALSE,
+    canceled_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create index for user_plans
+CREATE INDEX IF NOT EXISTS idx_user_plans_user_id ON user_plans(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_plans_plan_type ON user_plans(plan_type);
+CREATE INDEX IF NOT EXISTS idx_user_plans_subscription_id ON user_plans(subscription_id);
+
+-- Create trigger for user_plans updated_at
+CREATE TRIGGER update_user_plans_updated_at 
+    BEFORE UPDATE ON user_plans 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for user_plans
+ALTER TABLE user_plans ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for user_plans
+CREATE POLICY "Users can view their own plan" ON user_plans
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own plan" ON user_plans
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own plan" ON user_plans
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own plan" ON user_plans
+    FOR DELETE USING (auth.uid() = user_id);
+
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;

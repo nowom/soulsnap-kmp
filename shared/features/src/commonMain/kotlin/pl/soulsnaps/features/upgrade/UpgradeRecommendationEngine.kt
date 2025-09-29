@@ -4,7 +4,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import pl.soulsnaps.access.manager.PlanRegistryReader
-import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
 import pl.soulsnaps.access.manager.DefaultPlans
 import pl.soulsnaps.access.model.PlanType
 
@@ -19,7 +18,7 @@ import pl.soulsnaps.access.model.PlanType
  * - Korzyści z upgrade
  */
 class UpgradeRecommendationEngine(
-    private val planRegistry: PlanRegistryReader = PlanRegistryReaderImpl()
+    private val planRegistry: PlanRegistryReader
 ) {
     
     private val _recommendations = MutableStateFlow<List<UpgradeRecommendation>>(emptyList())

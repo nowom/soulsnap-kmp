@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     kotlin("plugin.serialization") version "2.1.21" // dopasuj do wersji Kotlin
-    id("dev.mokkery") version "2.10.0"   // ← Plugin MUSI być tu (ten sam moduł co testy)
+    id("dev.mokkery") version "2.10.0"
 }
 
 kotlin {
@@ -37,6 +37,11 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            // Optimize for size and performance
+            freeCompilerArgs += listOf(
+                "-Xexpect-actual-classes",
+                "-opt-in=kotlin.RequiresOptIn"
+            )
         }
     }
 
@@ -104,6 +109,10 @@ kotlin {
                 
                 // WorkManager for background sync
                 implementation(libs.androidx.work.runtime)
+                
+                // Firebase
+                implementation(libs.firebase.crashlytics)
+                implementation(libs.firebase.analytics)
             }
         }
 

@@ -16,7 +16,6 @@ data class Memory(
     val affirmation: String? = null,
     val isFavorite: Boolean = false,
     val isSynced: Boolean = false,
-    // New sync fields
     val remotePhotoPath: String? = null, // Supabase Storage path
     val remoteAudioPath: String? = null, // Supabase Storage path
     val remoteId: String? = null, // Remote database ID

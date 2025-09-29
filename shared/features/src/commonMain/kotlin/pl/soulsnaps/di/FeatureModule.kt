@@ -20,7 +20,6 @@ import pl.soulsnaps.features.analytics.FakeAnalyticsRepository
 import pl.soulsnaps.features.virtualmirror.VirtualMirrorViewModel
 import pl.soulsnaps.features.auth.AuthViewModel
 import pl.soulsnaps.features.auth.LoginViewModel
-import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.memoryhub.details.MemoryDetailsViewModel
 import pl.soulsnaps.features.memoryhub.edit.EditMemoryViewModel
 import pl.soulsnaps.features.settings.SettingsViewModel
@@ -35,6 +34,8 @@ import pl.soulsnaps.data.network.SoulSnapApi
 import pl.soulsnaps.features.coach.dailyquiz.DailyQuizViewModel
 import pl.soulsnaps.features.settings.NotificationSettingsViewModel
 import pl.soulsnaps.features.notifications.NotificationPermissionDialogViewModel
+import pl.soulsnaps.features.upgrade.UpgradeViewModel
+import pl.soulsnaps.features.upgrade.UpgradeRecommendationEngine
 import pl.soulsnaps.domain.repository.EmotionQuizRepository
 import pl.soulsnaps.data.EmotionQuizRepositoryImpl
 import pl.soulsnaps.domain.interactor.*
@@ -53,8 +54,16 @@ import pl.soulsnaps.access.manager.PlanRegistryReader
 import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
 import pl.soulsnaps.access.storage.UserPreferencesStorage
 import pl.soulsnaps.access.guard.GuardFactory
+import pl.soulsnaps.access.manager.UserPlanManagerImpl
 import pl.soulsnaps.access.storage.UserPreferencesStorageImpl
+import pl.soulsnaps.features.memoryanalysis.service.MemoryAnalysisService
+import pl.soulsnaps.features.memoryanalysis.analyzer.ImageAnalyzer
+import pl.soulsnaps.features.memoryanalysis.analyzer.ImageAnalyzerInterface
+import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngine
+import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.features.auth.UserSessionManagerImpl
 import pl.soulsnaps.network.SupabaseAuthService
+import pl.soulsnaps.storage.LocalStorageManager
 
 object FeatureModule {
     fun get() = module {
@@ -72,58 +81,69 @@ object FeatureModule {
         viewModelOf(::EditMemoryViewModel)
         viewModelOf(::SettingsViewModel)
         viewModelOf(::LocationPickerViewModel)
+        viewModelOf(::UpgradeViewModel)
 
         // UserPreferencesStorage - singleton for user preferences
         single<UserPreferencesStorage> { UserPreferencesStorageImpl(get()) }
-        
+
         // UserPlanManager - singleton for managing user plans
-        single { UserPlanManager(get()) }
-        
-        // UserPlanManagerInterface - alias for UserPlanManager (for dependency injection)
-        single<pl.soulsnaps.access.guard.UserPlanManagerInterface> { get<UserPlanManager>() }
-        
+        single<UserPlanManager> {
+            UserPlanManagerImpl(
+                storage = get(),
+                userPlanRepository = get(),
+                userPlanUseCase = get(),
+                crashlyticsManager = get(),
+                userSessionManager = get()
+            )
+        }
+
         // OnboardingManager - singleton for managing onboarding
         single { OnboardingManager(get()) }
-        
+
         // PlanRegistryReader - singleton for plan registry
-        single<PlanRegistryReader> { PlanRegistryReaderImpl() }
-        
-        // AccessGuard - singleton for access control
-        single { GuardFactory.createDefaultGuard(get()) }
-        
+        single<PlanRegistryReader> {
+            PlanRegistryReaderImpl(
+                userPlanRepository = get(),
+                crashlyticsManager = get()
+            )
+        }
+
         // AppStartupManager - singleton for managing app startup (now with auth service)
         single { AppStartupManager(get(), get(), get<SupabaseAuthService>()) }
-        
+
         // SoulSnapApi - singleton for centralized API client
         single { SoulSnapApi() }
-        
+
         // LocationPermissionManager - singleton for permission handling
         single<LocationPermissionManager> { LocationPermissionManagerFactory.create() }
-        
+
         // LocationService - singleton for GPS location
         single<LocationService> { LocationServiceFactory.create(get()) }
-        
+
         // LocationSearchService - singleton for location autocomplete
         single<LocationSearchService> { MapboxLocationSearchService(get()) }
-        
+
         // Emotion Quiz - Daily quiz functionality
         single<EmotionQuizRepository> { EmotionQuizRepositoryImpl() }
         single<EmotionAIService> { MockEmotionAIService() }
-        
+
         // Notifications - Notification and reminder system
         single<NotificationPermissionManager> { NotificationPermissionManagerFactory.create() }
         single<NotificationService> { NotificationServiceFactory.create() }
         single<NotificationRepository> { NotificationRepositoryImpl() }
         single { ReminderManager(get(), get()) }
-        
+
         // Daily Quiz ViewModels
         viewModelOf(::DailyQuizViewModel)
-        
+
         // Settings ViewModels
         viewModelOf(::NotificationSettingsViewModel)
-        
+
         // Notification Permission Dialog ViewModel
         viewModelOf(::NotificationPermissionDialogViewModel)
+
+        // Upgrade Recommendation Engine
+        single { UpgradeRecommendationEngine(get()) }
 
         single<ExerciseRepository> { InMemoryExerciseRepository() }
         single { GetCompletedExercisesUseCase(get()) }
@@ -131,20 +151,47 @@ object FeatureModule {
 
         // Analytics
         single<AnalyticsRepository> { FakeAnalyticsRepository() }
-        single { 
+        single {
             AnalyticsManager(
                 repository = get(),
+                crashlyticsManager = get(),
+                firebaseAnalytics = get(),
                 coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob())
             )
         }
 
-        // Memory Analysis Service
-        single { 
-            pl.soulsnaps.features.memoryanalysis.service.MemoryAnalysisService(
+        // Image Analyzer and Pattern Detection Engine
+        //single<ImageAnalyzerInterface> { ImageAnalyzer(get()) }
+        single { PatternDetectionEngine() }
+
+        // AccessGuard for MemoryAnalysisService
+        single {
+            GuardFactory.createDefaultGuard(get(), get())
+        }
+
+        // Memory Analysis Service - create its own AccessGuard to avoid circular dependency
+        single {
+            MemoryAnalysisService(
                 imageAnalyzer = get(),
                 patternDetectionEngine = get(),
                 guard = get(),
                 userPlanManager = get()
+            )
+        }
+
+        // User Session Manager - moved from DataModule to avoid circular dependency
+        single<UserSessionManager> {
+            UserSessionManagerImpl(get(), get())
+        }
+
+        // Local Storage Manager
+        single {
+            LocalStorageManager(
+                memoryRepository = get(),
+                affirmationRepository = get(),
+                userPreferencesStorage = get(),
+                sessionDataStore = get(),
+                crashlyticsManager = get()
             )
         }
 

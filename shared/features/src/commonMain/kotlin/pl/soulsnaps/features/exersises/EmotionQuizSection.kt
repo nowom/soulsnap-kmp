@@ -36,6 +36,7 @@ fun EmotionQuizSection(
     emotions: List<Emotion>,
     selectedQuizEmotion: EmotionCategory?,
     onQuizEmotionSelected: (EmotionCategory?) -> Unit,
+    onOpenDailyQuiz: () -> Unit = {},
     modifier: Modifier = Modifier.Companion
 ) {
     var showQuizDialog by remember { mutableStateOf(false) }
@@ -64,7 +65,7 @@ fun EmotionQuizSection(
                 modifier = Modifier.Companion.padding(bottom = 16.dp)
             )
             Button(
-                onClick = { showQuizDialog = true },
+                onClick = onOpenDailyQuiz,
                 modifier = Modifier.Companion.fillMaxWidth()
             ) {
                 Text("Jak się dziś czujesz?")

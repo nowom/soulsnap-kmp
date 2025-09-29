@@ -84,7 +84,7 @@ data class FeatureInfo(
  * W przyszłości łatwo zastąpić bazą danych
  */
 class InMemoryScopePolicy(
-    private val planRegistry: PlanRegistryReader = PlanRegistryReaderImpl()
+    private val planRegistry: PlanRegistryReader
 ) : ScopePolicy {
     
     private val userPlans = mutableMapOf<String, String>()
@@ -143,8 +143,8 @@ class InMemoryScopePolicy(
  * W przyszłości łatwo zastąpić Redisem lub bazą danych
  */
 class InMemoryQuotaPolicy(
-    private val planRegistry: PlanRegistryReader = PlanRegistryReaderImpl(),
-    private val scopePolicy: ScopePolicy = InMemoryScopePolicy()
+    private val planRegistry: PlanRegistryReader,
+    private val scopePolicy: ScopePolicy
 ) : QuotaPolicy {
     
     private val userQuotas = mutableMapOf<String, MutableMap<String, Int>>()

@@ -79,6 +79,8 @@ class LoginViewModel(
             _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 signInUseCase(email, password)
+                // Complete onboarding after successful login
+                appStartupManager.completeOnboarding()
                 _state.update { it.copy(isLoading = false) }
                 _navigationEvents.update { LoginNavigationEvent.NavigateToDashboard }
             } catch (t: Throwable) {

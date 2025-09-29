@@ -77,12 +77,12 @@ class OnboardingManager(
     /**
      * Ukończ onboarding
      */
-    fun completeOnboarding() {
+    suspend fun completeOnboarding() {
         _currentStep.value = OnboardingStep.COMPLETED
         _isOnboardingActive.value = false
         // Ustaw plan użytkownika (domyślnie GUEST jeśli nie wybrano)
         if (!userPlanManager.hasPlanSet()) {
-            userPlanManager.setUserPlan("GUEST")
+            userPlanManager.setUserPlanAndWait("GUEST")
         }
     }
     

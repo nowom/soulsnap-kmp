@@ -1,20 +1,30 @@
 package pl.soulsnaps.access.guard
 
+import dev.mokkery.mock
 import kotlin.test.*
 import kotlinx.coroutines.test.runTest
+import pl.soulsnaps.access.manager.PlanRegistryReader
+import pl.soulsnaps.access.manager.DefaultPlans
+import pl.soulsnaps.access.manager.UserPlanManager
 
 /**
  * Testy dla GuardFactory - Factory Pattern
  */
 class GuardFactoryTest {
     
-    private val mockUserPlanManager = object : UserPlanManagerInterface {
-        override fun getCurrentPlan(): String? = "FREE_USER"
-        override fun setUserPlan(planName: String) {}
-        override fun getUserPlan(): String? = "FREE_USER"
-        override fun isOnboardingCompleted(): Boolean = true
-        override fun getPlanOrDefault(): String = "FREE_USER"
-        override fun hasPlanSet(): Boolean = true
+    private val mockUserPlanManager: UserPlanManager = mock()
+    
+    private val mockPlanRegistry = object : PlanRegistryReader {
+        override suspend fun getPlan(userId: String) = DefaultPlans.FREE_USER
+        override fun getPlanByType(type: pl.soulsnaps.access.model.PlanType) = DefaultPlans.getPlan(type)
+        override suspend fun hasPlan(userId: String) = true
+        override fun getRecommendedPlanForAction(action: String) = when {
+            action.startsWith("ai.") -> pl.soulsnaps.access.model.PlanType.PREMIUM_USER
+            action.startsWith("export.") -> pl.soulsnaps.access.model.PlanType.FREE_USER
+            action.startsWith("memory.") -> pl.soulsnaps.access.model.PlanType.GUEST
+            else -> null
+        }
+        override fun getAllPlans() = DefaultPlans.getAllPlans()
     }
     
     // ===== DEFAULT GUARD TESTS =====
@@ -22,7 +32,7 @@ class GuardFactoryTest {
     @Test
     fun `createDefaultGuard should create guard with in-memory implementations`() {
         // When
-        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager)
+        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
         
         // Then
         assertNotNull(guard)
@@ -36,7 +46,7 @@ class GuardFactoryTest {
     @Test
     fun `createDefaultGuard should create working guard instance`() {
         // Given
-        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager)
+        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
         
         // When & Then - sprawdź czy działa
         val features = guard.getAllFeatures()
@@ -107,7 +117,7 @@ class GuardFactoryTest {
     @Test
     fun `createTestGuard should create guard for testing`() {
         // When
-        val guard = GuardFactory.createTestGuard(mockUserPlanManager)
+        val guard = GuardFactory.createTestGuard(mockUserPlanManager, mockPlanRegistry)
         
         // Then
         assertNotNull(guard)
@@ -117,7 +127,7 @@ class GuardFactoryTest {
     @Test
     fun `createTestGuard should be functional`() = runTest {
         // Given
-        val guard = GuardFactory.createTestGuard(mockUserPlanManager)
+        val guard = GuardFactory.createTestGuard(mockUserPlanManager, mockPlanRegistry)
         
         // When & Then
         val features = guard.getAllFeatures()
@@ -133,7 +143,7 @@ class GuardFactoryTest {
     @Test
     fun `default guard should have all features enabled`() {
         // Given
-        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager)
+        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
         
         // When
         val features = guard.getAllFeatures()
@@ -154,7 +164,7 @@ class GuardFactoryTest {
     @Test
     fun `default guard should have emergency features disabled`() {
         // Given
-        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager)
+        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
         
         // When
         val features = guard.getAllFeatures()
@@ -169,7 +179,7 @@ class GuardFactoryTest {
     @Test
     fun `default guard should allow basic actions for free user`() = runTest {
         // Given
-        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager)
+        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
         
         // When & Then - sprawdź czy domyślny guard działa poprawnie
         val scopes = guard.getUserScopes("free_user")
@@ -180,7 +190,7 @@ class GuardFactoryTest {
     @Test
     fun `default guard should deny premium actions for free user`() = runTest {
         // Given
-        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager)
+        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
         
         // When & Then
         val scopes = guard.getUserScopes("free_user")
@@ -193,8 +203,8 @@ class GuardFactoryTest {
     @Test
     fun `guard factory should create different guard instances`() {
         // When
-        val guard1 = GuardFactory.createDefaultGuard(mockUserPlanManager)
-        val guard2 = GuardFactory.createDefaultGuard(mockUserPlanManager)
+        val guard1 = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
+        val guard2 = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
         
         // Then
         assertNotNull(guard1)
@@ -206,8 +216,8 @@ class GuardFactoryTest {
     @Test
     fun `guard factory should create guards with same behavior`() {
         // Given
-        val guard1 = GuardFactory.createDefaultGuard(mockUserPlanManager)
-        val guard2 = GuardFactory.createDefaultGuard(mockUserPlanManager)
+        val guard1 = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
+        val guard2 = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
         
         // When
         val features1 = guard1.getAllFeatures()
@@ -245,7 +255,7 @@ class GuardFactoryTest {
     @Test
     fun `factory created guards should work with memory analysis service`() = runTest {
         // Given
-        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager)
+        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
         
         // When & Then - sprawdź czy guard może być użyty w service
         val scopes = guard.getUserScopes("test_user")
@@ -262,7 +272,7 @@ class GuardFactoryTest {
     @Test
     fun `factory created guards should support all required operations`() = runTest {
         // Given
-        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager)
+        val guard = GuardFactory.createDefaultGuard(mockUserPlanManager, mockPlanRegistry)
         
         // When & Then - sprawdź podstawowe operacje
         val allFeatures = guard.getAllFeatures()

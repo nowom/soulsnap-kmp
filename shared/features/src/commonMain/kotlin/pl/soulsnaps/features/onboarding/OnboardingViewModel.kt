@@ -9,12 +9,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pl.soulsnaps.access.manager.AppStartupManager
 import pl.soulsnaps.features.analytics.AnalyticsManager
-import pl.soulsnaps.features.auth.UserSessionManager
 
 class OnboardingViewModel(
     private val analyticsManager: AnalyticsManager,
     private val appStartupManager: AppStartupManager,
-    private val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(OnboardingState())
@@ -66,12 +64,10 @@ class OnboardingViewModel(
                 _state.update { it.copy(password = intent.password) }
             }
             is OnboardingIntent.GetStarted -> {
-                analyticsManager.completeOnboarding(
-                    selectedFocus = _state.value.selectedFocus?.name,
-                    authMethod = userSessionManager.getCurrentUser()?.let { "authenticated" } ?: "anonymous"
-                )
                 // Ukończ onboarding przez AppStartupManager
-                appStartupManager.completeOnboarding()
+                viewModelScope.launch {
+                    appStartupManager.completeOnboarding()
+                }
                 completeOnboarding()
             }
         }

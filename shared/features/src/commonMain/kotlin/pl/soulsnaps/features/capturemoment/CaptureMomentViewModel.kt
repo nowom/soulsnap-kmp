@@ -17,12 +17,14 @@ import pl.soulsnaps.utils.getCurrentTimeMillis
 import pl.soulsnaps.domain.service.AffirmationService
 import pl.soulsnaps.domain.model.AffirmationRequest
 import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.crashlytics.CrashlyticsManager
 
 class CaptureMomentViewModel(
     private val saveMemoryUseCase: SaveMemoryUseCase,
     private val accessGuard: AccessGuard,
     private val affirmationService: AffirmationService,
-    private val userSessionManager: UserSessionManager
+    private val userSessionManager: UserSessionManager,
+    private val crashlyticsManager: CrashlyticsManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CaptureMomentState())
@@ -172,6 +174,14 @@ class CaptureMomentViewModel(
                 println("ERROR: CaptureMomentViewModel.saveMemory() - full stacktrace:")
                 e.printStackTrace()
                 
+                // Log to Crashlytics
+                crashlyticsManager.recordException(e)
+                crashlyticsManager.log("Error saving memory: ${e.message}")
+                crashlyticsManager.setCustomKey("memory_title", state.value.title)
+                crashlyticsManager.setCustomKey("memory_mood", state.value.selectedMood?.name ?: "unknown")
+                crashlyticsManager.setCustomKey("has_photo", state.value.photoUri != null)
+                crashlyticsManager.setCustomKey("has_audio", state.value.audioUri != null)
+                
                 _state.update { 
                     it.copy(
                         isSaving = false, 
@@ -202,6 +212,12 @@ class CaptureMomentViewModel(
             println("ERROR: CaptureMomentViewModel.checkCapacityBeforeSave() - exception message: ${e.message}")
             println("ERROR: CaptureMomentViewModel.checkCapacityBeforeSave() - full stacktrace:")
             e.printStackTrace()
+            
+            // Log to Crashlytics
+            crashlyticsManager.recordException(e)
+            crashlyticsManager.log("Error checking capacity: ${e.message}")
+            crashlyticsManager.setCustomKey("estimated_file_size", estimateFileSize())
+            
             throw e
         }
     }
@@ -250,6 +266,10 @@ class CaptureMomentViewModel(
                     ) 
                 }
             } catch (e: Exception) {
+                // Log to Crashlytics
+                crashlyticsManager.recordException(e)
+                crashlyticsManager.log("Error checking capacity status: ${e.message}")
+                
                 _state.update { 
                     it.copy(
                         isCheckingCapacity = false,
@@ -361,6 +381,12 @@ class CaptureMomentViewModel(
                     }
                 }
             } catch (e: Exception) {
+                // Log to Crashlytics
+                crashlyticsManager.recordException(e)
+                crashlyticsManager.log("Error generating affirmation: ${e.message}")
+                crashlyticsManager.setCustomKey("memory_title", state.value.title)
+                crashlyticsManager.setCustomKey("memory_mood", state.value.selectedMood?.name ?: "unknown")
+                
                 _state.update { 
                     it.copy(
                         isGeneratingAffirmation = false,
@@ -399,6 +425,10 @@ class CaptureMomentViewModel(
             } catch (e: Exception) {
                 // Silent fail for AI upgrade - don't show error to user
                 println("AI upgrade failed: ${e.message}")
+                
+                // Log to Crashlytics (silent fail, but we want to track it)
+                crashlyticsManager.recordException(e)
+                crashlyticsManager.log("AI upgrade failed silently: ${e.message}")
             }
         }
     }

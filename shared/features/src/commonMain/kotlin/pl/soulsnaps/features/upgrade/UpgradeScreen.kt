@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import org.koin.compose.koinInject
 import pl.soulsnaps.components.ActionButton
 import pl.soulsnaps.components.BodyText
 import pl.soulsnaps.components.CaptionText
@@ -46,7 +47,6 @@ import pl.soulsnaps.components.HeadingText
 import pl.soulsnaps.components.TitleText
 import pl.soulsnaps.designsystem.AppColorScheme
 import pl.soulsnaps.access.manager.PlanRegistryReader
-import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
 import pl.soulsnaps.access.manager.DefaultPlans
 import pl.soulsnaps.access.manager.PlanDefinition
 import pl.soulsnaps.access.manager.PlanPricing
@@ -59,7 +59,11 @@ fun UpgradeScreen(
     onDismiss: () -> Unit,
     currentPlan: String,
     recommendations: List<UpgradeRecommendation> = emptyList(),
-            planRegistry: PlanRegistryReader = PlanRegistryReaderImpl()
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
+    onRetry: (() -> Unit)? = null,
+    onClearError: (() -> Unit)? = null,
+    planRegistry: PlanRegistryReader = koinInject()
 ) {
     Column(
         modifier = Modifier
@@ -78,29 +82,43 @@ fun UpgradeScreen(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Current plan info
-            CurrentPlanSection(currentPlan = currentPlan)
-            
-            // Recommendations
-            if (recommendations.isNotEmpty()) {
-                RecommendationsSection(
-                    recommendations = recommendations,
-                    onUpgradeToPlan = onUpgradeToPlan
+            // Error message
+            errorMessage?.let { message ->
+                ErrorSection(
+                    message = message,
+                    onRetry = onRetry,
+                    onClearError = onClearError
                 )
             }
             
-            // Plan comparison
-            PlanComparisonSection(
-                currentPlan = currentPlan,
-                onUpgradeToPlan = onUpgradeToPlan,
-                planRegistry = planRegistry
-            )
-            
-            // Why upgrade
-            WhyUpgradeSection()
-            
-            // FAQ
-            FAQSection()
+            // Loading state
+            if (isLoading) {
+                LoadingSection()
+            } else {
+                // Current plan info
+                CurrentPlanSection(currentPlan = currentPlan)
+                
+                // Recommendations
+                if (recommendations.isNotEmpty()) {
+                    RecommendationsSection(
+                        recommendations = recommendations,
+                        onUpgradeToPlan = onUpgradeToPlan
+                    )
+                }
+                
+                // Plan comparison
+                PlanComparisonSection(
+                    currentPlan = currentPlan,
+                    onUpgradeToPlan = onUpgradeToPlan,
+                    planRegistry = planRegistry
+                )
+                
+                // Why upgrade
+                WhyUpgradeSection()
+                
+                // FAQ
+                FAQSection()
+            }
         }
     }
 }
@@ -564,5 +582,102 @@ private fun getPlanDescription(planName: String): String {
         PlanType.PREMIUM_USER.name -> "Premium plan ze wszystkimi funkcjami"
         PlanType.ENTERPRISE_USER.name -> "Enterprise plan z nieograniczonym dostępem"
         else -> "Plan użytkownika"
+    }
+}
+
+@Composable
+private fun ErrorSection(
+    message: String,
+    onRetry: (() -> Unit)?,
+    onClearError: (() -> Unit)?
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = AppColorScheme.error.copy(alpha = 0.1f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Wystąpił błąd",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = AppColorScheme.error
+                )
+                onClearError?.let { clearError ->
+                    IconButton(onClick = clearError) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Zamknij",
+                            tint = AppColorScheme.error
+                        )
+                    }
+                }
+            }
+            
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColorScheme.onSurface
+            )
+            
+            onRetry?.let { retry ->
+                ActionButton(
+                    icon = "🪞",
+                    text = "Spróbuj ponownie",
+                    onClick = retry,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoadingSection() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = AppColorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Simple loading indicator
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        color = AppColorScheme.primary.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(20.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "...",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = AppColorScheme.primary
+                )
+            }
+            
+            Text(
+                text = "Ładowanie planów...",
+                style = MaterialTheme.typography.bodyLarge,
+                color = AppColorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }

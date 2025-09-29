@@ -10,7 +10,7 @@ class UserPlanManagerTest {
 
     @BeforeTest
     fun setup() {
-        userPlanManager = UserPlanManager(mock())
+        userPlanManager = mock()
     }
 
     @Test
