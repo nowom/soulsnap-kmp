@@ -16,115 +16,79 @@ import kotlinx.coroutines.flow.asStateFlow
 class OnboardingManager(
     private val userPlanManager: UserPlanManager
 ) {
-    
+
     private val _currentStep = MutableStateFlow(OnboardingStep.WELCOME)
     private val _isOnboardingActive = MutableStateFlow(false)
-    
+
     val currentStep: Flow<OnboardingStep> = _currentStep.asStateFlow()
     val isOnboardingActive: Flow<Boolean> = _isOnboardingActive.asStateFlow()
-    
-    /**
-     * Sprawdź czy użytkownik powinien przejść onboarding
-     */
-    fun shouldShowOnboarding(): Boolean {
-        return !userPlanManager.isOnboardingCompleted()
-    }
-    
-    /**
-     * Rozpocznij onboarding
-     */
+
+    /** Czy pokazać onboarding? */
+    fun shouldShowOnboarding(): Boolean = !userPlanManager.isOnboardingCompleted()
+
+    /** Start onboarding */
     fun startOnboarding() {
         _isOnboardingActive.value = true
         _currentStep.value = OnboardingStep.WELCOME
     }
-    
-    /**
-     * Przejdź do następnego kroku
-     */
+
+    /** Następny krok */
     fun nextStep() {
-        val currentStepValue = _currentStep.value
-        val nextStep = when (currentStepValue) {
+        _currentStep.value = when (_currentStep.value) {
             OnboardingStep.WELCOME -> OnboardingStep.PLAN_SELECTION
             OnboardingStep.PLAN_SELECTION -> OnboardingStep.FEATURES_OVERVIEW
             OnboardingStep.FEATURES_OVERVIEW -> OnboardingStep.COMPLETED
             OnboardingStep.COMPLETED -> OnboardingStep.COMPLETED
         }
-        _currentStep.value = nextStep
     }
-    
-    /**
-     * Przejdź do poprzedniego kroku
-     */
+
+    /** Poprzedni krok */
     fun previousStep() {
-        val currentStepValue = _currentStep.value
-        val previousStep = when (currentStepValue) {
+        _currentStep.value = when (_currentStep.value) {
             OnboardingStep.WELCOME -> OnboardingStep.WELCOME
             OnboardingStep.PLAN_SELECTION -> OnboardingStep.WELCOME
             OnboardingStep.FEATURES_OVERVIEW -> OnboardingStep.PLAN_SELECTION
             OnboardingStep.COMPLETED -> OnboardingStep.FEATURES_OVERVIEW
         }
-        _currentStep.value = previousStep
     }
-    
-    /**
-     * Wybierz plan użytkownika
-     */
+
+    /** Wybór planu podczas onboarding */
     fun selectPlan(planName: String) {
         userPlanManager.setUserPlan(planName)
         nextStep()
     }
-    
-    /**
-     * Ukończ onboarding
-     */
+
+    /** Ukończ onboarding */
     suspend fun completeOnboarding() {
         _currentStep.value = OnboardingStep.COMPLETED
         _isOnboardingActive.value = false
-        // Ustaw plan użytkownika (domyślnie GUEST jeśli nie wybrano)
+        // Domyślny plan jeśli żaden nie wybrany
         if (!userPlanManager.hasPlanSet()) {
             userPlanManager.setUserPlanAndWait("GUEST")
         }
     }
-    
-    /**
-     * Pomiń onboarding (ustaw domyślny plan)
-     */
+
+    /** Pomiń onboarding */
     fun skipOnboarding() {
         userPlanManager.setUserPlan("GUEST")
         _isOnboardingActive.value = false
     }
-    
-    /**
-     * Resetuj onboarding (dla testów)
-     */
+
+    /** Reset (testy) */
     fun resetOnboarding() {
         userPlanManager.resetUserPlan()
         _currentStep.value = OnboardingStep.WELCOME
         _isOnboardingActive.value = false
     }
-    
-    /**
-     * Pobierz aktualny krok
-     */
-    fun getCurrentStep(): OnboardingStep {
-        return _currentStep.value
-    }
-    
-    /**
-     * Sprawdź czy onboarding jest aktywny
-     */
-    fun isActive(): Boolean {
-        return _isOnboardingActive.value
-    }
+
+    fun getCurrentStep(): OnboardingStep = _currentStep.value
+    fun isActive(): Boolean = _isOnboardingActive.value
 }
 
-/**
- * Kroki onboarding
- */
+/** Kroki onboarding */
 enum class OnboardingStep {
     WELCOME,              // Powitanie
     PLAN_SELECTION,       // Wybór planu
     FEATURES_OVERVIEW,    // Przegląd funkcji
-    COMPLETED            // Ukończony
+    COMPLETED             // Ukończony
 }
-

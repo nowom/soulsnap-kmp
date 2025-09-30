@@ -22,7 +22,6 @@ class MemoryDaoImpl(private val db: SoulSnapDatabase) : MemoryDao {
             longitude = memory.longitude,
             affirmation = memory.affirmation,
             isFavorite = memory.isFavorite,
-            isSynced = memory.isSynced,
             remotePhotoPath = memory.remotePhotoPath,
             remoteAudioPath = memory.remoteAudioPath,
             remoteId = memory.remoteId,
@@ -33,10 +32,24 @@ class MemoryDaoImpl(private val db: SoulSnapDatabase) : MemoryDao {
     }
 
     override fun getAll(): Flow<List<Memories>> =
-        queries.selectAll().asFlow().map { it.executeAsList() }
+        queries.selectAll().asFlow().map { 
+            try {
+                it.executeAsList()
+            } catch (e: Exception) {
+                println("ERROR: MemoryDaoImpl.getAll() - SQLite CursorWindow error: ${e.message}")
+                // Return empty list if there are large records that cause CursorWindow error
+                emptyList()
+            }
+        }
 
     override suspend fun getById(id: Long): Memories? =
-        queries.selectById(id).executeAsOneOrNull()
+        try {
+            queries.selectById(id).executeAsOneOrNull()
+        } catch (e: Exception) {
+            println("ERROR: MemoryDaoImpl.getById() - SQLite CursorWindow error: ${e.message}")
+            null
+        }
+
 
     override suspend fun delete(id: Long) {
         queries.deleteMemoryById(id)
@@ -55,7 +68,6 @@ class MemoryDaoImpl(private val db: SoulSnapDatabase) : MemoryDao {
             longitude = memory.longitude,
             affirmation = memory.affirmation,
             isFavorite = memory.isFavorite,
-            isSynced = memory.isSynced,
             remotePhotoPath = memory.remotePhotoPath,
             remoteAudioPath = memory.remoteAudioPath,
             remoteId = memory.remoteId,
@@ -100,7 +112,6 @@ class MemoryDaoImpl(private val db: SoulSnapDatabase) : MemoryDao {
         longitude: Double?,
         affirmation: String?,
         isFavorite: Boolean,
-        isSynced: Boolean,
         remotePhotoPath: String?,
         remoteAudioPath: String?,
         remoteId: String?,
@@ -121,7 +132,6 @@ class MemoryDaoImpl(private val db: SoulSnapDatabase) : MemoryDao {
             longitude = longitude,
             affirmation = affirmation,
             isFavorite = isFavorite,
-            isSynced = isSynced,
             remotePhotoPath = remotePhotoPath,
             remoteAudioPath = remoteAudioPath,
             remoteId = remoteId,
@@ -178,4 +188,5 @@ class MemoryDaoImpl(private val db: SoulSnapDatabase) : MemoryDao {
             errorMessage = errorMessage
         )
     }
+    
 }

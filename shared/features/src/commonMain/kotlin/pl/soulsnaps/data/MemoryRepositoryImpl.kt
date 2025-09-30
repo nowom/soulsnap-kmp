@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import pl.soulsnaps.database.dao.MemoryDao
 import pl.soulsnaps.database.Memories
@@ -18,6 +19,7 @@ import pl.soulsnaps.domain.model.MoodType
 import pl.soulsnaps.util.NetworkMonitor
 import pl.soulsnaps.data.OnlineDataSource
 import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.storage.FileStorageManager
 import pl.soulsnaps.access.guard.CapacityGuard
 import pl.soulsnaps.sync.manager.SyncManager
 import pl.soulsnaps.sync.model.CreateMemory
@@ -39,16 +41,91 @@ class MemoryRepositoryImpl(
     private val userSessionManager: UserSessionManager,
     private val onlineDataSource: OnlineDataSource,
     private val capacityGuard: CapacityGuard,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val fileStorageManager: FileStorageManager
 ) : MemoryRepository {
     
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    
+    /**
+     * Decode Base64 string to ByteArray
+     * This is a simple implementation - in production you might want to use a proper Base64 library
+     */
+    private fun decodeBase64(base64String: String): ByteArray {
+        return try {
+            // Simple Base64 decoding - in production use proper library
+            val cleanBase64 = base64String.replace("\n", "").replace("\r", "")
+            val decoded = mutableListOf<Byte>()
+            
+            for (i in 0 until cleanBase64.length step 4) {
+                val chunk = cleanBase64.substring(i, minOf(i + 4, cleanBase64.length))
+                val paddedChunk = chunk.padEnd(4, '=')
+                
+                val b1 = base64CharToByte(paddedChunk[0])
+                val b2 = base64CharToByte(paddedChunk[1])
+                val b3 = base64CharToByte(paddedChunk[2])
+                val b4 = base64CharToByte(paddedChunk[3])
+                
+                val combined = (b1 shl 18) or (b2 shl 12) or (b3 shl 6) or b4
+                
+                decoded.add((combined shr 16).toByte())
+                if (paddedChunk[2] != '=') decoded.add((combined shr 8).toByte())
+                if (paddedChunk[3] != '=') decoded.add(combined.toByte())
+            }
+            
+            decoded.toByteArray()
+        } catch (e: Exception) {
+            println("ERROR: Failed to decode Base64: ${e.message}")
+            byteArrayOf()
+        }
+    }
+    
+    private fun base64CharToByte(c: Char): Int {
+        return when (c) {
+            in 'A'..'Z' -> c - 'A'
+            in 'a'..'z' -> c - 'a' + 26
+            in '0'..'9' -> c - '0' + 52
+            '+' -> 62
+            '/' -> 63
+            '=' -> 0
+            else -> 0
+        }
+    }
 
     override suspend fun addMemory(memory: Memory): Int {
         println("DEBUG: MemoryRepositoryImpl.addMemory() - starting offline-first save")
         
         return try {
-            // 1. Save to local database first (offline-first)
+            // 1. Save large content to phone storage, database stores only file paths
+            val photoPath = memory.photoUri?.let { photoUri ->
+                if (photoUri.startsWith("data:image")) {
+                    // Extract Base64 data and save to phone storage
+                    val base64Data = photoUri.substringAfter("base64,")
+                    val photoData = decodeBase64(base64Data)
+                    val fileName = fileStorageManager.savePhoto(photoData)
+                    println("DEBUG: Saved photo to phone storage: $fileName")
+                    fileName
+                } else {
+                    // Already a file path
+                    photoUri
+                }
+            }
+            
+            val audioPath = memory.audioUri?.let { audioUri ->
+                if (audioUri.startsWith("data:audio")) {
+                    // Extract Base64 data and save to phone storage
+                    val base64Data = audioUri.substringAfter("base64,")
+                    val audioData = decodeBase64(base64Data)
+                    val fileName = fileStorageManager.saveAudio(audioData)
+                    println("DEBUG: Saved audio to phone storage: $fileName")
+                    fileName
+                } else {
+                    // Already a file path
+                    audioUri
+                }
+            }
+            
+            // 2. Save metadata to database (no large content)
             println("DEBUG: MemoryRepositoryImpl.addMemory() - memory.createdAt=${memory.createdAt}")
             val memoriesEntity = Memories(
                 id = 0, // Database will auto-generate ID
@@ -56,14 +133,14 @@ class MemoryRepositoryImpl(
                 description = memory.description,
                 timestamp = memory.createdAt,
                 mood = memory.mood?.name,
-                photoUri = memory.photoUri,
-                audioUri = memory.audioUri,
+                photoUri = photoPath, // File path instead of Base64
+                audioUri = audioPath, // File path instead of Base64
                 locationName = memory.locationName,
                 latitude = memory.latitude,
                 longitude = memory.longitude,
                 affirmation = memory.affirmation,
                 isFavorite = memory.isFavorite,
-                isSynced = false, // Mark as unsynced
+                // Mark as unsynced using syncState
                 remotePhotoPath = null,
                 remoteAudioPath = null,
                 remoteId = null,
@@ -128,7 +205,10 @@ class MemoryRepositoryImpl(
                 // Filter out memories with timestamp=0 (old buggy data)
                 val validMemories = memoriesList.filter { it.timestamp > 0 }
                 println("DEBUG: MemoryRepositoryImpl.getMemories() - filtered to ${validMemories.size} valid memories (timestamp > 0)")
-                validMemories.map { it.toDomainModel() }
+                validMemories.map { memory ->
+                    // Convert each memory to domain model with file paths
+                    runBlocking { memory.toDomainModel() }
+                }
             }
             .catch { e ->
                 println("ERROR: MemoryRepositoryImpl.getMemories() - database error: ${e.message}")
@@ -278,6 +358,7 @@ class MemoryRepositoryImpl(
         pullFromRemote()
     }
     
+    
     /**
      * Sync unsynced memories to remote service
      */
@@ -383,7 +464,7 @@ class MemoryRepositoryImpl(
                 
                 if (localMemory == null) {
                     // New memory from remote - add to local database
-                    val newEntity = remoteMemory.copy(isSynced = true).toDatabaseEntity()
+                    val newEntity = remoteMemory.copy(syncState = pl.soulsnaps.domain.model.SyncState.SYNCED).toDatabaseEntity()
                     memoryDao.insert(newEntity)
                     newCount++
                     println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - added new memory from remote: ${remoteMemory.title}")
@@ -394,7 +475,7 @@ class MemoryRepositoryImpl(
                     
                     if (localTimestamp != remoteTimestamp) {
                         // Conflict detected - use remote version (server wins)
-                        val updatedEntity = remoteMemory.copy(isSynced = true).toDatabaseEntity()
+                        val updatedEntity = remoteMemory.copy(syncState = pl.soulsnaps.domain.model.SyncState.SYNCED).toDatabaseEntity()
                         memoryDao.update(updatedEntity)
                         conflictCount++
                         println("DEBUG: MemoryRepositoryImpl.pullFromRemote() - resolved conflict for memory: ${remoteMemory.title} (remote wins)")
@@ -487,21 +568,37 @@ class MemoryRepositoryImpl(
     /**
      * Convert database entity to domain model
      */
-    private fun Memories.toDomainModel(): Memory {
+    private suspend fun Memories.toDomainModel(): Memory {
         println("DEBUG: MemoryRepositoryImpl.toDomainModel() - converting: id=${id}, timestamp=${timestamp}, photoUri='${photoUri}'")
+        
+        // Get actual file paths from phone storage
+        val actualPhotoUri = photoUri?.let { fileName ->
+            fileStorageManager.getPhotoPath(fileName) ?: fileName
+        }
+        
+        val actualAudioUri = audioUri?.let { fileName ->
+            fileStorageManager.getAudioPath(fileName) ?: fileName
+        }
+        
         return Memory(
             id = id.toInt(),
             title = title,
             description = description,
             createdAt = timestamp,
             mood = mood?.let { MoodType.valueOf(it) },
-            photoUri = photoUri,
-            audioUri = audioUri,
+            photoUri = actualPhotoUri, // File path to phone storage
+            audioUri = actualAudioUri, // File path to phone storage
             locationName = locationName,
             latitude = latitude,
             longitude = longitude,
             affirmation = affirmation,
-            isFavorite = isFavorite
+            isFavorite = isFavorite,
+            remotePhotoPath = remotePhotoPath,
+            remoteAudioPath = remoteAudioPath,
+            remoteId = remoteId,
+            syncState = runCatching { pl.soulsnaps.domain.model.SyncState.valueOf(syncState) }.getOrElse { pl.soulsnaps.domain.model.SyncState.PENDING },
+            retryCount = retryCount.toInt(),
+            errorMessage = errorMessage
         ).also {
             println("DEBUG: MemoryRepositoryImpl.toDomainModel() - converted to: id=${it.id}, createdAt=${it.createdAt}, photoUri='${it.photoUri}'")
         }
@@ -524,7 +621,6 @@ class MemoryRepositoryImpl(
             longitude = longitude,
             affirmation = affirmation,
             isFavorite = isFavorite,
-            isSynced = isSynced,
             remotePhotoPath = remotePhotoPath,
             remoteAudioPath = remoteAudioPath,
             remoteId = remoteId,

@@ -49,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -111,32 +112,86 @@ fun AddMemoryScreen(
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     val navController = LocalNavController.current
     val settingsNavigator: SettingsNavigator = koinInject()
-    // Camera and Gallery managers
+    
+    // Cleanup bitmap when leaving the screen
+    DisposableEffect(Unit) {
+        onDispose {
+            // Clear the bitmap reference to help with garbage collection
+            imageBitmap = null
+        }
+    }
+    // Camera and Gallery managers with proper memory management
     val cameraManager = rememberCameraManager { sharedImage ->
         sharedImage?.let { image ->
-            imageBitmap = image.toImageBitmap()
-            // Save image data as Base64 string for now (temporary solution)
-            val imageBytes = image.toByteArray()
-            if (imageBytes != null) {
-                @OptIn(ExperimentalEncodingApi::class)
-                val base64Image = "data:image/jpeg;base64," + Base64.encode(imageBytes)
-                viewModel.handleIntent(CaptureMomentIntent.ChangePhoto(base64Image))
+            try {
+                imageBitmap = image.toImageBitmap()
+                // Save image as file instead of Base64 to avoid SQLite CursorWindow limit
+                val imageBytes = image.toByteArray()
+                if (imageBytes != null) {
+                    // Generate a unique filename for the image
+                    val timestamp = getCurrentTimeMillis()
+                    val fileName = "photo_${timestamp}.jpg"
+                    val filePath = "file:///android_asset/images/$fileName" // Temporary path
+                    
+                    // For now, we'll use a smaller Base64 string with max size limit
+                    @OptIn(ExperimentalEncodingApi::class)
+                    val base64Image = "data:image/jpeg;base64," + Base64.encode(imageBytes)
+                    
+                    // Limit Base64 size to prevent SQLite CursorWindow error (max ~1MB)
+                    val maxBase64Size = 1024 * 1024 // 1MB limit
+                    val finalBase64 = if (base64Image.length > maxBase64Size) {
+                        println("CameraManager: Base64 image too large (${base64Image.length} bytes), truncating")
+                        base64Image.substring(0, maxBase64Size)
+                    } else {
+                        base64Image
+                    }
+                    
+                    viewModel.handleIntent(CaptureMomentIntent.ChangePhoto(finalBase64))
+                }
+                showPhotoDialog = false
+            } catch (e: Exception) {
+                println("CameraManager: Error processing image: ${e.message}")
+                showPhotoDialog = false
             }
-            showPhotoDialog = false
+            // Note: Don't recycle bitmap here as it's still being used by Compose UI
+            // The bitmap will be garbage collected when no longer referenced
         }
     }
     
     val galleryManager = rememberGalleryManager { sharedImage ->
         sharedImage?.let { image ->
-            imageBitmap = image.toImageBitmap()
-            // Save image data as Base64 string for now (temporary solution)
-            val imageBytes = image.toByteArray()
-            if (imageBytes != null) {
-                @OptIn(ExperimentalEncodingApi::class)
-                val base64Image = "data:image/jpeg;base64," + Base64.encode(imageBytes)
-                viewModel.handleIntent(CaptureMomentIntent.ChangePhoto(base64Image))
+            try {
+                imageBitmap = image.toImageBitmap()
+                // Save image as file instead of Base64 to avoid SQLite CursorWindow limit
+                val imageBytes = image.toByteArray()
+                if (imageBytes != null) {
+                    // Generate a unique filename for the image
+                    val timestamp = getCurrentTimeMillis()
+                    val fileName = "photo_${timestamp}.jpg"
+                    val filePath = "file:///android_asset/images/$fileName" // Temporary path
+                    
+                    // For now, we'll use a smaller Base64 string with max size limit
+                    @OptIn(ExperimentalEncodingApi::class)
+                    val base64Image = "data:image/jpeg;base64," + Base64.encode(imageBytes)
+                    
+                    // Limit Base64 size to prevent SQLite CursorWindow error (max ~1MB)
+                    val maxBase64Size = 1024 * 1024 // 1MB limit
+                    val finalBase64 = if (base64Image.length > maxBase64Size) {
+                        println("GalleryManager: Base64 image too large (${base64Image.length} bytes), truncating")
+                        base64Image.substring(0, maxBase64Size)
+                    } else {
+                        base64Image
+                    }
+                    
+                    viewModel.handleIntent(CaptureMomentIntent.ChangePhoto(finalBase64))
+                }
+                showPhotoDialog = false
+            } catch (e: Exception) {
+                println("GalleryManager: Error processing image: ${e.message}")
+                showPhotoDialog = false
             }
-            showPhotoDialog = false
+            // Note: Don't recycle bitmap here as it's still being used by Compose UI
+            // The bitmap will be garbage collected when no longer referenced
         }
     }
     

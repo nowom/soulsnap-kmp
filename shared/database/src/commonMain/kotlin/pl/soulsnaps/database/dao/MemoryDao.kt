@@ -29,7 +29,6 @@ interface MemoryDao {
         longitude: Double?,
         affirmation: String?,
         isFavorite: Boolean,
-        isSynced: Boolean,
         remotePhotoPath: String?,
         remoteAudioPath: String?,
         remoteId: String?,

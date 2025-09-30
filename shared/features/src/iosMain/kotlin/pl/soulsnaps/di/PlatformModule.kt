@@ -22,6 +22,8 @@ import pl.soulsnaps.sync.storage.StorageClient
 import pl.soulsnaps.sync.storage.SupabaseStorageClient
 import pl.soulsnaps.crashlytics.CrashlyticsManager
 import pl.soulsnaps.crashlytics.CrashlyticsManagerFactory
+import pl.soulsnaps.storage.FileStorageManager
+import pl.soulsnaps.storage.FileStorageManagerFactory
 
 /**
  * iOS-specific platform module
@@ -69,4 +71,9 @@ actual val platformModule: Module = module {
     }
 
     single<SettingsNavigator> { IOSSettingsNavigator() }
+    
+    // FileStorageManager - iOS implementation
+    single<FileStorageManager> {
+        FileStorageManagerFactory.create()
+    }
 }

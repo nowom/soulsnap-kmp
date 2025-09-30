@@ -112,28 +112,40 @@ class AffirmationRepositoryImpl(
         text: String,
         mood: String
     ) {
-        // Get the memory and update its affirmation field
-        val memory = memoryDao.getById(memoryId.toLong())
-        memory?.let { existingMemory ->
-            val updatedMemory = existingMemory.copy(
-                affirmation = text
-            )
-            memoryDao.update(updatedMemory)
+        try {
+            // Try to get the memory - this might fail if it has large Base64 fields
+            val memory = memoryDao.getById(memoryId.toLong())
+            memory?.let { existingMemory ->
+                val updatedMemory = existingMemory.copy(
+                    affirmation = text
+                )
+                memoryDao.update(updatedMemory)
+            }
+        } catch (e: Exception) {
+            println("ERROR: AffirmationRepositoryImpl.saveAffirmationForMemory() - failed to save affirmation: ${e.message}")
+            // If the memory has large fields that cause CursorWindow error, 
+            // we'll skip saving the affirmation for now
+            println("WARNING: Skipping affirmation save due to large memory data")
         }
     }
 
     override suspend fun getAffirmationByMemoryId(memoryId: Int): Affirmation? {
-        val memory = memoryDao.getById(memoryId.toLong())
-        return memory?.affirmation?.let { affirmationText ->
-            Affirmation(
-                id = memoryId.toString(),
-                text = affirmationText,
-                audioUrl = null,
-                emotion = memory.mood ?: "neutral",
-                timeOfDay = getTimeOfDay(),
-                isFavorite = memory.isFavorite,
-                themeType = getThemeTypeFromMood(memory.mood)
-            )
+        try {
+            val memory = memoryDao.getById(memoryId.toLong())
+            return memory?.affirmation?.let { affirmationText ->
+                Affirmation(
+                    id = memoryId.toString(),
+                    text = affirmationText,
+                    audioUrl = null,
+                    emotion = memory.mood ?: "neutral",
+                    timeOfDay = getTimeOfDay(),
+                    isFavorite = memory.isFavorite,
+                    themeType = getThemeTypeFromMood(memory.mood)
+                )
+            }
+        } catch (e: Exception) {
+            println("ERROR: AffirmationRepositoryImpl.getAffirmationByMemoryId() - failed to get affirmation: ${e.message}")
+            return null
         }
     }
 

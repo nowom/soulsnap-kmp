@@ -123,11 +123,10 @@ class SyncProcessorImpl(
                 longitude = memory.longitude,
                 affirmation = memory.affirmation,
                 isFavorite = memory.isFavorite,
-                isSynced = true,
                 remotePhotoPath = remotePhotoPath,
                 remoteAudioPath = remoteAudioPath,
                 remoteId = remoteId.toString(),
-                syncState = "SYNCED",
+                syncState = pl.soulsnaps.domain.model.SyncState.SYNCED.name,
                 retryCount = 0,
                 errorMessage = null
             )
@@ -213,11 +212,10 @@ class SyncProcessorImpl(
                 longitude = memory.longitude,
                 affirmation = memory.affirmation,
                 isFavorite = memory.isFavorite,
-                isSynced = true,
                 remotePhotoPath = remotePhotoPath,
                 remoteAudioPath = remoteAudioPath,
                 remoteId = memory.remoteId,
-                syncState = "SYNCED",
+                syncState = pl.soulsnaps.domain.model.SyncState.SYNCED.name,
                 retryCount = 0,
                 errorMessage = null
             )
@@ -320,11 +318,10 @@ class SyncProcessorImpl(
                         longitude = remoteMemory.longitude,
                         affirmation = remoteMemory.affirmation,
                         isFavorite = remoteMemory.isFavorite,
-                        isSynced = true,
                         remotePhotoPath = remoteMemory.remotePhotoPath,
                         remoteAudioPath = remoteMemory.remoteAudioPath,
                         remoteId = remoteMemory.remoteId,
-                        syncState = "SYNCED",
+                        syncState = pl.soulsnaps.domain.model.SyncState.SYNCED.name,
                         retryCount = 0,
                         errorMessage = null
                     )
@@ -351,11 +348,10 @@ class SyncProcessorImpl(
                             longitude = remoteMemory.longitude,
                             affirmation = remoteMemory.affirmation,
                             isFavorite = remoteMemory.isFavorite,
-                            isSynced = true,
                             remotePhotoPath = remoteMemory.remotePhotoPath,
                             remoteAudioPath = remoteMemory.remoteAudioPath,
                             remoteId = remoteMemory.remoteId,
-                            syncState = "SYNCED",
+                            syncState = pl.soulsnaps.domain.model.SyncState.SYNCED.name,
                             retryCount = 0,
                             errorMessage = null
                         )
@@ -391,7 +387,6 @@ private fun pl.soulsnaps.database.Memories.toDomainModel(): Memory {
         longitude = longitude,
         affirmation = affirmation,
         isFavorite = isFavorite,
-        isSynced = isSynced,
         remotePhotoPath = remotePhotoPath,
         remoteAudioPath = remoteAudioPath,
         remoteId = remoteId,

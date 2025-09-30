@@ -15,7 +15,6 @@ data class Memory(
     val longitude: Double?,
     val affirmation: String? = null,
     val isFavorite: Boolean = false,
-    val isSynced: Boolean = false,
     val remotePhotoPath: String? = null, // Supabase Storage path
     val remoteAudioPath: String? = null, // Supabase Storage path
     val remoteId: String? = null, // Remote database ID

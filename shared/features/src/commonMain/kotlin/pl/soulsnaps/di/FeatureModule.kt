@@ -10,6 +10,9 @@ import pl.soulsnaps.domain.interactor.GetCompletedExercisesUseCase
 import pl.soulsnaps.data.InMemoryExerciseRepository
 import pl.soulsnaps.domain.ExerciseRepository
 import pl.soulsnaps.domain.interactor.MarkExerciseCompletedUseCase
+import pl.soulsnaps.domain.MemoryRepository
+import pl.soulsnaps.storage.FileStorageManager
+import pl.soulsnaps.storage.FileStorageManagerFactory
 import pl.soulsnaps.features.memoryhub.timeline.TimelineViewModel
 import pl.soulsnaps.features.memoryhub.gallery.MomentsGalleryViewModel
 import pl.soulsnaps.features.memoryhub.map.MemoryMapViewModel
@@ -108,8 +111,8 @@ object FeatureModule {
             )
         }
 
-        // AppStartupManager - singleton for managing app startup (now with auth service)
-        single { AppStartupManager(get(), get(), get<SupabaseAuthService>()) }
+        // AppStartupManager - singleton for managing app startup (now with auth service and memory repository)
+        single { AppStartupManager(get(), get(), get<SupabaseAuthService>(), get<MemoryRepository>()) }
 
         // SoulSnapApi - singleton for centralized API client
         single { SoulSnapApi() }

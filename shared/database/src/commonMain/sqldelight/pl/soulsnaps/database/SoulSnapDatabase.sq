@@ -2,27 +2,32 @@ import kotlin.Boolean;
 
 -- Memory.sq
 CREATE TABLE memories (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY NOT NULL,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
-    timestamp INTEGER NOT NULL,
-    mood TEXT,
+    timestamp INTEGER NOT NULL CHECK(timestamp > 0),
+    mood TEXT CHECK(mood IN ('happy', 'sad', 'excited', 'calm', 'anxious', 'grateful', 'loved', 'stressed')),
     photoUri TEXT, -- Local file path
     audioUri TEXT, -- Local file path
     locationName TEXT,
-    latitude REAL,
-    longitude REAL,
+    latitude REAL CHECK(latitude BETWEEN -90 AND 90),
+    longitude REAL CHECK(longitude BETWEEN -180 AND 180),
     affirmation TEXT,
-    isFavorite INTEGER AS Boolean NOT NULL,
-    isSynced INTEGER AS Boolean NOT NULL DEFAULT 0,
-    -- New sync fields
+    isFavorite INTEGER AS Boolean NOT NULL DEFAULT 0,
+    -- Sync fields (removed isSynced, using only syncState)
     remotePhotoPath TEXT, -- Supabase Storage path
     remoteAudioPath TEXT, -- Supabase Storage path
     remoteId TEXT, -- Remote database ID
-    syncState TEXT NOT NULL DEFAULT 'PENDING', -- PENDING, SYNCING, SYNCED, FAILED
+    syncState TEXT NOT NULL DEFAULT 'PENDING' CHECK(syncState IN ('PENDING', 'SYNCING', 'SYNCED', 'FAILED')),
     retryCount INTEGER NOT NULL DEFAULT 0,
     errorMessage TEXT
 );
+
+-- Indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_memories_timestamp ON memories(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_memories_sync_state ON memories(syncState);
+CREATE INDEX IF NOT EXISTS idx_memories_sync_timestamp ON memories(syncState, timestamp);
+CREATE INDEX IF NOT EXISTS idx_memories_favorite ON memories(isFavorite);
 
 selectAll:
 SELECT * FROM memories ORDER BY timestamp DESC;
@@ -30,12 +35,13 @@ SELECT * FROM memories ORDER BY timestamp DESC;
 selectById:
 SELECT * FROM memories WHERE id = ?;
 
+
 insertMemory:
 INSERT INTO memories (
     title, description, timestamp, mood, photoUri, audioUri,
-    locationName, latitude, longitude, affirmation, isFavorite, isSynced,
+    locationName, latitude, longitude, affirmation, isFavorite,
     remotePhotoPath, remoteAudioPath, remoteId, syncState, retryCount, errorMessage
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateMemory:
 UPDATE memories SET
@@ -50,7 +56,6 @@ UPDATE memories SET
     longitude = ?,
     affirmation = ?,
     isFavorite = ?,
-    isSynced = ?,
     remotePhotoPath = ?,
     remoteAudioPath = ?,
     remoteId = ?,
@@ -66,16 +71,16 @@ markAsFavorite:
 UPDATE memories SET isFavorite = ? WHERE id = ?;
 
 getUnsyncedMemories:
-SELECT * FROM memories WHERE isSynced = 0;
+SELECT * FROM memories WHERE syncState = 'PENDING';
 
 markAsSynced:
-UPDATE memories SET isSynced = 1 WHERE id = ?;
+UPDATE memories SET syncState = 'SYNCED' WHERE id = ?;
 
 clearAll:
 DELETE FROM memories;
 
 deleteInvalidMemories:
-DELETE FROM memories WHERE timestamp = 0;
+DELETE FROM memories WHERE timestamp <= 0;
 
 -- Snap Drafts table for local-first sync
 CREATE TABLE snap_drafts (
@@ -202,7 +207,6 @@ UPDATE memories SET
     longitude = ?,
     affirmation = ?,
     isFavorite = ?,
-    isSynced = ?,
     remotePhotoPath = ?,
     remoteAudioPath = ?,
     remoteId = ?,
@@ -216,18 +220,20 @@ CREATE TABLE sync_queue (
     id TEXT NOT NULL PRIMARY KEY,
     type TEXT NOT NULL,
     payload TEXT NOT NULL, -- JSON
-    state TEXT NOT NULL DEFAULT 'PENDING', -- PENDING, RUNNING, COMPLETED, FAILED, CANCELLED
+    state TEXT NOT NULL DEFAULT 'PENDING' CHECK(state IN ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED')),
     attempt_count INTEGER NOT NULL DEFAULT 0,
     next_run_at INTEGER NOT NULL,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
-    local_id INTEGER NOT NULL
+    local_id INTEGER NOT NULL,
+    FOREIGN KEY (local_id) REFERENCES memories(id) ON DELETE CASCADE
 );
 
 -- Sync Queue indexes
 CREATE INDEX IF NOT EXISTS idx_sync_queue_next_run_state ON sync_queue(next_run_at, state);
 CREATE INDEX IF NOT EXISTS idx_sync_queue_local_id ON sync_queue(local_id);
 CREATE INDEX IF NOT EXISTS idx_sync_queue_state ON sync_queue(state);
+CREATE INDEX IF NOT EXISTS idx_sync_queue_pending ON sync_queue(next_run_at) WHERE state = 'PENDING';
 
 -- Sync Queue queries
 insertSyncTask:

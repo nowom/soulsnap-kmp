@@ -14,16 +14,8 @@ import pl.soulsnaps.crashlytics.CrashlyticsManager
 import pl.soulsnaps.features.auth.UserSessionManager
 
 /**
- * UserPlanManager - zarządza zapamiętywaniem planu użytkownika
- * 
- * Funkcjonalności:
- * - Zapamiętywanie wybranego planu użytkownika
- * - Sprawdzanie czy użytkownik przeszedł onboarding
- * - Automatyczne ustawianie planu domyślnego
- * - Obsługa zmian planu
- * - Persistent storage na dysku
+ * Zarządzanie planem użytkownika + onboarding persisted
  */
-
 interface UserPlanManager {
     val currentPlan: Flow<String?>
     fun setUserPlan(planName: String)
@@ -50,33 +42,27 @@ class UserPlanManagerImpl(
     private val _currentPlan = MutableStateFlow<String?>(null)
     private val _hasCompletedOnboarding = MutableStateFlow(false)
     private val _isLoading = MutableStateFlow(true)
-    
+
     override val currentPlan: Flow<String?> = _currentPlan.asStateFlow()
     val hasCompletedOnboarding: Flow<Boolean> = _hasCompletedOnboarding.asStateFlow()
     val isLoading: Flow<Boolean> = _isLoading.asStateFlow()
-    
+
     init {
         println("DEBUG: UserPlanManager initialized")
-        // Załaduj dane z persistent storage przy starcie
         loadDataFromStorage()
     }
-    
-    /**
-     * Ustaw plan użytkownika i oznacz onboarding jako ukończony
-     */
+
+    /** Ustaw plan i zaznacz onboarding jako ukończony (async persist) */
     override fun setUserPlan(planName: String) {
         println("DEBUG: UserPlanManager.setUserPlan($planName)")
         _currentPlan.value = planName
         _hasCompletedOnboarding.value = true
-        
-        // Zapisz na dysk i w bazie danych
+
         coroutineScope.launch {
             try {
-                // Save to local storage
                 storage.saveUserPlan(planName)
                 storage.saveOnboardingCompleted(true)
 
-                // Save to database if user is authenticated
                 val currentUserId = getCurrentUserId()
                 if (currentUserId != null) {
                     val planType = getPlanTypeFromName(planName)
@@ -95,19 +81,14 @@ class UserPlanManagerImpl(
             }
         }
     }
-    
-    /**
-     * Ustaw plan użytkownika i poczekaj na zapisanie danych
-     */
+
+    /** Ustaw plan i poczekaj na zapis (sync persist) */
     override suspend fun setUserPlanAndWait(planName: String) {
         println("DEBUG: UserPlanManager.setUserPlanAndWait($planName)")
-        
         try {
-            // Save to local storage FIRST
             storage.saveUserPlan(planName)
             storage.saveOnboardingCompleted(true)
-            
-            // Save to database if user is authenticated
+
             val currentUserId = getCurrentUserId()
             if (currentUserId != null) {
                 val planType = getPlanTypeFromName(planName)
@@ -120,44 +101,25 @@ class UserPlanManagerImpl(
                 userPlanUseCase.saveUserPlan(userPlan)
                 crashlyticsManager.log("User plan saved to database: $planName")
             }
-            
-            // Only set StateFlow values AFTER successful save
+
             _currentPlan.value = planName
             _hasCompletedOnboarding.value = true
-            
         } catch (e: Exception) {
             crashlyticsManager.recordException(e)
             crashlyticsManager.log("Error saving user plan: ${e.message}")
-            // Don't set StateFlow values if save failed
+            // brak zmiany state jeśli zapis się nie udał
         }
     }
-    
-    /**
-     * Pobierz aktualny plan użytkownika
-     */
-    override fun getUserPlan(): String? {
-        return _currentPlan.value
-    }
-    
-    /**
-     * Sprawdź czy użytkownik ukończył onboarding
-     */
-    override fun isOnboardingCompleted(): Boolean {
-        return _hasCompletedOnboarding.value
-    }
-    
-    /**
-     * Ustaw domyślny plan (GUEST) jeśli żaden nie jest ustawiony
-     */
+
+    override fun getUserPlan(): String? = _currentPlan.value
+    override fun isOnboardingCompleted(): Boolean = _hasCompletedOnboarding.value
+
+    /** Ustaw domyślny plan tylko w pamięci (opcjonalnie rozważ też persist) */
     override fun setDefaultPlanIfNeeded() {
-        if (_currentPlan.value == null) {
-            _currentPlan.value = "GUEST"
-        }
+        if (_currentPlan.value == null) _currentPlan.value = "GUEST"
     }
-    
-    /**
-     * Załaduj dane z persistent storage
-     */
+
+    /** Async load z persistent storage */
     private fun loadDataFromStorage() {
         coroutineScope.launch {
             try {
@@ -171,7 +133,6 @@ class UserPlanManagerImpl(
                 _hasCompletedOnboarding.value = storedOnboardingCompleted
             } catch (e: Exception) {
                 println("DEBUG: UserPlanManager.loadDataFromStorage() - error: ${e.message}")
-                // W przypadku błędu, ustaw domyślne wartości
                 _currentPlan.value = null
                 _hasCompletedOnboarding.value = false
             } finally {
@@ -180,81 +141,36 @@ class UserPlanManagerImpl(
             }
         }
     }
-    
-    /**
-     * Resetuj plan użytkownika (dla testów lub wylogowania)
-     */
+
+    /** Reset planu (np. testy/wylogowanie) */
     override fun resetUserPlan() {
         _currentPlan.value = null
         _hasCompletedOnboarding.value = false
-        
-        // Wyczyść dane z dysku
-        coroutineScope.launch {
-            storage.clearAllData()
-        }
+        coroutineScope.launch { storage.clearAllData() }
     }
-    
-    /**
-     * Sprawdź czy plan jest ustawiony
-     */
-    override fun hasPlanSet(): Boolean {
-        return _currentPlan.value != null
-    }
-    
-    /**
-     * Pobierz plan lub domyślny
-     */
-    override fun getPlanOrDefault(): String {
-        return _currentPlan.value ?: "GUEST"
-    }
-    
-    /**
-     * Sprawdź czy dane są zapisane na dysku
-     */
-    suspend fun hasStoredData(): Boolean {
-        return storage.hasStoredData()
-    }
-    
-    /**
-     * Wymuś odświeżenie danych z storage
-     */
-    fun refreshFromStorage() {
-        loadDataFromStorage()
-    }
-    
-    /**
-     * Czekaj na zakończenie inicjalizacji
-     */
+
+    override fun hasPlanSet(): Boolean = _currentPlan.value != null
+    override fun getPlanOrDefault(): String = _currentPlan.value ?: "GUEST"
+    suspend fun hasStoredData(): Boolean = storage.hasStoredData()
+    fun refreshFromStorage() = loadDataFromStorage()
+
+    /** Czekaj aż init się zakończy */
     override suspend fun waitForInitialization() {
         while (_isLoading.value) {
-            kotlinx.coroutines.delay(10) // Krótkie opóźnienie
+            kotlinx.coroutines.delay(10)
         }
     }
-    
-    /**
-     * Pobierz aktualny plan (synchronicznie)
-     */
-    override fun getCurrentPlan(): String? {
-        return _currentPlan.value
-    }
-    
-    /**
-     * Helper method to get current user ID from UserSessionManager
-     */
-    private fun getCurrentUserId(): String? {
-        return userSessionManager.currentUser.value?.userId
-    }
-    
-    /**
-     * Helper method to convert plan name to PlanType
-     */
-    private fun getPlanTypeFromName(planName: String): PlanType {
-        return when (planName.uppercase()) {
+
+    override fun getCurrentPlan(): String? = _currentPlan.value
+
+    private fun getCurrentUserId(): String? = userSessionManager.currentUser.value?.userId
+
+    private fun getPlanTypeFromName(planName: String): PlanType =
+        when (planName.uppercase()) {
             "GUEST" -> PlanType.GUEST
             "FREE_USER" -> PlanType.FREE_USER
             "PREMIUM_USER" -> PlanType.PREMIUM_USER
             "ENTERPRISE_USER" -> PlanType.ENTERPRISE_USER
             else -> PlanType.GUEST
         }
-    }
 }

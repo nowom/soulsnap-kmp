@@ -25,6 +25,8 @@ import pl.soulsnaps.util.ConnectivityManagerNetworkMonitor
 import pl.soulsnaps.util.NetworkMonitor
 import pl.soulsnaps.crashlytics.CrashlyticsManager
 import pl.soulsnaps.crashlytics.CrashlyticsManagerFactory
+import pl.soulsnaps.storage.FileStorageManager
+import pl.soulsnaps.storage.FileStorageManagerFactory
 
 /**
  * Android-specific platform module
@@ -72,4 +74,9 @@ actual val platformModule: Module = module {
     }
 
     single<SettingsNavigator> { AndroidSettingsNavigator(androidContext()) }
+    
+    // FileStorageManager - Android implementation with Context
+    single<FileStorageManager> {
+        FileStorageManagerFactory.createWithContext(androidContext())
+    }
 }

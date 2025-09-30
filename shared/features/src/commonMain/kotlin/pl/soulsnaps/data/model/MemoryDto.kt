@@ -44,7 +44,6 @@ fun MemoryRow.toDomain(): Memory = Memory(
     longitude = location_lng,
     affirmation = affirmation,
     isFavorite = is_favorite,
-    isSynced = is_synced,
     remotePhotoPath = photo_uri,
     remoteAudioPath = audio_uri,
     remoteId = id,
@@ -84,7 +83,7 @@ fun Memory.toRow(userId: String): MemoryRow = MemoryRow(
     location_name = locationName,
     affirmation = affirmation,
     is_favorite = isFavorite,
-    is_synced = isSynced,
+    is_synced = syncState == SyncState.SYNCED,
     created_at = Instant.fromEpochMilliseconds(createdAt).toString(),
     updated_at = Instant.fromEpochMilliseconds(updatedAt).toString()
 )

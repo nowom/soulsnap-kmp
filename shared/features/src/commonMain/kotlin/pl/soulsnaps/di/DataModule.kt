@@ -20,6 +20,7 @@ import pl.soulsnaps.domain.QuoteRepository
 import pl.soulsnaps.domain.UserPlanRepository
 import pl.soulsnaps.domain.service.AffirmationService
 import pl.soulsnaps.domain.service.AffirmationServiceImpl
+import pl.soulsnaps.storage.FileStorageManager
 import pl.soulsnaps.features.auth.InMemorySessionDataStore
 import pl.soulsnaps.features.auth.SessionDataStore
 import pl.soulsnaps.features.auth.UserSessionManager
@@ -44,6 +45,7 @@ object DataModule {
         // CapacityGuard - singleton for capacity management
         single { GuardFactory.createCapacityGuard(get(), get()) }
 
+        
         single<MemoryRepository> {
             MemoryRepositoryImpl(
                 get(),
@@ -51,7 +53,8 @@ object DataModule {
                 get(),
                 get<OnlineDataSource>(),
                 get(),
-                get<pl.soulsnaps.sync.manager.SyncManager>()
+                get<pl.soulsnaps.sync.manager.SyncManager>(),
+                get<FileStorageManager>()
             )
         }
         
