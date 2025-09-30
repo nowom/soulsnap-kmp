@@ -10,6 +10,7 @@ import pl.soulsnaps.features.affirmation.affirmationsScreen
 import pl.soulsnaps.features.affirmation.navigateToAffirmations
 import pl.soulsnaps.features.auth.LoginRoute
 import pl.soulsnaps.features.auth.loginScreen
+import pl.soulsnaps.features.auth.navigateToLogin
 import pl.soulsnaps.features.auth.navigateToRegistration
 import pl.soulsnaps.features.auth.registrationScreen
 import pl.soulsnaps.features.capturemoment.captureMomentScreen
@@ -198,7 +199,10 @@ fun NavGraphBuilder.homeGraph(navController: NavController) {
                 navController.navigateToUpgrade()
             },
             onNavigateToAuth = {
-                navController.navigate(AuthenticationGraph)
+                navController.navigateToLogin()
+            },
+            onNavigateToRegistration = {
+                navController.navigateToRegistration()
             },
             onNavigateToNotificationSettings = {
                 navController.navigateToNotificationSettings()

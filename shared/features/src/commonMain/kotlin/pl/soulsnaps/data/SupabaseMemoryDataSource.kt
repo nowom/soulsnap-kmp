@@ -39,13 +39,29 @@ class SupabaseMemoryDataSource(
     private suspend fun <T> withRetry(name: String, block: suspend () -> T): T? {
         var last: Exception? = null
         repeat(MAX_RETRY_ATTEMPTS) { i ->
-            try { return block() } catch (e: Exception) {
+            try { 
+                return block() 
+            } catch (e: Exception) {
                 last = e
-                crashlyticsManager.log("$name failed (${i+1}/$MAX_RETRY_ATTEMPTS): ${e.message}")
-                if (i < MAX_RETRY_ATTEMPTS - 1) kotlinx.coroutines.delay(RETRY_DELAY_MS * (i + 1))
+                val errorMessage = when {
+                    e.message?.contains("network", ignoreCase = true) == true -> "Network error: ${e.message}"
+                    e.message?.contains("timeout", ignoreCase = true) == true -> "Timeout error: ${e.message}"
+                    e.message?.contains("unauthorized", ignoreCase = true) == true -> "Authentication error: ${e.message}"
+                    e.message?.contains("forbidden", ignoreCase = true) == true -> "Permission error: ${e.message}"
+                    e.message?.contains("not found", ignoreCase = true) == true -> "Resource not found: ${e.message}"
+                    else -> "Unknown error: ${e.message}"
+                }
+                
+                crashlyticsManager.log("$name failed (${i+1}/$MAX_RETRY_ATTEMPTS): $errorMessage")
+                
+                if (i < MAX_RETRY_ATTEMPTS - 1) {
+                    val delayMs = RETRY_DELAY_MS * (i + 1) * (i + 1) // Exponential backoff
+                    crashlyticsManager.log("$name retrying in ${delayMs}ms...")
+                    kotlinx.coroutines.delay(delayMs)
+                }
             }
         }
-        crashlyticsManager.recordException(last ?: Exception("Unknown"))
+        crashlyticsManager.recordException(last ?: Exception("Unknown error in $name"))
         return null
     }
 
@@ -60,15 +76,25 @@ class SupabaseMemoryDataSource(
                 return@withRetry null
             }
             
+            if (fileData.isEmpty()) {
+                crashlyticsManager.log("uploadPhotoToStorage: Photo data is empty for URI: $photoUri")
+                return@withRetry null
+            }
+            
             val fileName = "photos/${userId}/${Random.nextLong()}.jpg"
             
-            client.storage.from(STORAGE_BUCKET).upload(
-                path = fileName,
-                data = fileData
-            )
-            
-            // Return the public URL
-            "${client.supabaseUrl}/storage/v1/object/public/$STORAGE_BUCKET/$fileName"
+            try {
+                client.storage.from(STORAGE_BUCKET).upload(
+                    path = fileName,
+                    data = fileData
+                )
+                
+                // Return the public URL
+                "${client.supabaseUrl}/storage/v1/object/public/$STORAGE_BUCKET/$fileName"
+            } catch (e: Exception) {
+                crashlyticsManager.log("uploadPhotoToStorage: Upload failed for file: $fileName, size: ${fileData.size} bytes")
+                throw e
+            }
         }
     }
 
@@ -83,15 +109,25 @@ class SupabaseMemoryDataSource(
                 return@withRetry null
             }
             
+            if (fileData.isEmpty()) {
+                crashlyticsManager.log("uploadAudioToStorage: Audio data is empty for URI: $audioUri")
+                return@withRetry null
+            }
+            
             val fileName = "audio/${userId}/${Random.nextLong()}.m4a"
             
-            client.storage.from(STORAGE_BUCKET).upload(
-                path = fileName,
-                data = fileData
-            )
-            
-            // Return the public URL
-            "${client.supabaseUrl}/storage/v1/object/public/$STORAGE_BUCKET/$fileName"
+            try {
+                client.storage.from(STORAGE_BUCKET).upload(
+                    path = fileName,
+                    data = fileData
+                )
+                
+                // Return the public URL
+                "${client.supabaseUrl}/storage/v1/object/public/$STORAGE_BUCKET/$fileName"
+            } catch (e: Exception) {
+                crashlyticsManager.log("uploadAudioToStorage: Upload failed for file: $fileName, size: ${fileData.size} bytes")
+                throw e
+            }
         }
     }
 

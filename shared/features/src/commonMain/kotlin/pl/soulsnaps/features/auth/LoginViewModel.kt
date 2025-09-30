@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.interactor.SignInUseCase
 import pl.soulsnaps.domain.StartupRepository
+import pl.soulsnaps.features.auth.GuestToUserMigration
+import pl.soulsnaps.features.auth.MigrationResult
 
 data class LoginUiState(
     val email: String = "",
@@ -34,7 +36,8 @@ sealed interface LoginNavigationEvent {
 
 class LoginViewModel(
     private val signInUseCase: SignInUseCase,
-    private val startupRepository: StartupRepository
+    private val startupRepository: StartupRepository,
+    private val guestToUserMigration: GuestToUserMigration
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginUiState())
@@ -78,10 +81,42 @@ class LoginViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                signInUseCase(email, password)
+                val userSession = signInUseCase(email, password)
+                
+                // Check if guest migration is needed (user was a guest before logging in)
+                if (guestToUserMigration.isMigrationNeeded()) {
+                    println("DEBUG: LoginViewModel - Guest migration needed, starting migration...")
+                    
+                    val migrationResult = guestToUserMigration.migrateGuestToUser(userSession)
+                    
+                    when (migrationResult) {
+                        is MigrationResult.Success -> {
+                            println("DEBUG: LoginViewModel - Migration successful: ${migrationResult.message}")
+                            _state.update { 
+                                it.copy(
+                                    isLoading = false,
+                                    errorMessage = "✓ ${migrationResult.message}"
+                                ) 
+                            }
+                        }
+                        is MigrationResult.Error -> {
+                            println("ERROR: LoginViewModel - Migration failed: ${migrationResult.message}")
+                            _state.update { 
+                                it.copy(
+                                    isLoading = false,
+                                    errorMessage = "Uwaga: ${migrationResult.message}"
+                                ) 
+                            }
+                        }
+                    }
+                    
+                    // Give user time to see the message
+                    kotlinx.coroutines.delay(2000)
+                }
+                
                 // Complete onboarding after successful login
                 startupRepository.completeOnboarding()
-                _state.update { it.copy(isLoading = false) }
+                _state.update { it.copy(isLoading = false, errorMessage = null) }
                 _navigationEvents.update { LoginNavigationEvent.NavigateToDashboard }
             } catch (t: Throwable) {
                 _state.update { it.copy(isLoading = false, errorMessage = t.message ?: "Login failed") }

@@ -62,6 +62,7 @@ import pl.soulsnaps.features.memoryanalysis.service.MemoryAnalysisService
 import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngine
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.auth.UserSessionManagerImpl
+import pl.soulsnaps.features.auth.GuestToUserMigration
 import pl.soulsnaps.network.SupabaseAuthService
 import pl.soulsnaps.storage.LocalStorageManager
 
@@ -158,6 +159,19 @@ object FeatureModule {
                 crashlyticsManager = get(),
                 firebaseAnalytics = get(),
                 coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob())
+            )
+        }
+        
+        // Guest to User Migration
+        single {
+            GuestToUserMigration(
+                memoryDao = get(),
+                onlineDataSource = get(),
+                userSessionManager = get(),
+                userPlanManager = get(),
+                crashlyticsManager = get(),
+                offlineSyncQueue = get(),
+                offlineSyncProcessor = get()
             )
         }
 

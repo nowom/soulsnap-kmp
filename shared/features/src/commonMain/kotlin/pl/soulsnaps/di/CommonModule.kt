@@ -19,6 +19,9 @@ import pl.soulsnaps.sync.storage.StorageClient
 import pl.soulsnaps.sync.file.ImagePipeline
 import pl.soulsnaps.sync.file.LocalFileIO
 import pl.soulsnaps.sync.storage.SupabaseStorageClient
+import pl.soulsnaps.sync.offline.OfflineSyncQueue
+import pl.soulsnaps.sync.offline.OfflineSyncProcessor
+import pl.soulsnaps.crashlytics.CrashlyticsManager
 
 /**
  * Common DI module for shared components
@@ -77,6 +80,21 @@ val commonModule = module {
             supabaseClient = get(),
             imagePipeline = get<ImagePipeline>(),
             localFileIO = get<LocalFileIO>()
+        )
+    }
+    
+    // Offline sync queue for guest migration
+    single {
+        OfflineSyncQueue()
+    }
+    
+    // Offline sync processor for guest migration
+    single {
+        OfflineSyncProcessor(
+            syncQueue = get(),
+            onlineDataSource = get(),
+            connectivityMonitor = get(),
+            crashlyticsManager = get()
         )
     }
 }

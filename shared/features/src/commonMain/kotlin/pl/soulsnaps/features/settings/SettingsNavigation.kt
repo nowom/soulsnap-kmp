@@ -13,6 +13,7 @@ fun NavGraphBuilder.settingsScreen(
     onNavigateToOnboarding: () -> Unit,
     onNavigateToUpgrade: () -> Unit,
     onNavigateToAuth: () -> Unit,
+    onNavigateToRegistration: () -> Unit,
     onNavigateToNotificationSettings: () -> Unit = {}
 ) {
     composable<SettingsRoute> {
@@ -20,6 +21,7 @@ fun NavGraphBuilder.settingsScreen(
             onNavigateToOnboarding = onNavigateToOnboarding,
             onNavigateToUpgrade = onNavigateToUpgrade,
             onNavigateToAuth = onNavigateToAuth,
+            onNavigateToRegistration = onNavigateToRegistration,
             onNavigateToNotificationSettings = onNavigateToNotificationSettings
         )
     }

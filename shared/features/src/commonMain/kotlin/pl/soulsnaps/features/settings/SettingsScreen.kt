@@ -14,6 +14,7 @@ fun SettingsScreen(
     onNavigateToOnboarding: () -> Unit = {},
     onNavigateToUpgrade: () -> Unit = {},
     onNavigateToAuth: () -> Unit = {},
+    onNavigateToRegistration: () -> Unit = {},
     onNavigateToNotificationSettings: () -> Unit = {},
     viewModel: SettingsViewModel = koinViewModel()
 ) {
@@ -105,42 +106,57 @@ fun SettingsScreen(
             }
         }
         
-        // Upgrade Plan Button
-        if (state.currentPlan != "PREMIUM_USER" && state.currentPlan != "ENTERPRISE_USER") {
-            Button(
-                onClick = {
-                    // Jeśli użytkownik jest gościem (nie ma emaila), przekieruj do logowania/rejestracji
-                    if (state.currentPlan == "GUEST" || state.userEmail == null) {
-                        onNavigateToAuth()
-                    } else {
-                        onNavigateToUpgrade()
+        // Guest User Registration Card
+        if (state.currentPlan == "GUEST" || state.userEmail == null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "💾 Zabezpiecz swoje dane",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Jesteś gościem. Zarejestruj się aby:\n" +
+                                "✓ Zabezpieczyć swoje wspomnienia\n" +
+                                "✓ Synchronizować dane między urządzeniami\n" +
+                                "✓ Uzyskać dostęp do więcej funkcji\n" +
+                                "✓ Wszystkie obecne dane zostaną zachowane!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = onNavigateToRegistration,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Zarejestruj się i zachowaj dane 🔒")
                     }
-                },
+                }
+            }
+        }
+        
+        // Upgrade Plan Button for Registered Users
+        if (state.currentPlan != "PREMIUM_USER" && state.currentPlan != "ENTERPRISE_USER" && state.currentPlan != "GUEST" && state.userEmail != null) {
+            Button(
+                onClick = onNavigateToUpgrade,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text(
-                    if (state.currentPlan == "GUEST" || state.userEmail == null) {
-                        "Zaloguj się aby rozszerzyć plan"
-                    } else {
-                        "Rozszerz plan"
-                    }
-                )
-            }
-        }
-        
-        // Login Button for Guest Users
-        if (state.currentPlan == "GUEST" || state.userEmail == null) {
-            Button(
-                onClick = onNavigateToAuth,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                )
-            ) {
-                Text("Zaloguj się")
+                Text("Rozszerz plan")
             }
         }
         

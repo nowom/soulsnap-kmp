@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.interactor.RegisterUseCase
 import pl.soulsnaps.domain.StartupRepository
+import pl.soulsnaps.features.auth.GuestToUserMigration
+import pl.soulsnaps.features.auth.MigrationResult
 
 data class RegistrationUiState(
     val email: String = "",
@@ -38,7 +40,8 @@ sealed interface RegistrationNavigationEvent {
 
 class RegistrationViewModel(
     private val registerUseCase: RegisterUseCase,
-    private val startupRepository: StartupRepository
+    private val startupRepository: StartupRepository,
+    private val guestToUserMigration: GuestToUserMigration
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RegistrationUiState())
@@ -90,10 +93,45 @@ class RegistrationViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                registerUseCase(email, password)
+                // Register user
+                val userSession = registerUseCase(email, password)
+                
+                // Check if guest migration is needed
+                if (guestToUserMigration.isMigrationNeeded()) {
+                    println("DEBUG: RegistrationViewModel - Guest migration needed, starting migration...")
+                    
+                    val migrationResult = guestToUserMigration.migrateGuestToUser(userSession)
+                    
+                    when (migrationResult) {
+                        is MigrationResult.Success -> {
+                            println("DEBUG: RegistrationViewModel - Migration successful: ${migrationResult.message}")
+                            // Show success message to user
+                            _state.update { 
+                                it.copy(
+                                    isLoading = false,
+                                    errorMessage = "✓ ${migrationResult.message}"
+                                ) 
+                            }
+                        }
+                        is MigrationResult.Error -> {
+                            println("ERROR: RegistrationViewModel - Migration failed: ${migrationResult.message}")
+                            // Show warning but don't block registration
+                            _state.update { 
+                                it.copy(
+                                    isLoading = false,
+                                    errorMessage = "Uwaga: ${migrationResult.message}"
+                                ) 
+                            }
+                        }
+                    }
+                    
+                    // Give user time to see the message
+                    kotlinx.coroutines.delay(2000)
+                }
+                
                 // Complete onboarding after successful registration
                 startupRepository.completeOnboarding()
-                _state.update { it.copy(isLoading = false) }
+                _state.update { it.copy(isLoading = false, errorMessage = null) }
                 _navigationEvents.update { RegistrationNavigationEvent.NavigateToDashboard }
             } catch (t: Throwable) {
                 _state.update { it.copy(isLoading = false, errorMessage = t.message ?: "Registration failed") }
