@@ -29,10 +29,11 @@ class SimpleConnectivityMonitor : ConnectivityMonitor {
         isStarted = true
         println("DEBUG: SimpleConnectivityMonitor.start() - started monitoring")
         
-        // TODO: Implement actual network monitoring
-        // This should be implemented per platform:
-        // - Android: NetworkCallback or ConnectivityManager
-        // - iOS: Network framework with NWPathMonitor
+        // This is a fallback implementation
+        // Platform-specific implementations should be used instead:
+        // - Android: AndroidConnectivityMonitor
+        // - iOS: IOSConnectivityMonitor
+        _connected.value = true // Assume connected by default
     }
     
     override fun stop() {

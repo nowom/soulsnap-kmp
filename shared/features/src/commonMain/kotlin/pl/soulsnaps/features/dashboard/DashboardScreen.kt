@@ -60,6 +60,7 @@ fun DashboardScreen(
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToDailyQuiz: () -> Unit = {},
     onUpgradePlan: () -> Unit = {},
+    onNavigateToMemoryDetails: (Int) -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel(),
     userPlanManager: UserPlanManager = koinInject(),
     planRegistry: PlanRegistryReader = koinInject(),
@@ -121,6 +122,7 @@ fun DashboardScreen(
             onTakeMoodQuiz = { viewModel.handleIntent(DashboardIntent.TakeMoodQuiz) },
             onShowNotifications = { viewModel.handleIntent(DashboardIntent.ShowNotifications) },
             onRefreshDashboard = { viewModel.handleIntent(DashboardIntent.RefreshDashboard) },
+            onNavigateToMemoryDetails = onNavigateToMemoryDetails,
             userPlanManager = userPlanManager,
             planRegistry = planRegistry
         )

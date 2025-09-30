@@ -35,11 +35,26 @@ class AndroidConnectivityMonitor(
     override fun start() {
         println("DEBUG: AndroidConnectivityMonitor.start() - starting network monitoring")
         
+        // Check initial connectivity status
+        updateConnectivityStatus()
+        
         val networkRequest = NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .build()
         
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
+    }
+    
+    private fun updateConnectivityStatus() {
+        val activeNetwork = connectivityManager.activeNetwork
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+        
+        val isConnected = activeNetwork != null && 
+            networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
+            networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        
+        _connected.value = isConnected
+        println("DEBUG: AndroidConnectivityMonitor - initial connectivity status: $isConnected")
     }
     
     override fun stop() {

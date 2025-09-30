@@ -53,6 +53,7 @@ fun ScopeAwareDashboard(
     onTakeMoodQuiz: () -> Unit = {},
     onShowNotifications: () -> Unit = {},
     onRefreshDashboard: () -> Unit = {},
+    onNavigateToMemoryDetails: (Int) -> Unit = {},
     userPlanManager: UserPlanManager,
     planRegistry: PlanRegistryReader,
     audioManager: AudioManager = org.koin.compose.koinInject()
@@ -110,7 +111,7 @@ fun ScopeAwareDashboard(
             lastSnap = state.lastSoulSnap,
             monthlyUsage = state.monthlyUsage,
             monthlyLimit = state.monthlyLimit,
-            onSnapClick = { /* TODO: Navigate to snap details */ },
+            onSnapClick = { memory -> onNavigateToMemoryDetails(memory.id) },
             onAddFirstSnap = onAddNewSnap
         )
 

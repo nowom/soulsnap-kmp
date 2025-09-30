@@ -17,7 +17,8 @@ class IOSConnectivityMonitor : ConnectivityMonitor {
         
         // TODO: Implement actual iOS Network framework monitoring
         // This should be implemented using NWPathMonitor from iOS Network framework
-        // For now, we'll use a simple implementation
+        // For now, we'll use a simple implementation that assumes connected
+        _connected.value = true
     }
     
     override fun stop() {

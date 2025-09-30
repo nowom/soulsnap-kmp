@@ -139,7 +139,8 @@ fun NavGraphBuilder.homeGraph(navController: NavController) {
             onNavigateToDailyQuiz = { navController.navigateToDailyQuiz() },
             onUpgradePlan = {
                 navController.navigateToUpgrade()
-            }
+            },
+            onNavigateToMemoryDetails = { memoryId -> navController.navigateToMemoryDetails(memoryId) }
         )
         // Add other destinations for the home graph here
         virtualMirrorScreen(onBack = { navController.popBackStack() })

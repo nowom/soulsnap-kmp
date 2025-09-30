@@ -20,7 +20,8 @@ fun NavGraphBuilder.dashboardScreen(
     onNavigateToVirtualMirror: () -> Unit = {},
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToDailyQuiz: () -> Unit = {},
-    onUpgradePlan: () -> Unit = {}
+    onUpgradePlan: () -> Unit = {},
+    onNavigateToMemoryDetails: (Int) -> Unit = {}
 ) {
     composable<DashboardRoute> {
         DashboardScreen(
@@ -31,7 +32,8 @@ fun NavGraphBuilder.dashboardScreen(
             onNavigateToVirtualMirror = onNavigateToVirtualMirror,
             onNavigateToAnalytics = onNavigateToAnalytics,
             onNavigateToDailyQuiz = onNavigateToDailyQuiz,
-            onUpgradePlan = onUpgradePlan
+            onUpgradePlan = onUpgradePlan,
+            onNavigateToMemoryDetails = onNavigateToMemoryDetails
         )
     }
 }
