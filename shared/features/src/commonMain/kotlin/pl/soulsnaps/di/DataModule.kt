@@ -21,6 +21,10 @@ import pl.soulsnaps.domain.UserPlanRepository
 import pl.soulsnaps.domain.service.AffirmationService
 import pl.soulsnaps.domain.service.AffirmationServiceImpl
 import pl.soulsnaps.storage.FileStorageManager
+import pl.soulsnaps.domain.StartupRepository
+import pl.soulsnaps.data.StartupRepositoryImpl
+import pl.soulsnaps.domain.MemoryMaintenance
+import pl.soulsnaps.domain.NoOpMemoryMaintenance
 import pl.soulsnaps.features.auth.InMemorySessionDataStore
 import pl.soulsnaps.features.auth.SessionDataStore
 import pl.soulsnaps.features.auth.UserSessionManager
@@ -60,6 +64,19 @@ object DataModule {
         
         single<AffirmationRepository> { AffirmationRepositoryImpl(get()) }
         single<QuoteRepository> { FakeQuoteRepository() }
+        
+        // MemoryMaintenance - DIP with default NoOp implementation
+        single<MemoryMaintenance> { NoOpMemoryMaintenance() }
+        
+        // StartupRepository - new startup flow
+        single<StartupRepository> {
+            StartupRepositoryImpl(
+                userPlanManager = get(),
+                onboardingManager = get(),
+                authService = get(),
+                memoryMaintenance = get()
+            )
+        }
         
         // Affirmation Service
         single<AffirmationService> { AffirmationServiceImpl() }

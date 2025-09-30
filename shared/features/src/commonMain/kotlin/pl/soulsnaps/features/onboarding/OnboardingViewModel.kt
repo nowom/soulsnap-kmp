@@ -7,12 +7,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import pl.soulsnaps.access.manager.AppStartupManager
+import pl.soulsnaps.domain.StartupRepository
 import pl.soulsnaps.features.analytics.AnalyticsManager
 
 class OnboardingViewModel(
     private val analyticsManager: AnalyticsManager,
-    private val appStartupManager: AppStartupManager,
+    private val startupRepository: StartupRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(OnboardingState())
@@ -48,7 +48,7 @@ class OnboardingViewModel(
                 when (intent.authType) {
                     pl.soulsnaps.features.onboarding.AuthType.ANONYMOUS -> {
                         // Ustaw plan GUEST i ukończ onboarding
-                        appStartupManager.skipOnboarding()
+                        startupRepository.skipOnboarding()
                         nextStep()
                     }
                     else -> {
@@ -64,10 +64,8 @@ class OnboardingViewModel(
                 _state.update { it.copy(password = intent.password) }
             }
             is OnboardingIntent.GetStarted -> {
-                // Ukończ onboarding przez AppStartupManager
-                viewModelScope.launch {
-                    appStartupManager.completeOnboarding()
-                }
+                // Ukończ onboarding przez StartupRepository
+                startupRepository.completeOnboarding()
                 completeOnboarding()
             }
         }

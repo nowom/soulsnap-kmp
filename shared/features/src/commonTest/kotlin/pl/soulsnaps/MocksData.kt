@@ -10,7 +10,7 @@ import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import kotlinx.coroutines.flow.flowOf
 import pl.soulsnaps.access.guard.AccessGuard
-import pl.soulsnaps.access.manager.AppStartupManager
+import pl.soulsnaps.domain.StartupRepository
 import pl.soulsnaps.access.manager.OnboardingManager
 import pl.soulsnaps.access.manager.UserPlanManager
 import pl.soulsnaps.audio.AudioManager
@@ -26,7 +26,7 @@ val saveMemoryUseCase = SaveMemoryUseCase(mock(), mock(), generateAffirmationUse
 val analyticsManager = AnalyticsManager(mock(), mock(), mock())
 val onboardingManager = OnboardingManager(mock())
 
-val appStartupManager = AppStartupManager(mock(), onboardingManager, SupabaseAuthService(mock()))
+val startupRepository = mock<StartupRepository>()
 
 
 fun createMockUserPlanManager(): UserPlanManager =

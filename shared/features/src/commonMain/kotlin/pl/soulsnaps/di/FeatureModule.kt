@@ -11,8 +11,6 @@ import pl.soulsnaps.data.InMemoryExerciseRepository
 import pl.soulsnaps.domain.ExerciseRepository
 import pl.soulsnaps.domain.interactor.MarkExerciseCompletedUseCase
 import pl.soulsnaps.domain.MemoryRepository
-import pl.soulsnaps.storage.FileStorageManager
-import pl.soulsnaps.storage.FileStorageManagerFactory
 import pl.soulsnaps.features.memoryhub.timeline.TimelineViewModel
 import pl.soulsnaps.features.memoryhub.gallery.MomentsGalleryViewModel
 import pl.soulsnaps.features.memoryhub.map.MemoryMapViewModel
@@ -20,9 +18,11 @@ import pl.soulsnaps.features.onboarding.OnboardingViewModel
 import pl.soulsnaps.features.analytics.AnalyticsManager
 import pl.soulsnaps.features.analytics.AnalyticsRepository
 import pl.soulsnaps.features.analytics.FakeAnalyticsRepository
+import pl.soulsnaps.features.startup.SplashViewModel
 import pl.soulsnaps.features.virtualmirror.VirtualMirrorViewModel
 import pl.soulsnaps.features.auth.AuthViewModel
 import pl.soulsnaps.features.auth.LoginViewModel
+import pl.soulsnaps.features.auth.RegistrationViewModel
 import pl.soulsnaps.features.memoryhub.details.MemoryDetailsViewModel
 import pl.soulsnaps.features.memoryhub.edit.EditMemoryViewModel
 import pl.soulsnaps.features.settings.SettingsViewModel
@@ -51,7 +51,6 @@ import pl.soulsnaps.features.notifications.NotificationPermissionManagerFactory
 import pl.soulsnaps.domain.repository.NotificationRepository
 import pl.soulsnaps.data.NotificationRepositoryImpl
 import pl.soulsnaps.access.manager.UserPlanManager
-import pl.soulsnaps.access.manager.AppStartupManager
 import pl.soulsnaps.access.manager.OnboardingManager
 import pl.soulsnaps.access.manager.PlanRegistryReader
 import pl.soulsnaps.access.manager.PlanRegistryReaderImpl
@@ -60,8 +59,6 @@ import pl.soulsnaps.access.guard.GuardFactory
 import pl.soulsnaps.access.manager.UserPlanManagerImpl
 import pl.soulsnaps.access.storage.UserPreferencesStorageImpl
 import pl.soulsnaps.features.memoryanalysis.service.MemoryAnalysisService
-import pl.soulsnaps.features.memoryanalysis.analyzer.ImageAnalyzer
-import pl.soulsnaps.features.memoryanalysis.analyzer.ImageAnalyzerInterface
 import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngine
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.auth.UserSessionManagerImpl
@@ -80,11 +77,14 @@ object FeatureModule {
         viewModelOf(::VirtualMirrorViewModel)
         viewModelOf(::AuthViewModel)
         viewModelOf(::LoginViewModel)
+        viewModelOf(::RegistrationViewModel)
         viewModelOf(::MemoryDetailsViewModel)
         viewModelOf(::EditMemoryViewModel)
         viewModelOf(::SettingsViewModel)
         viewModelOf(::LocationPickerViewModel)
         viewModelOf(::UpgradeViewModel)
+        viewModelOf(::ExercisesViewModel)
+        viewModelOf(::SplashViewModel)
 
         // UserPreferencesStorage - singleton for user preferences
         single<UserPreferencesStorage> { UserPreferencesStorageImpl(get()) }
@@ -111,8 +111,6 @@ object FeatureModule {
             )
         }
 
-        // AppStartupManager - singleton for managing app startup (now with auth service and memory repository)
-        single { AppStartupManager(get(), get(), get<SupabaseAuthService>(), get<MemoryRepository>()) }
 
         // SoulSnapApi - singleton for centralized API client
         single { SoulSnapApi() }
@@ -197,7 +195,5 @@ object FeatureModule {
                 crashlyticsManager = get()
             )
         }
-
-        viewModelOf(::ExercisesViewModel)
     }
 }

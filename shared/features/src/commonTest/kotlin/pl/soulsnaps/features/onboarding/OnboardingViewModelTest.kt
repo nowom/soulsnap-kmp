@@ -9,11 +9,11 @@ import dev.mokkery.matcher.eq
 import dev.mokkery.mock
 import dev.mokkery.verify
 import kotlinx.coroutines.test.runTest
-import pl.soulsnaps.access.manager.AppStartupManager
+import pl.soulsnaps.domain.StartupRepository
 import pl.soulsnaps.access.manager.OnboardingManager
 import pl.soulsnaps.analytics.FirebaseAnalyticsManager
 import pl.soulsnaps.analyticsManager
-import pl.soulsnaps.appStartupManager
+import pl.soulsnaps.startupRepository
 import pl.soulsnaps.domain.model.UserSession
 import pl.soulsnaps.features.analytics.AnalyticsManager
 import pl.soulsnaps.features.auth.UserSessionManager
@@ -44,11 +44,11 @@ class OnboardingViewModelTest {
         }
         val analyticsManager = AnalyticsManager(mock(), mock(), firebaseAnalyticsManager)
         val onboardingManager = OnboardingManager(mock())
-        val appStartupManager = AppStartupManager(mock(), onboardingManager, SupabaseAuthService(mock()))
+        val startupRepository = mock<StartupRepository>()
 
         viewModel = OnboardingViewModel(
             analyticsManager = analyticsManager,
-            appStartupManager = appStartupManager,
+            startupRepository = startupRepository,
             userSessionManager = userSessionManager
         )
     }
@@ -72,10 +72,10 @@ class OnboardingViewModelTest {
         
         // Create new viewModel with mocked analyticsManager
         val onboardingManager = OnboardingManager(mock())
-        val appStartupManager = AppStartupManager(mock(), onboardingManager, SupabaseAuthService(mock()))
+        val startupRepository = mock<StartupRepository>()
         val testViewModel = OnboardingViewModel(
             analyticsManager = analyticsManager,
-            appStartupManager = appStartupManager,
+            startupRepository = startupRepository,
             userSessionManager = userSessionManager
         )
 
@@ -102,10 +102,10 @@ class OnboardingViewModelTest {
         
         // Create new viewModel with mocked analyticsManager
         val onboardingManager = OnboardingManager(mock())
-        val appStartupManager = AppStartupManager(mock(), onboardingManager, SupabaseAuthService(mock()))
+        val startupRepository = mock<StartupRepository>()
         val testViewModel = OnboardingViewModel(
             analyticsManager = analyticsManager,
-            appStartupManager = appStartupManager,
+            startupRepository = startupRepository,
             userSessionManager = userSessionManager
         )
 
@@ -230,10 +230,10 @@ class OnboardingViewModelTest {
         
         // Create new viewModel with mocked analyticsManager
         val onboardingManager = OnboardingManager(mock())
-        val appStartupManager = AppStartupManager(mock(), onboardingManager, SupabaseAuthService(mock()))
+        val startupRepository = mock<StartupRepository>()
         val testViewModel = OnboardingViewModel(
             analyticsManager = analyticsManager,
-            appStartupManager = appStartupManager,
+            startupRepository = startupRepository,
             userSessionManager = userSessionManager
         )
 

@@ -28,8 +28,8 @@ import pl.soulsnaps.components.BodyText
 import pl.soulsnaps.components.HeadingText
 import pl.soulsnaps.designsystem.AppColorScheme
 import pl.soulsnaps.designsystem.SoulSnapsTheme
-import pl.soulsnaps.access.manager.AppStartupManager
-import pl.soulsnaps.access.manager.StartupState
+import pl.soulsnaps.features.startup.SplashViewModel
+import pl.soulsnaps.domain.model.StartupState
 import pl.soulsnaps.navigation.LocalNavController
 import pl.soulsnaps.navigation.MainBottomMenu
 import pl.soulsnaps.navigation.SoulSnapNavHost
@@ -44,22 +44,18 @@ fun SoulSnapsApp() {
     SoulSnapsTheme {
         println("DEBUG: SoulSnapsApp - initializing app")
 
-        val startupManager: AppStartupManager = koinInject()
-        val startupState by startupManager.startupState.collectAsStateWithLifecycle(initialValue = StartupState.CHECKING)
+        val splashViewModel: SplashViewModel = koinInject()
+        val startupState by splashViewModel.state.collectAsStateWithLifecycle(initialValue = pl.soulsnaps.domain.model.StartupUiState())
         val appState = rememberAppState()
         val navController = appState.navController
         // Provide LocalNavController for all child composables
         CompositionLocalProvider(LocalNavController provides navController) {
 
-            // Inicjalizuj AppStartupManager przy starcie
-            LaunchedEffect(Unit) {
-                println("DEBUG: SoulSnapsApp - initializing AppStartupManager")
-                startupManager.initializeApp()
-            }
+            // SplashViewModel initializes automatically in init block
 
             // Main app content based on startup state
-            println("DEBUG: SoulSnapsApp - current startupState: $startupState")
-            when (startupState) {
+            println("DEBUG: SoulSnapsApp - current startupState: ${startupState.state}")
+            when (startupState.state) {
                 StartupState.CHECKING -> {
                     // Loading state - pokaż loading
                     println("DEBUG: SoulSnapsApp - showing loading state")
@@ -68,7 +64,7 @@ fun SoulSnapsApp() {
 
                 StartupState.READY_FOR_ONBOARDING, StartupState.ONBOARDING_ACTIVE -> {
                     // Pokaż onboarding przez nawigację
-                    println("DEBUG: SoulSnapsApp - showing onboarding via navigation, state: $startupState")
+                    println("DEBUG: SoulSnapsApp - showing onboarding via navigation, state: ${startupState.state}")
                     SoulSnapNavHost(
                         appState = appState,
                         startDestination = OnboardingGraph,
@@ -77,7 +73,7 @@ fun SoulSnapsApp() {
 
                 StartupState.READY_FOR_AUTH -> {
                     // Pokaż ekran logowania
-                    println("DEBUG: SoulSnapsApp - showing authentication via navigation, state: $startupState")
+                    println("DEBUG: SoulSnapsApp - showing authentication via navigation, state: ${startupState.state}")
                     SoulSnapNavHost(
                         appState = appState,
                         startDestination = AuthenticationGraph,
@@ -86,7 +82,7 @@ fun SoulSnapsApp() {
 
                 StartupState.READY_FOR_DASHBOARD -> {
                     // Pokaż główną aplikację
-                    println("DEBUG: SoulSnapsApp - showing main app with dashboard, state: $startupState")
+                    println("DEBUG: SoulSnapsApp - showing main app with dashboard, state: ${startupState.state}")
                     MainAppContent(
                         appState = appState,
                         startDestination = HomeGraph
