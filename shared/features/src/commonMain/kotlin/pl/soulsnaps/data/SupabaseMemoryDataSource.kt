@@ -4,6 +4,8 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.storage.Storage
+import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -16,16 +18,20 @@ import pl.soulsnaps.data.model.toRow
 import pl.soulsnaps.data.model.toDomain
 import pl.soulsnaps.database.dao.MemoryDao
 import pl.soulsnaps.features.auth.UserSessionManager
+import pl.soulsnaps.storage.FileStorageManager
+import kotlin.random.Random
 
 class SupabaseMemoryDataSource(
     private val client: SupabaseClient,
     private val crashlyticsManager: CrashlyticsManager,
     private val memoryDao: MemoryDao,
-    private val userSessionManager: UserSessionManager
+    private val userSessionManager: UserSessionManager,
+    private val fileStorageManager: FileStorageManager
 ) : OnlineDataSource {
 
     companion object {
         private const val TABLE = "memories"
+        private const val STORAGE_BUCKET = "memories"
         private const val MAX_RETRY_ATTEMPTS = 3
         private const val RETRY_DELAY_MS = 1000L
     }
@@ -41,6 +47,74 @@ class SupabaseMemoryDataSource(
         }
         crashlyticsManager.recordException(last ?: Exception("Unknown"))
         return null
+    }
+
+    /**
+     * Upload photo file to Supabase Storage
+     */
+    private suspend fun uploadPhotoToStorage(photoUri: String, userId: String): String? {
+        return withRetry("uploadPhotoToStorage") {
+            val fileData = fileStorageManager.loadPhoto(photoUri)
+            if (fileData == null) {
+                crashlyticsManager.log("uploadPhotoToStorage: Failed to load photo data for URI: $photoUri")
+                return@withRetry null
+            }
+            
+            val fileName = "photos/${userId}/${Random.nextLong()}.jpg"
+            
+            client.storage.from(STORAGE_BUCKET).upload(
+                path = fileName,
+                data = fileData
+            )
+            
+            // Return the public URL
+            "${client.supabaseUrl}/storage/v1/object/public/$STORAGE_BUCKET/$fileName"
+        }
+    }
+
+    /**
+     * Upload audio file to Supabase Storage
+     */
+    private suspend fun uploadAudioToStorage(audioUri: String, userId: String): String? {
+        return withRetry("uploadAudioToStorage") {
+            val fileData = fileStorageManager.loadAudio(audioUri)
+            if (fileData == null) {
+                crashlyticsManager.log("uploadAudioToStorage: Failed to load audio data for URI: $audioUri")
+                return@withRetry null
+            }
+            
+            val fileName = "audio/${userId}/${Random.nextLong()}.m4a"
+            
+            client.storage.from(STORAGE_BUCKET).upload(
+                path = fileName,
+                data = fileData
+            )
+            
+            // Return the public URL
+            "${client.supabaseUrl}/storage/v1/object/public/$STORAGE_BUCKET/$fileName"
+        }
+    }
+
+    /**
+     * Delete photo file from Supabase Storage
+     */
+    private suspend fun deletePhotoFromStorage(photoUrl: String): Boolean {
+        return withRetry("deletePhotoFromStorage") {
+            val fileName = photoUrl.substringAfter("$STORAGE_BUCKET/")
+            client.storage.from(STORAGE_BUCKET).delete(fileName)
+            true
+        } ?: false
+    }
+
+    /**
+     * Delete audio file from Supabase Storage
+     */
+    private suspend fun deleteAudioFromStorage(audioUrl: String): Boolean {
+        return withRetry("deleteAudioFromStorage") {
+            val fileName = audioUrl.substringAfter("$STORAGE_BUCKET/")
+            client.storage.from(STORAGE_BUCKET).delete(fileName)
+            true
+        } ?: false
     }
 
     override suspend fun getAllMemories(userId: String): List<Memory> =
@@ -84,9 +158,25 @@ class SupabaseMemoryDataSource(
 
     override suspend fun insertMemory(memory: Memory, userId: String): Long? =
         withRetry("insertMemory") {
-            val inserted = client.from(TABLE).insert(memory.toRow(userId))
+            // Upload files to Supabase Storage first
+            val remotePhotoPath = memory.photoUri?.let { photoUri ->
+                uploadPhotoToStorage(photoUri, userId)
+            }
+            
+            val remoteAudioPath = memory.audioUri?.let { audioUri ->
+                uploadAudioToStorage(audioUri, userId)
+            }
+            
+            // Create memory row with remote file paths
+            val memoryRow = memory.copy(
+                remotePhotoPath = remotePhotoPath,
+                remoteAudioPath = remoteAudioPath
+            ).toRow(userId)
+            
+            val inserted = client.from(TABLE).insert(memoryRow)
                 .decodeSingle<MemoryRow>()
-            // Zwracamy lokalny Long, ale zapisz inserted.id (uuid) do pola remoteId w lokalnej DB!
+            
+            // Return local Long ID, but save inserted.id (uuid) to remoteId field in local DB
             (inserted.id?.hashCode() ?: 0).toLong()
         }
 
@@ -102,12 +192,21 @@ class SupabaseMemoryDataSource(
 
     override suspend fun deleteMemory(id: Long, userId: String): Boolean {
         return withRetry("deleteMemory") {
-            // Get local memory to find remoteId
+            // Get local memory to find remoteId and file paths
             val localMemory = memoryDao.getById(id)
             val remoteId = localMemory?.remoteId
             
             if (remoteId != null) {
-                // Use remoteId to delete memory from Supabase
+                // Delete files from Supabase Storage first
+                localMemory.remotePhotoPath?.let { photoPath ->
+                    deletePhotoFromStorage(photoPath)
+                }
+                
+                localMemory.remoteAudioPath?.let { audioPath ->
+                    deleteAudioFromStorage(audioPath)
+                }
+                
+                // Then delete memory record from database
                 deleteMemoryByRemoteId(remoteId, userId)
             } else {
                 crashlyticsManager.log("deleteMemory: No remoteId found for local ID: $id")

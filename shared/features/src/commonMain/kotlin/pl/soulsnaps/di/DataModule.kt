@@ -36,7 +36,7 @@ object DataModule {
     fun get(): Module = module {
         single<SupabaseClient> { SupabaseClientProvider.getClient() }
         single { SupabaseAuthService(get()) }
-        single<OnlineDataSource> { SupabaseMemoryDataSource(get<SupabaseClient>(), get(), get(), get()) }
+        single<OnlineDataSource> { SupabaseMemoryDataSource(get<SupabaseClient>(), get(), get(), get(), get()) }
 
 
         // Analytics Repository

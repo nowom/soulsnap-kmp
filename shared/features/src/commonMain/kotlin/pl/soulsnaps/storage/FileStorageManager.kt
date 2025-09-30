@@ -7,6 +7,8 @@ package pl.soulsnaps.storage
 interface FileStorageManager {
     suspend fun savePhoto(photoData: ByteArray): String
     suspend fun saveAudio(audioData: ByteArray): String
+    suspend fun loadPhoto(fileName: String): ByteArray?
+    suspend fun loadAudio(fileName: String): ByteArray?
     suspend fun getPhotoPath(fileName: String): String?
     suspend fun getAudioPath(fileName: String): String?
     suspend fun deletePhoto(fileName: String): Boolean

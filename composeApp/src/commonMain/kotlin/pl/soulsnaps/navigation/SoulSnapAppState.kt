@@ -84,10 +84,11 @@ internal class SoulSnapAppState(
 
     fun navigateToTopLevelDestination(navItem: BottomNavItem) {
         navOptions {
-            // Pop up to the start destination of the graph to
+            // Pop up to the HomeGraph start destination to
             // avoid building up a large stack of destinations
             // on the back stack as users select items
-            popUpTo(navController.graph.findStartDestination().id) {
+            // This prevents bottom menu items from being stacked
+            popUpTo(HomeGraph) {
                 saveState = true
             }
             // Avoid multiple copies of the same destination when
@@ -108,10 +109,10 @@ internal class SoulSnapAppState(
 
     fun navigateToAddSnap() {
         navOptions {
-            // Pop up to the start destination of the graph to
+            // Pop up to the HomeGraph start destination to
             // avoid building up a large stack of destinations
             // on the back stack as users select items
-            popUpTo(navController.graph.findStartDestination().id) {
+            popUpTo(HomeGraph) {
                 saveState = true
             }
             // Avoid multiple copies of the same destination when
@@ -125,10 +126,10 @@ internal class SoulSnapAppState(
 
     fun navigateToMemoryHub() {
         navOptions {
-            // Pop up to the start destination of the graph to
+            // Pop up to the HomeGraph start destination to
             // avoid building up a large stack of destinations
             // on the back stack as users select items
-            popUpTo(navController.graph.findStartDestination().id) {
+            popUpTo(HomeGraph) {
                 saveState = true
             }
             // Avoid multiple copies of the same destination when

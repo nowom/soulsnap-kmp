@@ -7,7 +7,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.util.UUID
+import kotlin.random.Random
 
 /**
  * Android implementation of FileStorageManager using app's private storage
@@ -30,7 +30,7 @@ class LocalFileStorageManager(
     }
     
     override suspend fun savePhoto(photoData: ByteArray): String = withContext(Dispatchers.IO) {
-        val fileName = "photo_${UUID.randomUUID()}.jpg"
+        val fileName = "photo_${Random.nextLong()}.jpg"
         val file = File(photosDir, fileName)
         
         try {
@@ -44,7 +44,7 @@ class LocalFileStorageManager(
     }
     
     override suspend fun saveAudio(audioData: ByteArray): String = withContext(Dispatchers.IO) {
-        val fileName = "audio_${UUID.randomUUID()}.m4a"
+        val fileName = "audio_${Random.nextLong()}.m4a"
         val file = File(audioDir, fileName)
         
         try {
@@ -54,6 +54,24 @@ class LocalFileStorageManager(
             fileName
         } catch (e: IOException) {
             throw RuntimeException("Failed to save audio: ${e.message}", e)
+        }
+    }
+    
+    override suspend fun loadPhoto(fileName: String): ByteArray? = withContext(Dispatchers.IO) {
+        val file = File(photosDir, fileName)
+        if (file.exists()) {
+            file.readBytes()
+        } else {
+            null
+        }
+    }
+    
+    override suspend fun loadAudio(fileName: String): ByteArray? = withContext(Dispatchers.IO) {
+        val file = File(audioDir, fileName)
+        if (file.exists()) {
+            file.readBytes()
+        } else {
+            null
         }
     }
     

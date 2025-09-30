@@ -63,6 +63,36 @@ class LocalFileStorageManager : FileStorageManager {
         }
     }
     
+    override suspend fun loadPhoto(fileName: String): ByteArray? = withContext(Dispatchers.IO) {
+        val fileURL = photosDir.URLByAppendingPathComponent(fileName)
+        if (fileManager.fileExistsAtPath(fileURL?.path ?: "")) {
+            fileURL?.let { url ->
+                platform.Foundation.NSData.dataWithContentsOfURL(url)?.let { data ->
+                    ByteArray(data.length.toInt()) { i ->
+                        data.bytes[i]
+                    }
+                }
+            }
+        } else {
+            null
+        }
+    }
+    
+    override suspend fun loadAudio(fileName: String): ByteArray? = withContext(Dispatchers.IO) {
+        val fileURL = audioDir.URLByAppendingPathComponent(fileName)
+        if (fileManager.fileExistsAtPath(fileURL?.path ?: "")) {
+            fileURL?.let { url ->
+                platform.Foundation.NSData.dataWithContentsOfURL(url)?.let { data ->
+                    ByteArray(data.length.toInt()) { i ->
+                        data.bytes[i]
+                    }
+                }
+            }
+        } else {
+            null
+        }
+    }
+    
     override suspend fun getPhotoPath(fileName: String): String? = withContext(Dispatchers.IO) {
         val fileURL = photosDir.URLByAppendingPathComponent(fileName)
         if (fileManager.fileExistsAtPath(fileURL?.path ?: "")) {
