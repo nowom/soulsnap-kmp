@@ -624,8 +624,11 @@ private fun getMoodColor(mood: pl.soulsnaps.domain.model.MoodType): Color {
     return when (mood) {
         pl.soulsnaps.domain.model.MoodType.HAPPY -> Color(0xFFFFEB3B)      // Yellow
         pl.soulsnaps.domain.model.MoodType.SAD -> Color(0xFF2196F3)        // Blue
-        pl.soulsnaps.domain.model.MoodType.NEUTRAL -> Color(0xFF9E9E9E)    // Gray
         pl.soulsnaps.domain.model.MoodType.EXCITED -> Color(0xFFFF5722)    // Orange-Red
-        pl.soulsnaps.domain.model.MoodType.RELAXED -> Color(0xFF4CAF50)    // Green
+        pl.soulsnaps.domain.model.MoodType.CALM -> Color(0xFF4CAF50)       // Green
+        pl.soulsnaps.domain.model.MoodType.ANXIOUS -> Color(0xFFFF9800)    // Orange
+        pl.soulsnaps.domain.model.MoodType.GRATEFUL -> Color(0xFF8BC34A)   // Light Green
+        pl.soulsnaps.domain.model.MoodType.LOVED -> Color(0xFFE91E63)     // Pink
+        pl.soulsnaps.domain.model.MoodType.STRESSED -> Color(0xFFF44336)   // Red
     }
 }

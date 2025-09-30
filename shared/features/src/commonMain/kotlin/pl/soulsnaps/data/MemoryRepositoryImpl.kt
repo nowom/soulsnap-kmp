@@ -95,6 +95,11 @@ class MemoryRepositoryImpl(
     override suspend fun addMemory(memory: Memory): Int {
         println("DEBUG: MemoryRepositoryImpl.addMemory() - starting offline-first save")
         
+        // Validate mood value
+        if (memory.mood != null && !MoodType.isValidMood(memory.mood.databaseValue)) {
+            throw IllegalArgumentException("Invalid mood value: ${memory.mood}")
+        }
+        
         return try {
             // 1. Save large content to phone storage, database stores only file paths
             val photoPath = memory.photoUri?.let { photoUri ->

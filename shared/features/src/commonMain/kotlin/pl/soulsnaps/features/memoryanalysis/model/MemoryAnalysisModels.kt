@@ -71,6 +71,21 @@ enum class EmotionType {
     HAPPY, SAD, ANGRY, SURPRISED, FEARFUL, DISGUSTED, NEUTRAL
 }
 
+/**
+ * Extension function to convert EmotionType to MoodType
+ */
+fun EmotionType.toMoodType(): DomainMoodType {
+    return when (this) {
+        EmotionType.HAPPY -> DomainMoodType.HAPPY
+        EmotionType.SAD -> DomainMoodType.SAD
+        EmotionType.ANGRY -> DomainMoodType.STRESSED
+        EmotionType.SURPRISED -> DomainMoodType.EXCITED
+        EmotionType.FEARFUL -> DomainMoodType.ANXIOUS
+        EmotionType.DISGUSTED -> DomainMoodType.SAD
+        EmotionType.NEUTRAL -> DomainMoodType.CALM
+    }
+}
+
 enum class AgeRange {
     CHILD, TEEN, YOUNG_ADULT, ADULT, SENIOR
 }

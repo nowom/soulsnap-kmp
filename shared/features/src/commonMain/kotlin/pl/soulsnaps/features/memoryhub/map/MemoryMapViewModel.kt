@@ -84,7 +84,7 @@ class MemoryMapViewModel (
                 title = "Gdańsk Seaside",
                 description = "Peaceful moment by the Baltic Sea",
                 createdAt = getCurrentTimeMillis() - 259200000, // 3 days ago
-                mood = pl.soulsnaps.domain.model.MoodType.RELAXED,
+                mood = pl.soulsnaps.domain.model.MoodType.CALM,
                 photoUri = null,
                 audioUri = null,
                 locationName = "Gdańsk, Poland",

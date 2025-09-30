@@ -301,10 +301,21 @@ actual class ImageAnalyzer : ImageAnalyzerInterface {
         return when {
             score >= 0.8f -> DomainMoodType.EXCITED
             score >= 0.6f -> DomainMoodType.HAPPY
-            score >= 0.4f -> DomainMoodType.NEUTRAL
+            score >= 0.4f -> DomainMoodType.CALM
             score >= 0.2f -> DomainMoodType.SAD
             else -> DomainMoodType.SAD
         }
+    }
+    
+    /**
+     * Convert face detection emotions to primary mood
+     */
+    private fun emotionsToMoodType(emotions: List<Emotion>): DomainMoodType {
+        if (emotions.isEmpty()) return DomainMoodType.CALM
+        
+        // Find the emotion with highest confidence
+        val primaryEmotion = emotions.maxByOrNull { it.confidence }
+        return primaryEmotion?.type?.toMoodType() ?: DomainMoodType.CALM
     }
     
     private fun generateMoodFactors(colorAnalysis: ColorAnalysis, faceDetection: FaceDetection?): List<MoodFactor> {
@@ -342,7 +353,7 @@ actual class ImageAnalyzer : ImageAnalyzerInterface {
             colorAnalysis = createDefaultColorAnalysis(),
             faceDetection = null,
             moodAnalysis = MoodAnalysis(
-                primaryMood = DomainMoodType.NEUTRAL,
+                primaryMood = DomainMoodType.CALM,
                 moodScore = 0.5f,
                 confidence = 0.5f,
                 factors = emptyList(),

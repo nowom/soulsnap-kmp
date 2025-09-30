@@ -32,7 +32,7 @@ data class DatabaseMemory(
             } catch (e: Exception) {
                 1700000000000L // Fixed timestamp instead of Clock.System.now()
             },
-            mood = mood_type?.let { MoodType.valueOf(it.uppercase()) },
+            mood = mood_type?.let { MoodType.fromDatabaseValue(it) },
             photoUri = photo_url,
             audioUri = audio_url,
             locationName = location_name,
@@ -49,7 +49,7 @@ fun Memory.toDatabaseMemory(userId: String): CreateMemoryRequest {
         user_id = userId,
         title = title,
         description = description,
-        mood_type = mood?.name?.lowercase(),
+        mood_type = mood?.databaseValue,
         photo_url = photoUri,
         audio_url = audioUri,
         location_lat = latitude,
@@ -64,7 +64,7 @@ fun Memory.toUpdateMemoryRequest(): UpdateMemoryRequest {
     return UpdateMemoryRequest(
         title = title,
         description = description,
-        mood_type = mood?.name?.lowercase(),
+        mood_type = mood?.databaseValue,
         photo_url = photoUri,
         audio_url = audioUri,
         location_lat = latitude,

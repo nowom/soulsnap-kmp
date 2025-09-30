@@ -6,7 +6,7 @@ CREATE TABLE memories (
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     timestamp INTEGER NOT NULL CHECK(timestamp > 0),
-    mood TEXT CHECK(mood IN ('happy', 'sad', 'excited', 'calm', 'anxious', 'grateful', 'loved', 'stressed')),
+    mood TEXT,
     photoUri TEXT, -- Local file path
     audioUri TEXT, -- Local file path
     locationName TEXT,

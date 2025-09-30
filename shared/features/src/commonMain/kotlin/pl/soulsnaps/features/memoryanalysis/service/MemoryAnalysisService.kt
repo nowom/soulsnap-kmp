@@ -220,7 +220,7 @@ class MemoryAnalysisService(
                 insights = pl.soulsnaps.features.memoryanalysis.model.MemoryInsights(
                     weeklyStats = WeeklyStats(
                         totalPhotos = images.size,
-                        averageMood = DomainMoodType.NEUTRAL,
+                        averageMood = DomainMoodType.CALM,
                         topLocations = emptyList(),
                         moodTrend = MoodTrend.STABLE,
                         activityBreakdown = emptyMap()

@@ -260,9 +260,9 @@ class PatternDetectionEngine : PatternDetectionEngineInterface {
             .mapValues { it.value.size }
         
         return if (moodCounts.isNotEmpty()) {
-            moodCounts.maxByOrNull { it.value }?.key ?: DomainMoodType.NEUTRAL
+            moodCounts.maxByOrNull { it.value }?.key ?: DomainMoodType.CALM
         } else {
-            DomainMoodType.NEUTRAL
+            DomainMoodType.CALM
         }
     }
     
@@ -417,9 +417,12 @@ class PatternDetectionEngine : PatternDetectionEngineInterface {
         return when (mood) {
             DomainMoodType.EXCITED -> 1.0f
             DomainMoodType.HAPPY -> 0.8f
-            DomainMoodType.RELAXED -> 0.6f
-            DomainMoodType.NEUTRAL -> 0.5f
+            DomainMoodType.CALM -> 0.6f
+            DomainMoodType.GRATEFUL -> 0.7f
+            DomainMoodType.LOVED -> 0.9f
             DomainMoodType.SAD -> 0.2f
+            DomainMoodType.ANXIOUS -> 0.3f
+            DomainMoodType.STRESSED -> 0.1f
         }
     }
     
