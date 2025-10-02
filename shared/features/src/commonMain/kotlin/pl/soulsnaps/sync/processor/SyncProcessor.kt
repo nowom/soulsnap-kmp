@@ -57,18 +57,38 @@ class SyncProcessorImpl(
     
     private suspend fun processCreateMemory(task: CreateMemory): Result<Unit> {
         return try {
+            println("DEBUG: SyncProcessor.processCreateMemory() - 🚀 starting CreateMemory task")
+            println("DEBUG: SyncProcessor.processCreateMemory() - task.localId: ${task.localId}")
+            println("DEBUG: SyncProcessor.processCreateMemory() - task.plannedRemotePhotoPath: ${task.plannedRemotePhotoPath}")
+            println("DEBUG: SyncProcessor.processCreateMemory() - task.plannedRemoteAudioPath: ${task.plannedRemoteAudioPath}")
+            
             val currentUser = userSessionManager.getCurrentUser()
-                ?: return Result.failure(Exception("User not authenticated"))
+            if (currentUser == null) {
+                println("ERROR: SyncProcessor.processCreateMemory() - ❌ User not authenticated")
+                return Result.failure(Exception("User not authenticated"))
+            }
+            println("DEBUG: SyncProcessor.processCreateMemory() - ✅ User authenticated: ${currentUser.userId}")
             
             // Get memory from local database
-            val memory = memoryDao.getById(task.localId)?.toDomainModel()
-                ?: return Result.failure(Exception("Memory not found: ${task.localId}"))
+            val dbMemory = memoryDao.getById(task.localId)
+            if (dbMemory == null) {
+                println("ERROR: SyncProcessor.processCreateMemory() - ❌ Memory not found in database: ${task.localId}")
+                return Result.failure(Exception("Memory not found: ${task.localId}"))
+            }
+            println("DEBUG: SyncProcessor.processCreateMemory() - ✅ Found memory in database: ${dbMemory.title}")
             
-            println("DEBUG: SyncProcessor.processCreateMemory() - creating memory: ${memory.title}")
+            val memory = dbMemory.toDomainModel()
+            println("DEBUG: SyncProcessor.processCreateMemory() - ✅ Converted to domain model: ${memory.title}")
+            println("DEBUG: SyncProcessor.processCreateMemory() - memory.photoUri: ${memory.photoUri}")
+            println("DEBUG: SyncProcessor.processCreateMemory() - memory.audioUri: ${memory.audioUri}")
             
             // Upload photo if exists
             var remotePhotoPath: String? = null
             if (memory.photoUri != null) {
+                println("DEBUG: SyncProcessor.processCreateMemory() - 📸 uploading photo...")
+                println("DEBUG: SyncProcessor.processCreateMemory() - localUri: ${memory.photoUri}")
+                println("DEBUG: SyncProcessor.processCreateMemory() - plannedPath: ${task.plannedRemotePhotoPath}")
+                
                 val photoResult = storageClient.uploadImage(
                     bucket = "snap-images",
                     key = task.plannedRemotePhotoPath,
@@ -77,12 +97,17 @@ class SyncProcessorImpl(
                     quality = 85,
                     upsert = true
                 )
+                
+                println("DEBUG: SyncProcessor.processCreateMemory() - photoResult.success: ${photoResult.success}")
                 if (photoResult.success) {
                     remotePhotoPath = photoResult.path
-                    println("DEBUG: SyncProcessor.processCreateMemory() - photo uploaded: $remotePhotoPath")
+                    println("DEBUG: SyncProcessor.processCreateMemory() - ✅ photo uploaded: $remotePhotoPath")
                 } else {
+                    println("ERROR: SyncProcessor.processCreateMemory() - ❌ photo upload failed: ${photoResult.errorMessage}")
                     throw Exception("Photo upload failed: ${photoResult.errorMessage}")
                 }
+            } else {
+                println("DEBUG: SyncProcessor.processCreateMemory() - no photo to upload")
             }
             
             // Upload audio if exists
@@ -103,10 +128,18 @@ class SyncProcessorImpl(
             }
             
             // Insert to remote database
+            println("DEBUG: SyncProcessor.processCreateMemory() - 💾 inserting to remote database...")
+            println("DEBUG: SyncProcessor.processCreateMemory() - userId: ${currentUser.userId}")
+            println("DEBUG: SyncProcessor.processCreateMemory() - memory title: ${memory.title}")
+            
             val remoteId = onlineDataSource.insertMemory(memory, currentUser.userId)
+            
+            println("DEBUG: SyncProcessor.processCreateMemory() - remoteId result: $remoteId")
             if (remoteId == null) {
+                println("ERROR: SyncProcessor.processCreateMemory() - ❌ Failed to insert memory to remote database")
                 throw Exception("Failed to insert memory to remote database")
             }
+            println("DEBUG: SyncProcessor.processCreateMemory() - ✅ memory inserted to remote database, remoteId: $remoteId")
             
             // Update local memory with remote paths and mark as synced
             val currentTime = getCurrentTimeMillis()

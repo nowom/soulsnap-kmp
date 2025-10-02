@@ -45,11 +45,12 @@ class StartupRepositoryImpl(
                 userPlanManager.waitForInitialization()
                 
                 // Perform memory maintenance if needed
-                if (memoryMaintenance.isMaintenanceNeeded()) {
-                    val cleanedMemories = memoryMaintenance.cleanupLargeMemories()
-                    val cleanedFiles = memoryMaintenance.cleanupOrphanedFiles()
-                    println("DEBUG: StartupRepository - cleaned $cleanedMemories memories, $cleanedFiles files")
-                }
+                //TODO to be check
+//                if (memoryMaintenance.isMaintenanceNeeded()) {
+//                    val cleanedMemories = memoryMaintenance.cleanupLargeMemories()
+//                    val cleanedFiles = memoryMaintenance.cleanupOrphanedFiles()
+//                    println("DEBUG: StartupRepository - cleaned $cleanedMemories memories, $cleanedFiles files")
+//                }
                 
                 // Check app state
                 val hasCompletedOnboarding = userPlanManager.isOnboardingCompleted()

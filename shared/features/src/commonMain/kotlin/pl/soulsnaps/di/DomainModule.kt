@@ -30,6 +30,7 @@ import pl.soulsnaps.domain.interactor.ClearUserDataUseCase
 import pl.soulsnaps.domain.interactor.ClearDataOnSessionExpiredUseCase
 import pl.soulsnaps.domain.interactor.SessionExpirationHandler
 import pl.soulsnaps.domain.interactor.UserPlanUseCase
+import pl.soulsnaps.domain.interactor.ForceSyncAllMemoriesUseCase
 
 object DomainModule {
     fun get() = module {
@@ -52,6 +53,7 @@ object DomainModule {
         factoryOf(::ClearDataOnSessionExpiredUseCase)
         factoryOf(::SessionExpirationHandler)
         factoryOf(::UserPlanUseCase)
+        factoryOf(::ForceSyncAllMemoriesUseCase)
         
         // Daily Quiz Use Cases
         factory { GetDailyQuizUseCase(get()) }

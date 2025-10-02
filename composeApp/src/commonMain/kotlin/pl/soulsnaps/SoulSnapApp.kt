@@ -38,6 +38,7 @@ import pl.soulsnaps.access.manager.PlanRegistryReader
 import pl.soulsnaps.navigation.OnboardingGraph
 import pl.soulsnaps.navigation.AuthenticationGraph
 import pl.soulsnaps.navigation.HomeGraph
+import pl.soulsnaps.features.startup.AppInitializer
 
 @Composable
 fun SoulSnapsApp() {
@@ -45,9 +46,11 @@ fun SoulSnapsApp() {
         println("DEBUG: SoulSnapsApp - initializing app")
 
         val splashViewModel: SplashViewModel = koinInject()
+
         val startupState by splashViewModel.state.collectAsStateWithLifecycle(initialValue = pl.soulsnaps.domain.model.StartupUiState())
         val appState = rememberAppState()
         val navController = appState.navController
+
         // Provide LocalNavController for all child composables
         CompositionLocalProvider(LocalNavController provides navController) {
 

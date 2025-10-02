@@ -63,6 +63,8 @@ import pl.soulsnaps.features.memoryanalysis.engine.PatternDetectionEngine
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.auth.UserSessionManagerImpl
 import pl.soulsnaps.features.auth.GuestToUserMigration
+import pl.soulsnaps.features.auth.SessionRefreshService
+import pl.soulsnaps.features.startup.AppInitializer
 import pl.soulsnaps.network.SupabaseAuthService
 import pl.soulsnaps.storage.LocalStorageManager
 
@@ -196,7 +198,28 @@ object FeatureModule {
 
         // User Session Manager - moved from DataModule to avoid circular dependency
         single<UserSessionManager> {
-            UserSessionManagerImpl(get(), get())
+            UserSessionManagerImpl(get(), get(), get())
+        }
+        
+        // Session Refresh Service - keeps user logged in
+        single {
+            SessionRefreshService(
+                userSessionManager = get(),
+                supabaseAuthService = get(),
+                sessionDataStore = get(),
+                crashlyticsManager = get()
+            )
+        }
+        
+        // App Initializer - manages startup sequence
+        single {
+            AppInitializer(
+                syncManager = get(),
+                sessionRefreshService = get(),
+                memoryRepository = get<pl.soulsnaps.domain.MemoryRepository>(),
+                userSessionManager = get(),
+                crashlyticsManager = get()
+            )
         }
 
         // Local Storage Manager

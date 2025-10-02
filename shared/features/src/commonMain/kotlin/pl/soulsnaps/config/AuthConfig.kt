@@ -15,6 +15,7 @@ object AuthConfig {
     
     // Security settings
     const val SESSION_TIMEOUT_MINUTES = 60L // Session timeout in minutes
+    const val SESSION_VALIDITY_DAYS = 7L // How long stored sessions remain valid (in days)
     const val MAX_LOGIN_ATTEMPTS = 5 // Maximum failed login attempts before lockout
     
     // Feature flags

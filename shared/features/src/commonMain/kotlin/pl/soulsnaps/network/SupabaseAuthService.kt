@@ -88,9 +88,25 @@ class SupabaseAuthService(private val client: SupabaseClient) {
 
     suspend fun refreshSession(): UserSession? {
         return try {
+            println("DEBUG: SupabaseAuthService.refreshSession() - attempting to refresh session")
+            
+            // Check if there's a current session to refresh
+            val currentSession = client.auth.currentSessionOrNull()
+            if (currentSession == null) {
+                println("❌ SupabaseAuthService.refreshSession() - No refresh token found in current session")
+                return null
+            }
+            
             client.auth.refreshCurrentSession()
-            getCurrentUser()
+            val user = getCurrentUser()
+            if (user != null) {
+                println("✅ SupabaseAuthService.refreshSession() - session refreshed successfully")
+            } else {
+                println("❌ SupabaseAuthService.refreshSession() - no user returned after refresh")
+            }
+            user
         } catch (e: Exception) {
+            println("❌ SupabaseAuthService.refreshSession() - refresh failed: ${e.message}")
             null
         }
     }
@@ -127,6 +143,17 @@ class SupabaseAuthService(private val client: SupabaseClient) {
         } catch (e: Exception) {
             false
         }
+    }
+    
+    /**
+     * Attempts to restore a session using stored tokens.
+     * This is a placeholder for future implementation when Supabase supports session restoration.
+     */
+    suspend fun restoreSession(accessToken: String, refreshToken: String): UserSession? {
+        // TODO: Implement session restoration when Supabase Kotlin Multiplatform supports it
+        // For now, we rely on our own session validation logic
+        println("ℹ️ SupabaseAuthService.restoreSession() - session restoration not yet supported")
+        return null
     }
 }
 

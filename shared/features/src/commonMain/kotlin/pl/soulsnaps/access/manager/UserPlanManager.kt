@@ -111,7 +111,11 @@ class UserPlanManagerImpl(
         }
     }
 
-    override fun getUserPlan(): String? = _currentPlan.value
+    override fun getUserPlan(): String? {
+        val plan = _currentPlan.value
+        println("DEBUG: UserPlanManager.getUserPlan() - returning: $plan")
+        return plan
+    }
     override fun isOnboardingCompleted(): Boolean = _hasCompletedOnboarding.value
 
     /** Ustaw domyślny plan tylko w pamięci (opcjonalnie rozważ też persist) */
@@ -131,6 +135,8 @@ class UserPlanManagerImpl(
 
                 _currentPlan.value = storedPlan
                 _hasCompletedOnboarding.value = storedOnboardingCompleted
+                
+                println("DEBUG: UserPlanManager.loadDataFromStorage() - _currentPlan.value set to: ${_currentPlan.value}")
             } catch (e: Exception) {
                 println("DEBUG: UserPlanManager.loadDataFromStorage() - error: ${e.message}")
                 _currentPlan.value = null

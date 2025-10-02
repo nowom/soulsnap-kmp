@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -54,6 +55,52 @@ class UserPreferencesStorageImpl(
 
     override suspend fun hasStoredData(): Boolean =
         dataStore.data.first().asMap().isNotEmpty()
+    
+    // Generic string/boolean operations
+    override suspend fun saveString(key: String, value: String) {
+        val prefKey = stringPreferencesKey(key)
+        dataStore.edit { it[prefKey] = value }
+    }
+    
+    override suspend fun getString(key: String): String? {
+        val prefKey = stringPreferencesKey(key)
+        return dataStore.data.map { it[prefKey] }.first()
+    }
+    
+    override suspend fun removeString(key: String) {
+        val prefKey = stringPreferencesKey(key)
+        dataStore.edit { it.remove(prefKey) }
+    }
+    
+    override suspend fun saveBoolean(key: String, value: Boolean) {
+        val prefKey = booleanPreferencesKey(key)
+        dataStore.edit { it[prefKey] = value }
+    }
+    
+    override suspend fun getBoolean(key: String): Boolean? {
+        val prefKey = booleanPreferencesKey(key)
+        return dataStore.data.map { it[prefKey] }.first()
+    }
+    
+    override suspend fun removeBoolean(key: String) {
+        val prefKey = booleanPreferencesKey(key)
+        dataStore.edit { it.remove(prefKey) }
+    }
+    
+    override suspend fun saveLong(key: String, value: Long) {
+        val prefKey = longPreferencesKey(key)
+        dataStore.edit { it[prefKey] = value }
+    }
+    
+    override suspend fun getLong(key: String): Long? {
+        val prefKey = longPreferencesKey(key)
+        return dataStore.data.map { it[prefKey] }.first()
+    }
+    
+    override suspend fun removeLong(key: String) {
+        val prefKey = longPreferencesKey(key)
+        dataStore.edit { it.remove(prefKey) }
+    }
 }
 
 interface UserPreferencesStorage{
@@ -67,4 +114,15 @@ interface UserPreferencesStorage{
     suspend fun saveNotificationPermissionGranted(granted: Boolean)
     suspend fun isNotificationPermissionGranted(): Boolean
     suspend fun hasStoredData(): Boolean
+    
+    // Generic string/boolean/long operations for session storage
+    suspend fun saveString(key: String, value: String)
+    suspend fun getString(key: String): String?
+    suspend fun removeString(key: String)
+    suspend fun saveBoolean(key: String, value: Boolean)
+    suspend fun getBoolean(key: String): Boolean?
+    suspend fun removeBoolean(key: String)
+    suspend fun saveLong(key: String, value: Long)
+    suspend fun getLong(key: String): Long?
+    suspend fun removeLong(key: String)
 }

@@ -43,33 +43,49 @@ class AdvancedSyncManager(
     private var processingJob: kotlinx.coroutines.Job? = null
     
     override fun start() {
-        if (isRunning) return
+        if (isRunning) {
+            //println("⚠️ AdvancedSyncManager.start() - already running, skipping")
+            return
+        }
         
         isRunning = true
-        println("DEBUG: AdvancedSyncManager.start() - starting sync manager")
+        //println("========================================")
+        //println("🚀 AdvancedSyncManager.start() - STARTING SYNC MANAGER")
+        //println("========================================")
         
         // Start connectivity monitoring
+        //println("📡 Starting connectivity monitor...")
         connectivityMonitor.start()
+        //println("✅ Connectivity monitor started")
         
         // Start processing loop
+        //println("🔄 Starting processing loop...")
         startProcessingLoop()
+        //println("✅ Processing loop started")
         
         // Schedule periodic wake-ups
+        //println("⏰ Scheduling periodic wake-ups...")
         platformScheduler.ensureScheduled()
+        //println("✅ Scheduler configured")
         
         // Pull all data on startup if configured
         if (config.pullOnStartup) {
+            //println("📥 Pull on startup enabled, enqueueing PullAll task")
             syncScope.launch {
-                enqueue(pl.soulsnaps.sync.model.PullAll)
+                enqueue(pl.soulsnaps.sync.model.PullAll())
             }
         }
+        
+        //println("========================================")
+        //println("✅ AdvancedSyncManager.start() - SYNC MANAGER RUNNING")
+        //println("========================================")
     }
     
     override fun stop() {
         if (!isRunning) return
         
         isRunning = false
-        println("DEBUG: AdvancedSyncManager.stop() - stopping sync manager")
+        //println("DEBUG: AdvancedSyncManager.stop() - stopping sync manager")
         
         // Stop processing
         processingJob?.cancel()
@@ -87,29 +103,39 @@ class AdvancedSyncManager(
     
     override suspend fun triggerNow() {
         if (!isRunning) {
-            println("DEBUG: AdvancedSyncManager.triggerNow() - not running, ignoring trigger")
+            //println("DEBUG: AdvancedSyncManager.triggerNow() - not running, ignoring trigger")
             return
         }
         
-        println("DEBUG: AdvancedSyncManager.triggerNow() - triggering immediate sync")
+        //println("DEBUG: AdvancedSyncManager.triggerNow() - triggering immediate sync")
         processSyncQueue()
     }
     
     override suspend fun enqueue(task: SyncTask) {
         if (!isRunning) {
-            println("DEBUG: AdvancedSyncManager.enqueue() - not running, ignoring task: ${task.id}")
+            //println("ERROR: AdvancedSyncManager.enqueue() - ❌ not running, ignoring task: ${task.id}")
+            //println("ERROR: AdvancedSyncManager.enqueue() - ❌ You need to call syncManager.start() first!")
             return
         }
         
-        println("DEBUG: AdvancedSyncManager.enqueue() - enqueueing task: ${task.id}")
+        //println("DEBUG: AdvancedSyncManager.enqueue() - ✅ enqueueing task: ${task.id}")
+        //println("DEBUG: AdvancedSyncManager.enqueue() - task type: ${task::class.simpleName}")
+        //println("DEBUG: AdvancedSyncManager.enqueue() - isOnline: ${connectivityMonitor.connected.value}")
+        
         syncQueue.enqueue(task)
         
         // Update status
         updateStatus()
         
+        val pendingCount = syncQueue.getPendingCount()
+        //println("DEBUG: AdvancedSyncManager.enqueue() - queue size after enqueue: $pendingCount")
+        
         // Trigger immediate processing if online
         if (connectivityMonitor.connected.value) {
+            //println("DEBUG: AdvancedSyncManager.enqueue() - triggering immediate sync (online)")
             triggerNow()
+        } else {
+            //println("WARNING: AdvancedSyncManager.enqueue() - offline, sync will happen when connection is restored")
         }
     }
     
@@ -132,7 +158,7 @@ class AdvancedSyncManager(
                     // Wait before next iteration
                     delay(1000) // Check every second when online
                 } catch (e: Exception) {
-                    println("ERROR: AdvancedSyncManager.processingLoop() - error: ${e.message}")
+                    //println("ERROR: AdvancedSyncManager.processingLoop() - error: ${e.message}")
                     delay(5000) // Wait longer on error
                 }
             }
@@ -140,19 +166,24 @@ class AdvancedSyncManager(
     }
     
     private suspend fun processSyncQueue() {
+        //println("DEBUG: AdvancedSyncManager.processSyncQueue() - 🔄 starting sync queue processing")
+        
         if (!connectivityMonitor.connected.value) {
-            println("DEBUG: AdvancedSyncManager.processSyncQueue() - offline, skipping processing")
+            //println("WARNING: AdvancedSyncManager.processSyncQueue() - ⚠️ offline, skipping processing")
             return
         }
         
         try {
             // Get due tasks
             val dueTasks = syncQueue.getDueTasks(config.maxParallelTasks)
+            //println("DEBUG: AdvancedSyncManager.processSyncQueue() - found ${dueTasks.size} due tasks")
+            
             if (dueTasks.isEmpty()) {
+                //println("DEBUG: AdvancedSyncManager.processSyncQueue() - no due tasks, returning")
                 return
             }
             
-            println("DEBUG: AdvancedSyncManager.processSyncQueue() - processing ${dueTasks.size} tasks")
+            //println("DEBUG: AdvancedSyncManager.processSyncQueue() - processing ${dueTasks.size} tasks")
             
             // Emit sync started event
             GlobalEventBus.emit(AppEvent.SyncStarted(dueTasks.size))
@@ -174,10 +205,10 @@ class AdvancedSyncManager(
             // Emit sync completed event
             GlobalEventBus.emit(AppEvent.SyncCompleted(successCount, failureCount))
             
-            println("DEBUG: AdvancedSyncManager.processSyncQueue() - completed: $successCount success, $failureCount failures")
+            //println("DEBUG: AdvancedSyncManager.processSyncQueue() - completed: $successCount success, $failureCount failures")
             
         } catch (e: Exception) {
-            println("ERROR: AdvancedSyncManager.processSyncQueue() - error: ${e.message}")
+            //println("ERROR: AdvancedSyncManager.processSyncQueue() - error: ${e.message}")
             GlobalEventBus.emit(AppEvent.SyncFailed(e.message ?: "Unknown error"))
         }
     }
@@ -201,17 +232,17 @@ class AdvancedSyncManager(
                 if (result.isSuccess) {
                     // Mark as completed
                     syncQueue.markCompleted(taskEntity.id)
-                    println("DEBUG: AdvancedSyncManager.processTask() - task completed: ${task.id}")
+                    //println("DEBUG: AdvancedSyncManager.processTask() - task completed: ${task.id}")
                 } else {
                     // Mark as failed and reschedule
                     syncQueue.markFailed(taskEntity.id, taskEntity.attemptCount + 1)
-                    println("ERROR: AdvancedSyncManager.processTask() - task failed: ${task.id}, error: ${result.exceptionOrNull()?.message}")
+                    //println("ERROR: AdvancedSyncManager.processTask() - task failed: ${task.id}, error: ${result.exceptionOrNull()?.message}")
                 }
                 
             } catch (e: Exception) {
                 // Mark as failed and reschedule
                 syncQueue.markFailed(taskEntity.id, taskEntity.attemptCount + 1)
-                println("ERROR: AdvancedSyncManager.processTask() - task exception: ${task.id}, error: ${e.message}")
+                //println("ERROR: AdvancedSyncManager.processTask() - task exception: ${task.id}, error: ${e.message}")
             }
         }
     }

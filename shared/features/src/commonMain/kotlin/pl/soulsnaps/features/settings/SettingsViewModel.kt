@@ -42,16 +42,63 @@ class SettingsViewModel(
     
     init {
         loadUserData()
+        
+        // Listen for user session changes
+        viewModelScope.launch {
+            userSessionManager.sessionState.collect { sessionState ->
+                when (sessionState) {
+                    is pl.soulsnaps.features.auth.SessionState.Authenticated -> {
+                        println("DEBUG: SettingsViewModel - user authenticated, updating data")
+                        loadUserData()
+                    }
+                    is pl.soulsnaps.features.auth.SessionState.Unauthenticated -> {
+                        println("DEBUG: SettingsViewModel - user unauthenticated, clearing data")
+                        _state.value = _state.value.copy(
+                            userEmail = null,
+                            userDisplayName = null,
+                            currentPlan = "GUEST"
+                        )
+                    }
+                    else -> {
+                        // Loading or error states - keep current data
+                    }
+                }
+            }
+        }
+        
+        // Listen for user plan changes
+        viewModelScope.launch {
+            userPlanManager.currentPlan.collect { plan ->
+                println("DEBUG: SettingsViewModel - user plan changed to: $plan")
+                loadUserData()
+            }
+        }
     }
     
     private fun loadUserData() {
         val currentUser = userSessionManager.getCurrentUser()
+        val userPlan = userPlanManager.getUserPlan()
+        
+        println("DEBUG: SettingsViewModel.loadUserData() - currentUser: ${currentUser?.email}")
+        println("DEBUG: SettingsViewModel.loadUserData() - userPlan: $userPlan")
+        println("DEBUG: SettingsViewModel.loadUserData() - userPlan is null: ${userPlan == null}")
+        
+        // If userPlan is null but user is authenticated, set to FREE_USER as fallback
+        val finalUserPlan = if (userPlan == null && currentUser != null) {
+            println("DEBUG: SettingsViewModel.loadUserData() - userPlan is null but user is authenticated, using FREE_USER as fallback")
+            "FREE_USER"
+        } else {
+            userPlan
+        }
+        
         _state.value = _state.value.copy(
-            currentPlan = userPlanManager.getUserPlan(),
+            currentPlan = finalUserPlan,
             userEmail = currentUser?.email,
             userDisplayName = currentUser?.displayName,
             appVersion = getAppVersion()
         )
+        
+        println("DEBUG: SettingsViewModel.loadUserData() - updated state: userEmail=${_state.value.userEmail}, currentPlan=${_state.value.currentPlan}")
     }
     
     private fun getAppVersion(): String {
@@ -104,6 +151,7 @@ class SettingsViewModel(
             }
         }
     }
+    
 
     /**
      * Clear only user-specific data (memories, preferences)

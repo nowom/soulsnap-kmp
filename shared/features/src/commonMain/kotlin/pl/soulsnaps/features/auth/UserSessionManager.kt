@@ -10,6 +10,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import pl.soulsnaps.domain.model.UserSession
 import pl.soulsnaps.crashlytics.CrashlyticsManager
+import pl.soulsnaps.network.SupabaseAuthService
+import pl.soulsnaps.config.AuthConfig
+import pl.soulsnaps.utils.getCurrentTimeMillis
 
 interface UserSessionManager {
     val currentUser: StateFlow<UserSession?>
@@ -21,11 +24,13 @@ interface UserSessionManager {
     fun clearError()
     fun isAuthenticated(): Boolean
     fun getCurrentUser(): UserSession?
+    suspend fun validateAndRefreshSession()
 }
 
 class UserSessionManagerImpl(
     private val sessionDataStore: SessionDataStore,
     private val crashlyticsManager: CrashlyticsManager,
+    private val supabaseAuthService: SupabaseAuthService,
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob())
 ): UserSessionManager {
     private val _sessionState = MutableStateFlow<SessionState>(SessionState.Loading)
@@ -42,13 +47,18 @@ class UserSessionManagerImpl(
 
     private fun checkExistingSession() {
         coroutineScope.launch {
-            val storedSession = sessionDataStore.getStoredSession()
-            if (storedSession != null) {
-                _currentUser.update { storedSession }
-                _sessionState.update { SessionState.Authenticated(storedSession) }
-            } else {
-                _sessionState.update { SessionState.Unauthenticated }
-            }
+            println("========================================")
+            println("🔍 UserSessionManagerImpl.checkExistingSession() - CHECKING")
+            println("========================================")
+            
+            // Validate and refresh session (checks both DataStore and Supabase)
+            validateAndRefreshSession()
+            
+            println("========================================")
+            println("✅ UserSessionManagerImpl.checkExistingSession() - COMPLETED")
+            println("📊 isAuthenticated: ${isAuthenticated()}")
+            println("📊 currentUser: ${_currentUser.value?.email}")
+            println("========================================")
         }
     }
 
@@ -117,6 +127,107 @@ class UserSessionManagerImpl(
 
     override fun getCurrentUser(): UserSession? {
         return _currentUser.value
+    }
+
+    override suspend fun validateAndRefreshSession() {
+        println("========================================")
+        println("🔄 UserSessionManagerImpl.validateAndRefreshSession() - VALIDATING SESSION")
+        println("========================================")
+        
+        try {
+            val storedSession = sessionDataStore.getStoredSession()
+            
+            // Check if Supabase session is still valid first
+            val isSupabaseAuthenticated = supabaseAuthService.isAuthenticated()
+            println("📊 Supabase session valid: $isSupabaseAuthenticated")
+            
+            if (isSupabaseAuthenticated) {
+                // Supabase has valid session - get current user
+                val currentUser = supabaseAuthService.getCurrentUser()
+                if (currentUser != null) {
+                    println("✅ Supabase session valid, user: ${currentUser.email}")
+                    
+                    // Save session to our storage if not already saved
+                    if (storedSession == null || storedSession.userId != currentUser.userId) {
+                        println("💾 Saving Supabase session to our storage")
+                        sessionDataStore.saveSession(currentUser)
+                    }
+                    
+                    _currentUser.update { currentUser }
+                    _sessionState.update { SessionState.Authenticated(currentUser) }
+                } else {
+                    println("❌ Supabase session valid but no user returned")
+                    _sessionState.update { SessionState.Unauthenticated }
+                }
+            } else if (storedSession != null) {
+                // No Supabase session but we have stored session - validate stored session
+                println("⚠️ No Supabase session but stored session found, validating stored session...")
+                
+                // Check if stored session is still valid (not expired)
+                val isStoredSessionValid = isStoredSessionValid(storedSession)
+                
+                if (isStoredSessionValid) {
+                    println("✅ Stored session is valid, restoring user session")
+                    println("📊 Restored user: ${storedSession.email}")
+                    _currentUser.update { storedSession }
+                    _sessionState.update { SessionState.Authenticated(storedSession) }
+                    
+                    // Try to refresh in background to sync with Supabase
+                    coroutineScope.launch {
+                        try {
+                            println("🔄 Attempting background session refresh...")
+                            val refreshedSession = supabaseAuthService.refreshSession()
+                            if (refreshedSession != null) {
+                                println("✅ Background refresh successful, updating session")
+                                sessionDataStore.saveSession(refreshedSession)
+                                _currentUser.update { refreshedSession }
+                            } else {
+                                println("ℹ️ Background refresh failed, but keeping stored session")
+                            }
+                        } catch (e: Exception) {
+                            println("ℹ️ Background refresh failed: ${e.message}, but keeping stored session")
+                        }
+                    }
+                } else {
+                    println("❌ Stored session is expired, clearing session")
+                    sessionDataStore.clearSession()
+                    _currentUser.update { null }
+                    _sessionState.update { SessionState.SessionExpired }
+                    crashlyticsManager.log("Stored session expired, user logged out")
+                }
+            } else {
+                // No session anywhere
+                println("ℹ️ No session found in Supabase or storage")
+                _sessionState.update { SessionState.Unauthenticated }
+            }
+            
+            println("========================================")
+            
+        } catch (e: Exception) {
+            println("ERROR: UserSessionManagerImpl.validateAndRefreshSession() - failed: ${e.message}")
+            crashlyticsManager.recordException(e)
+            
+            // On error, clear session to be safe
+            sessionDataStore.clearSession()
+            _currentUser.update { null }
+            _sessionState.update { SessionState.Unauthenticated }
+        }
+    }
+    
+    private fun isStoredSessionValid(storedSession: UserSession): Boolean {
+        // Check if session is not expired using configurable validity duration
+        val sessionValidDuration = AuthConfig.SESSION_VALIDITY_DAYS * 24 * 60 * 60 * 1000L // Convert days to milliseconds
+        val currentTime = getCurrentTimeMillis()
+        val sessionAge = currentTime - storedSession.lastActiveAt
+        
+        val isValid = sessionAge < sessionValidDuration
+        
+        println("📊 Stored session validation:")
+        println("   - Session age: ${sessionAge / (24 * 60 * 60 * 1000)} days")
+        println("   - Max validity: ${AuthConfig.SESSION_VALIDITY_DAYS} days")
+        println("   - Is valid: $isValid")
+        
+        return isValid
     }
 }
 

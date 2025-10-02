@@ -5,51 +5,48 @@ import kotlinx.serialization.Serializable
 /**
  * Universal sync task types
  */
-sealed interface SyncTask {
-    val id: String
-    val localId: Long
+@Serializable
+sealed class SyncTask {
+    abstract val id: String
+    abstract val localId: Long
 }
 
 @Serializable
 data class CreateMemory(
     override val localId: Long,
     val plannedRemotePhotoPath: String,
-    val plannedRemoteAudioPath: String? = null
-) : SyncTask {
-    override val id = "CREATE:$localId"
-}
+    val plannedRemoteAudioPath: String? = null,
+    override val id: String = "CREATE:$localId"
+) : SyncTask()
 
 @Serializable
 data class UpdateMemory(
     override val localId: Long,
     val reuploadPhoto: Boolean = false,
-    val reuploadAudio: Boolean = false
-) : SyncTask {
-    override val id = "UPDATE:$localId"
-}
+    val reuploadAudio: Boolean = false,
+    override val id: String = "UPDATE:$localId"
+) : SyncTask()
 
 @Serializable
 data class ToggleFavorite(
     override val localId: Long,
-    val isFavorite: Boolean
-) : SyncTask {
-    override val id = "FAV:$localId:$isFavorite"
-}
+    val isFavorite: Boolean,
+    override val id: String = "FAV:$localId:$isFavorite"
+) : SyncTask()
 
 @Serializable
 data class DeleteMemory(
     override val localId: Long,
     val remotePhotoPath: String?,
-    val remoteAudioPath: String?
-) : SyncTask {
-    override val id = "DELETE:$localId"
-}
+    val remoteAudioPath: String?,
+    override val id: String = "DELETE:$localId"
+) : SyncTask()
 
 @Serializable
-data object PullAll : SyncTask {
-    override val id = "PULL_ALL"
+data class PullAll(
+    override val id: String = "PULL_ALL",
     override val localId: Long = -1
-}
+) : SyncTask()
 
 /**
  * Sync status for UI

@@ -12,4 +12,5 @@ interface MemoryRepository {
     suspend fun markAsFavorite(id: Int, isFavorite: Boolean)
     suspend fun cleanupInvalidMemories(): Int
     suspend fun clearAllMemories(): Int // Returns the number of deleted memories
+    suspend fun enqueuePendingMemories() // Enqueue unsynced memories for sync
 }

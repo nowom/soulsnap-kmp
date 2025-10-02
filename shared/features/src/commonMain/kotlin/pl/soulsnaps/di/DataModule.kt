@@ -25,7 +25,8 @@ import pl.soulsnaps.domain.StartupRepository
 import pl.soulsnaps.data.StartupRepositoryImpl
 import pl.soulsnaps.domain.MemoryMaintenance
 import pl.soulsnaps.domain.NoOpMemoryMaintenance
-import pl.soulsnaps.features.auth.InMemorySessionDataStore
+// import pl.soulsnaps.features.auth.InMemorySessionDataStore // Removed - using PersistentSessionDataStore
+import pl.soulsnaps.features.auth.PersistentSessionDataStore
 import pl.soulsnaps.features.auth.SessionDataStore
 import pl.soulsnaps.features.auth.UserSessionManager
 import pl.soulsnaps.features.auth.UserSessionManagerImpl
@@ -81,8 +82,10 @@ object DataModule {
         // Affirmation Service
         single<AffirmationService> { AffirmationServiceImpl() }
         
-        // Session management
-        single<SessionDataStore> { InMemorySessionDataStore() }
+        // Session management - PERSISTENT SESSION STORAGE
+        single<SessionDataStore> { 
+            PersistentSessionDataStore(get())
+        }
 
         // User Plan Repository
         single<UserPlanRepository> {

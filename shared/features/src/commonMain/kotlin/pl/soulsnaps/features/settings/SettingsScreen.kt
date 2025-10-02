@@ -8,6 +8,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
+import pl.soulsnaps.features.auth.SessionRefreshService
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -19,6 +23,13 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val sessionRefreshService: SessionRefreshService = koinInject()
+    var refreshMessage by remember { mutableStateOf("") }
+    
+    // Debug logs
+    LaunchedEffect(state) {
+        println("DEBUG: SettingsScreen - state changed: userEmail=${state.userEmail}, currentPlan=${state.currentPlan}")
+    }
     
     Column(
         modifier = Modifier
@@ -32,6 +43,28 @@ fun SettingsScreen(
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 16.dp)
         )
+        
+        // Debug status for testing
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(2.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (state.userEmail != null) 
+                    MaterialTheme.colorScheme.primaryContainer 
+                else MaterialTheme.colorScheme.errorContainer
+            )
+        ) {
+            Text(
+                text = if (state.userEmail != null) 
+                    "✅ Jesteś zalogowany (${state.userEmail})" 
+                else "❌ Jesteś niezalogowany",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(16.dp),
+                color = if (state.userEmail != null) 
+                    MaterialTheme.colorScheme.onPrimaryContainer 
+                else MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
         
         // User Info
         Card(
@@ -106,8 +139,8 @@ fun SettingsScreen(
             }
         }
         
-        // Guest User Registration Card
-        if (state.currentPlan == "GUEST" || state.userEmail == null) {
+        // Guest User Registration Card - only show for actual guests
+        if (state.currentPlan == "GUEST" && state.userEmail == null) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(4.dp),
@@ -219,6 +252,62 @@ fun SettingsScreen(
                     enabled = !state.isLoading
                 ) {
                     Text("Wyczyść wszystkie dane")
+                }
+            }
+        }
+        
+        // Session Management
+        if (state.userEmail != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(4.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Zarządzanie sesją",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Text(
+                        text = "Sesja jest automatycznie odświeżana co 5 minut",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Manual refresh button
+                    Button(
+                        onClick = {
+                            refreshMessage = "Odświeżanie sesji..."
+                            kotlinx.coroutines.GlobalScope.launch {
+                                try {
+                                    sessionRefreshService.refreshNow()
+                                    refreshMessage = "✅ Sesja odświeżona pomyślnie"
+                                } catch (e: Exception) {
+                                    refreshMessage = "❌ Błąd odświeżania: ${e.message}"
+                                }
+                                kotlinx.coroutines.delay(2000)
+                                refreshMessage = ""
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Odśwież sesję teraz")
+                    }
+                    
+                    if (refreshMessage.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = refreshMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (refreshMessage.startsWith("✅")) 
+                                MaterialTheme.colorScheme.primary 
+                            else MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         }
